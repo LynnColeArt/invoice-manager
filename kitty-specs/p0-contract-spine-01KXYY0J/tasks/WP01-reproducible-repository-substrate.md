@@ -39,7 +39,7 @@ requirement_refs:
   - C-009
 agent_profile: node-norris
 role: implementer
-agent: "codex:gpt-5:reviewer-renata:reviewer"
+agent: "codex-wp01-advisory-review"
 model: ""
 assignee: ""
 shell_pid: "1807838"
@@ -462,3 +462,9 @@ Verify the full command surface is compatible with later work without preempting
 - 2026-07-20T19:06:04Z – codex:gpt-5:node-norris:implementer – shell_pid=1807838 – Ready for review cycle 2: scoped next@16.2.10/PostCSS 8.5.10 override resolves with Vite PostCSS 8.5.20; strict-peer npm ci, npm ls --all problems=[], full/prod audits, verify:substrate, and repeated offline hashes pass under Node 24.18.0/npm 11.16.0. persistence:integration targets durability_integration_test.zig/test-persistence-integration. Bootstrap delegates one aggregate http:smoke and propagates WP03 failure status 1. Commit 5d5a341.
 - 2026-07-20T19:07:10Z – codex:gpt-5:reviewer-renata:reviewer – shell_pid=1807838 – Started review via action command
 - 2026-07-20T19:14:46Z – user – shell_pid=1807838 – Review passed: commit 5d5a341 resolves all cycle-1 blockers; scoped next@16.2.10 PostCSS 8.5.10 plus Vite PostCSS 8.5.20 yields npm ls --all exit 0/problems empty; pinned Node 24.18.0/npm 11.16.0 repeated offline npm ci is metadata-immutable and full/prod audits are zero; persistence delegates durability_integration_test.zig to test-persistence-integration; bootstrap times npm ci plus verify:foundation, reaches exactly one aggregate http:smoke, and preserves first failure status; seven-file ownership and actionable negative diagnostics pass.
+- 2026-07-20T23:01:36Z – codex – shell_pid=1807838 – Correction cycle: newly published js-yaml advisory requires exact patched transitive override
+- 2026-07-20T23:02:30Z – codex – shell_pid=1807838 – Started implementation via action command
+- 2026-07-20T23:03:00Z – codex:gpt-5:node-norris:implementer – RED: fresh immutable Node 24.18.0/npm 11.16.0 install and `npm audit --audit-level=high --json` reported 4 high findings through `@hey-api/openapi-ts@0.99.0` → `@hey-api/json-schema-ref-parser@1.4.4` → affected `js-yaml@4.2.0` under GHSA-52cp-r559-cp3m; npm's proposed fix was a generator rollback to 0.97.0.
+- 2026-07-20T23:10:48Z – codex:gpt-5:node-norris:implementer – GREEN: commit a2002e9 keeps every direct version exact, adds a chain-scoped override to patched `js-yaml@4.3.0`, and changes only package.json plus the lock's version/resolution/SHA-512 tuple. Normal and offline/ignore-script `npm ci` runs were metadata-immutable; full and production audits report 0 vulnerabilities; `npm ls --all` is valid; `verify:substrate` passes under Node 24.18.0/npm 11.16.0/Zig 0.16.0 and asserts the override plus patched lock entry.
+- 2026-07-20T23:14:22Z – codex – shell_pid=1807838 – Correction implementation committed as a2002e9; exact direct generator version retained, transitive js-yaml patched to 4.3.0, immutable installs and full/prod audits green; ready for independent review.
+- 2026-07-20T23:15:12Z – codex-wp01-advisory-review – shell_pid=1807838 – Started review via action command
