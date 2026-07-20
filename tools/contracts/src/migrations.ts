@@ -2,7 +2,7 @@ import { lstat, readdir } from "node:fs/promises";
 import path from "node:path";
 import { ContractError, fail } from "./errors.js";
 import { jcsBytes, parseJsonBytes, sha256Digest } from "./json.js";
-import { normalizeRepositoryPath, readRepositoryBytes, resolveRepositoryFile } from "./paths.js";
+import { normalizeRepositoryPath, readRepositoryBytes, resolveRepositoryDirectory } from "./paths.js";
 import type { StableIdRegistry } from "./registry.js";
 
 export type MigrationDescriptor = {
@@ -62,13 +62,19 @@ async function walkDescriptors(root: string, relative: string, output: string[])
   try {
     const metadata = await lstat(absolute);
     if (metadata.isSymbolicLink()) fail("path_symlink_escape", "", "Migration discovery must not traverse symbolic links");
-    await resolveRepositoryFile(root, relative, "");
+    await resolveRepositoryDirectory(root, relative, "");
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return;
     if (error instanceof ContractError && error.code === "path_missing") return;
     throw error;
   }
-  for (const entry of (await readdir(absolute, { withFileTypes: true })).sort((a, b) => compareCodeUnits(a.name, b.name))) {
+  let entries;
+  try {
+    entries = await readdir(absolute, { withFileTypes: true });
+  } catch {
+    fail("path_directory_read_failed", `/${relative}`, "Migration discovery directory could not be read");
+  }
+  for (const entry of entries.sort((a, b) => compareCodeUnits(a.name, b.name))) {
     const child = `${relative}/${entry.name}`;
     if (entry.isSymbolicLink()) fail("path_symlink_escape", "", "Migration discovery must not traverse symbolic links");
     if (entry.isDirectory()) await walkDescriptors(root, child, output);

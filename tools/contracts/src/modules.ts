@@ -1,9 +1,8 @@
 import { readdir } from "node:fs/promises";
-import path from "node:path";
 import { parseDocument } from "yaml";
 import { fail } from "./errors.js";
 import { compareCodeUnits, type JsonValue, parseJson } from "./json.js";
-import { normalizeRepositoryPath, readRepositoryText, resolveRepositoryFile } from "./paths.js";
+import { normalizeRepositoryPath, readRepositoryText, resolveRepositoryDirectory, resolveRepositoryFile } from "./paths.js";
 import { type StableIdRegistry, isJsonObject } from "./registry.js";
 
 export type Access = "public" | "protected";
@@ -58,8 +57,8 @@ function parseYamlDocument(text: string, pointer: string): Record<string, unknow
   return objectValue(document.toJS(), "openapi_document_invalid", pointer);
 }
 
-async function readStructuredFile(root: string, relative: string): Promise<Record<string, unknown>> {
-  const text = await readRepositoryText(root, relative, "");
+async function readStructuredFile(root: string, relative: string, pointer: string): Promise<Record<string, unknown>> {
+  const text = await readRepositoryText(root, relative, pointer);
   if (relative.endsWith(".json")) return objectValue(parseJson(text), "json_object_required", "");
   return parseYamlDocument(text, "");
 }
@@ -107,9 +106,15 @@ export function validateModuleSet(modules: ModuleContribution[]): void {
 }
 
 export async function discoverModules(root: string, registry: StableIdRegistry): Promise<ModuleContribution[]> {
-  const directory = path.join(root, "contracts/modules");
+  const directory = await resolveRepositoryDirectory(root, "contracts/modules", "/modules");
   const modules: ModuleContribution[] = [];
-  for (const entry of (await readdir(directory, { withFileTypes: true })).sort((a, b) => compareCodeUnits(a.name, b.name))) {
+  let entries;
+  try {
+    entries = await readdir(directory, { withFileTypes: true });
+  } catch {
+    fail("path_directory_read_failed", "/modules", "Module discovery directory could not be read");
+  }
+  for (const entry of entries.sort((a, b) => compareCodeUnits(a.name, b.name))) {
     if (entry.isSymbolicLink() && /^p[0-8]$/u.test(entry.name)) {
       fail("path_symlink_escape", "", "Module discovery must not traverse symbolic links");
     }
@@ -140,13 +145,10 @@ function sortedRecord(record: Record<string, unknown>): Record<string, unknown> 
   return Object.fromEntries(Object.entries(record).sort(([left], [right]) => compareCodeUnits(left, right)));
 }
 
-export type StructuredContractLoader = (relative: string) => Promise<Record<string, unknown>>;
-
 export async function composeModules(
   root: string,
   registry: StableIdRegistry,
   suppliedModules?: ModuleContribution[],
-  suppliedLoader?: StructuredContractLoader,
 ): Promise<ComposedContracts> {
   const modules = suppliedModules ? [...suppliedModules] : await discoverModules(root, registry);
   validateModuleSet(modules);
@@ -160,14 +162,14 @@ export async function composeModules(
   const componentOwners = new Map<string, string>();
   const eventIdentities = new Map<string, string>();
   const eventTypeVersions = new Map<string, string>();
-  const load = suppliedLoader ?? ((relative: string) => readStructuredFile(root, relative));
+  const load = (relative: string, pointer: string): Promise<Record<string, unknown>> => readStructuredFile(root, relative, pointer);
 
   for (const module of modules) {
     const declaredPublic = new Set(module.route_policy.public_operations);
     const resolvedPublic = new Set<string>();
     for (const [fragmentIndex, fragmentPath] of module.api_fragments.entries()) {
       const normalized = validateOwnerPath(module.owner_mission, "api", fragmentPath, `/api_fragments/${fragmentIndex}`);
-      const fragment = await load(normalized);
+      const fragment = await load(normalized, `/api_fragments/${fragmentIndex}`);
       if (fragment.openapi !== "3.1.0") fail("openapi_version_invalid", "/openapi", "OpenAPI fragments must use 3.1.0");
       const servers = Array.isArray(fragment.servers) ? fragment.servers : [];
       const firstServer = servers[0];
@@ -222,7 +224,7 @@ export async function composeModules(
     }
     for (const [catalogIndex, catalogPath] of module.event_catalogs.entries()) {
       const normalized = validateOwnerPath(module.owner_mission, "catalog", catalogPath, `/event_catalogs/${catalogIndex}`);
-      const value = await load(normalized);
+      const value = await load(normalized, `/event_catalogs/${catalogIndex}`);
       registry.validate("https://invoice-manager.invalid/contracts/events/catalog/v1/schema.json", value);
       const catalog = value as unknown as EventCatalog;
       if (catalog.owner_mission !== module.owner_mission) fail("event_catalog_owner_mismatch", "/owner_mission", "Event catalog owner differs from module owner");

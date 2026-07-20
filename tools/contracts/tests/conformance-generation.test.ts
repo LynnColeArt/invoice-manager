@@ -1,4 +1,4 @@
-import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { chmod, cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
@@ -22,6 +22,7 @@ import {
   assertSnapshotsEqual,
   buildValidatedBaselineRefreshCandidate,
   buildGeneratorOpenApi,
+  checkContracts,
   generateContracts,
   preflightContracts,
   publishPair,
@@ -29,9 +30,11 @@ import {
   type PublishFault,
 } from "../src/generate.js";
 import { run } from "../src/main.js";
-import { composeModules, type EventCatalog } from "../src/modules.js";
-import { buildRealOwnerSurface, type RealOwnerSurface } from "../src/real-conformance.js";
-import { discoverStableIdRegistry, StableIdRegistry } from "../src/registry.js";
+import {
+  inspectPinnedConformance,
+  validatePinnedManifestMaterial,
+} from "../src/pinned-conformance.js";
+import { assertReferencesResolve, discoverStableIdRegistry, StableIdRegistry } from "../src/registry.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const temporaryRoots: string[] = [];
@@ -108,80 +111,84 @@ describe("immutable P1-P4 conformance", () => {
   });
 });
 
-function apiDocument(surface: RealOwnerSurface, owner: string): Record<string, unknown> {
-  return surface.documents.get(`contracts/api/v1/fragments/${owner}/conformance.openapi.json`)!;
-}
-
-function operation(surface: RealOwnerSurface, owner: string): Record<string, unknown> {
-  const paths = apiDocument(surface, owner).paths as Record<string, unknown>;
-  return (Object.values(paths)[0] as Record<string, unknown>).get as Record<string, unknown>;
-}
-
-function catalog(surface: RealOwnerSurface, owner: string): EventCatalog {
-  return surface.documents.get(`contracts/events/v1/catalogs/${owner}/conformance.json`)! as unknown as EventCatalog;
-}
-
-describe("real P1-P4 concurrent mutation matrix", () => {
-  it("composes all exact pinned owners together", async () => {
+describe("exact pinned P1-P4 artifact conformance", () => {
+  it("inspects every available exact artifact and records absent fixture and migration edges without fabricating contributions", async () => {
     const preflight = await preflightContracts(root);
-    expect(preflight.realOwnerComposition.modules.map((module) => module.owner_mission)).toEqual(["p1", "p2", "p3", "p4"]);
-    expect(preflight.realOwnerComposition.routes).toHaveLength(4);
-    expect(preflight.realOwnerComposition.catalogs).toHaveLength(4);
+    expect(preflight.pinnedConformance.map(({ owner_mission }) => owner_mission)).toEqual(["p1", "p2", "p3", "p4"]);
+    expect(preflight.pinnedConformance.map(({ migration }) => migration.root ?? null)).toEqual([
+      "services/api/migrations/p1",
+      null,
+      "services/api/migrations/p3",
+      "services/api/migrations/p4",
+    ]);
+    expect(preflight.pinnedConformance.every(({ migration }) => !migration.available)).toBe(true);
+    for (const material of preflight.pinnedConformance) {
+      const verified = preflight.conformance.find(({ pin }) => pin.owner_mission === material.owner_mission)!;
+      const exactManifest = JSON.parse(execFileSync("git", ["show", `${verified.pin.commit}:${verified.pin.manifest_path}`], { cwd: root, encoding: "utf8" }));
+      expect(material).toMatchObject({
+        commit: verified.pin.commit,
+        manifest_path: verified.pin.manifest_path,
+        manifest_byte_sha256: verified.pin.manifest_sha256,
+        content_digest: verified.pin.content_digest,
+      });
+      expect(material.manifest).toEqual(exactManifest);
+      expect(material.dependencies).toEqual(material.inputs.map(({ owner_mission }) => owner_mission));
+      expect(material.outputs).toHaveLength(material.manifest.outputs.length);
+      expect(material.fixtures).toHaveLength(material.manifest.integration_fixtures.length);
+      expect(material.fixtures.every(({ available }) => !available)).toBe(true);
+      for (const output of material.outputs) {
+        const exactDocument = JSON.parse(execFileSync("git", ["show", `${verified.pin.commit}:${output.path}`], { cwd: root, encoding: "utf8" }));
+        expect(output.document).toEqual(exactDocument);
+        expect(output.schema_id).toBe(exactDocument.$id);
+        for (const reference of output.references) {
+          expect(() => preflight.registry.resolve(reference.startsWith("#") ? `${output.schema_id}${reference}` : reference)).not.toThrow();
+        }
+      }
+    }
+    const serialized = JSON.stringify(preflight.pinnedConformance);
+    expect(serialized).not.toContain("/conformance/");
+    expect(serialized).not.toContain("pinned-conformance");
+    expect(preflight.pinnedConformance.every((entry) => !("routes" in entry) && !("catalogs" in entry) && !("modules" in entry))).toBe(true);
   });
 
-  it("rejects each closed collision/ref/access class and cleanly succeeds after every failure", async () => {
+  it("rejects mutations over every actual manifest edge and exact schema graph, with a clean exact rerun after each", async () => {
     const preflight = await preflightContracts(root);
-    const cases: Array<{ code: string; mutate: (surface: RealOwnerSurface) => void }> = [
-      {
-        code: "route_method_collision",
-        mutate: (surface) => {
-          const p1Paths = apiDocument(surface, "p1").paths as Record<string, unknown>;
-          apiDocument(surface, "p2").paths = structuredClone(p1Paths);
-          operation(surface, "p2").operationId = "P2Conformance";
+    for (const [index, verified] of preflight.conformance.entries()) {
+      const cases: Array<{ code: string; pointer: string; mutate: (manifest: ContractManifest) => void }> = [
+        { code: "dependency_input_missing", pointer: "/dependencies/0", mutate: (manifest) => { manifest.inputs = []; } },
+        { code: "conformance_output_unavailable", pointer: `/inputs/${index}/outputs/0/path`, mutate: (manifest) => { manifest.outputs[0].path += ".missing"; } },
+        { code: "path_traversal", pointer: "/integration_fixtures/0/path", mutate: (manifest) => { manifest.integration_fixtures[0].path = "../missing-fixture.json"; } },
+        {
+          code: "conformance_migration_strategy_invalid",
+          pointer: `/inputs/${index}/manifest/migration_strategy`,
+          mutate: (manifest) => {
+            manifest.migration_strategy = manifest.migration_strategy.mode === "none"
+              ? { mode: "none", root: `services/api/migrations/${manifest.owner_mission}` }
+              : { mode: "owner_scoped_forward_only", root: "services/api/migrations/p8" };
+          },
         },
-      },
-      { code: "route_operation_id_collision", mutate: (surface) => { operation(surface, "p2").operationId = "P1Conformance"; } },
-      {
-        code: "openapi_component_collision",
-        mutate: (surface) => {
-          const schemas = (apiDocument(surface, "p2").components as Record<string, unknown>).schemas as Record<string, unknown>;
-          schemas.P1PinnedContract = schemas.P2PinnedContract;
-          delete schemas.P2PinnedContract;
-        },
-      },
-      { code: "module_mount_duplicate", mutate: (surface) => { surface.modules[1].mount_key = surface.modules[0].mount_key; } },
-      {
-        code: "event_identity_collision",
-        mutate: (surface) => {
-          catalog(surface, "p2").source = catalog(surface, "p1").source;
-          catalog(surface, "p2").events[0].event_type = catalog(surface, "p1").events[0].event_type;
-        },
-      },
-      { code: "route_public_policy_missing", mutate: (surface) => { operation(surface, "p1")["x-invoice-manager-access"] = "public"; } },
-      { code: "event_payload_schema_unresolved", mutate: (surface) => { catalog(surface, "p1").events[0].payload_schema_id = "https://invoice-manager.invalid/contracts/missing.schema.json"; } },
-      {
-        code: "event_payload_schema_conflict",
-        mutate: (surface) => { catalog(surface, "p2").events[0].event_type = catalog(surface, "p1").events[0].event_type; },
-      },
-    ];
-    for (const testCase of cases) {
-      const surface = buildRealOwnerSurface(preflight.conformance, preflight.registry);
-      testCase.mutate(surface);
-      try {
-        await composeModules(root, preflight.registry, surface.modules, surface.loader);
-        throw new Error("Expected real-owner mutation rejection");
-      } catch (error) {
-        expect(error).toMatchObject({ code: testCase.code });
-        expect((error as ContractError).pointer).not.toBe("");
+      ];
+      for (const testCase of cases) {
+        const mutated = structuredClone(verified);
+        testCase.mutate(mutated.manifest);
+        await expect(validatePinnedManifestMaterial(root, mutated, preflight.registry, index)).rejects.toMatchObject({
+          code: testCase.code,
+          pointer: testCase.pointer,
+        });
+        await expect(inspectPinnedConformance(root, preflight.conformance, preflight.registry)).resolves.toHaveLength(4);
       }
-      const clean = buildRealOwnerSurface(preflight.conformance, preflight.registry);
-      await expect(composeModules(root, preflight.registry, clean.modules, clean.loader)).resolves.toMatchObject({ routes: { length: 4 } });
     }
 
-    const realSchema = preflight.registry.documents.get(preflight.registry.sources.get(`git:${preflight.conformance[0].pin.commit}:${preflight.conformance[0].manifest.outputs[0].path}`)!)!.document;
+    const actualDocuments = preflight.pinnedConformance.flatMap(({ outputs }) => outputs.map(({ document }) => document));
     const schemaRegistry = new StableIdRegistry();
-    schemaRegistry.add(structuredClone(realSchema), "real-p1");
-    expect(() => schemaRegistry.add(structuredClone(realSchema), "real-p1-duplicate")).toThrowError(expect.objectContaining({ code: "schema_id_duplicate", pointer: "/$id" }));
+    actualDocuments.forEach((document, index) => schemaRegistry.add(structuredClone(document), `exact-output-${index}`));
+    expect(() => schemaRegistry.add(structuredClone(actualDocuments[0]), "exact-output-duplicate")).toThrowError(expect.objectContaining({ code: "schema_id_duplicate", pointer: "/$id" }));
+    const unresolved = structuredClone(actualDocuments[0]);
+    (unresolved as Record<string, unknown>).properties = { injected: { $ref: "https://invoice-manager.invalid/contracts/missing.schema.json" } };
+    const unresolvedRegistry = new StableIdRegistry();
+    unresolvedRegistry.add(unresolved, "exact-output-mutated");
+    expect(() => assertReferencesResolve(unresolvedRegistry)).toThrowError(expect.objectContaining({ code: "schema_reference_unknown", pointer: "/properties/injected/$ref" }));
+    await expect(inspectPinnedConformance(root, preflight.conformance, preflight.registry)).resolves.toHaveLength(4);
   });
 
   it("rejects lifecycle, evidence, path, fixture, dependency, and transition mutations on a real pinned Draft", async () => {
@@ -326,6 +333,34 @@ describe.sequential("deterministic generated contract pair", () => {
       expect(() => assertSnapshotsEqual(priorTypes, afterTypes, "publish_rollback_types_drift")).not.toThrow();
       expect(await readFile(finalInventory)).toEqual(priorInventory);
     }
+  });
+
+  it("fails loudly on snapshot traversal errors before touching the prior generated pair", async () => {
+    const isolated = await isolatedContractRoot();
+    await generateContracts(isolated);
+    const generatedRoot = path.join(isolated, "tools/contracts/.generated");
+    const finalTypes = path.join(generatedRoot, "typescript/v1");
+    const finalInventory = path.join(generatedRoot, "runtime/v1/route-inventory.json");
+    const priorTypes = await snapshotTree(finalTypes);
+    const priorInventory = await readFile(finalInventory);
+    const unreadable = path.join(generatedRoot, "unreadable");
+    await mkdir(unreadable);
+    await chmod(unreadable, 0o000);
+    try {
+      await expect(checkContracts(isolated)).rejects.toMatchObject({ code: "generation_snapshot_read_failed", pointer: "/unreadable" });
+    } finally {
+      await chmod(unreadable, 0o700);
+    }
+    const afterTypes = await snapshotTree(finalTypes);
+    expect(() => assertSnapshotsEqual(priorTypes, afterTypes, "snapshot_failure_mutated_types")).not.toThrow();
+    expect(await readFile(finalInventory)).toEqual(priorInventory);
+
+    const regularFile = path.join(isolated, "not-a-directory");
+    await writeFile(regularFile, "synthetic\n");
+    await expect(snapshotTree(regularFile)).rejects.toMatchObject({ code: "generation_snapshot_read_failed", pointer: "" });
+    const missing = path.join(isolated, "optional-generated-root");
+    await expect(snapshotTree(missing)).rejects.toMatchObject({ code: "generation_snapshot_read_failed", pointer: "" });
+    expect(await snapshotTree(missing, { optionalRoot: true })).toEqual(new Map());
   });
 
   it("keeps generated outputs ignored/untracked and rejects destination overrides", async () => {

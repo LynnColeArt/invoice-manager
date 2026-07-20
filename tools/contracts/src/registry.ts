@@ -4,7 +4,7 @@ import Ajv2020, { type AnySchema, type ErrorObject, type ValidateFunction } from
 import addFormats from "ajv-formats";
 import { fail } from "./errors.js";
 import { compareCodeUnits, type JsonValue, parseJsonBytes } from "./json.js";
-import { normalizeRepositoryPath, readRepositoryBytes, resolveRepositoryFile } from "./paths.js";
+import { normalizeRepositoryPath, readRepositoryBytes, resolveRepositoryDirectory } from "./paths.js";
 
 export type RegistryDocument = {
   id: string;
@@ -37,22 +37,22 @@ export class StableIdRegistry {
     return this.documents.has(id.split("#", 1)[0]);
   }
 
-  resolve(reference: string): unknown {
-    if (reference.startsWith("#")) fail("schema_reference_ambiguous", "", "Fragment-only references require an explicit source document");
+  resolve(reference: string, pointer = ""): unknown {
+    if (reference.startsWith("#")) fail("schema_reference_ambiguous", pointer, "Fragment-only references require an explicit source document");
     const hashIndex = reference.indexOf("#");
     const id = hashIndex === -1 ? reference : reference.slice(0, hashIndex);
     if (/^https?:/u.test(id) && !id.startsWith("https://invoice-manager.invalid/contracts/")) {
-      fail("schema_network_reference", "", "Network schema references are forbidden");
+      fail("schema_network_reference", pointer, "Network schema references are forbidden");
     }
     const registered = this.documents.get(id);
-    if (!registered) fail("schema_reference_unknown", "", "Stable schema ID is not registered locally");
+    if (!registered) fail("schema_reference_unknown", pointer, "Stable schema ID is not registered locally");
     if (hashIndex === -1 || reference.slice(hashIndex) === "#") return registered.document;
     const fragment = reference.slice(hashIndex + 1);
-    if (!fragment.startsWith("/")) fail("schema_fragment_invalid", "", "Only JSON Pointer URI fragments are supported");
+    if (!fragment.startsWith("/")) fail("schema_fragment_invalid", pointer, "Only JSON Pointer URI fragments are supported");
     let current: unknown = registered.document;
     for (const segment of fragment.slice(1).split("/")) {
       if (current === null || typeof current !== "object" || !(pointerSegment(segment) in current)) {
-        fail("schema_fragment_unresolved", "", "Stable schema JSON Pointer does not resolve");
+        fail("schema_fragment_unresolved", pointer, "Stable schema JSON Pointer does not resolve");
       }
       current = (current as Record<string, unknown>)[pointerSegment(segment)];
     }
@@ -82,7 +82,14 @@ function throwAjvError(validate: ValidateFunction, code: string): never {
 }
 
 async function walkFiles(root: string, current: string, output: string[]): Promise<void> {
-  for (const entry of await readdir(current, { withFileTypes: true })) {
+  let entries;
+  try {
+    entries = await readdir(current, { withFileTypes: true });
+  } catch {
+    const relative = path.relative(root, current).split(path.sep).join("/");
+    fail("path_directory_read_failed", relative ? `/${relative}` : "", "Contract discovery directory could not be read");
+  }
+  for (const entry of entries) {
     const absolute = path.join(current, entry.name);
     if (entry.isSymbolicLink()) fail("path_symlink_escape", "", "Contract discovery must not traverse symbolic links");
     if (entry.isDirectory()) await walkFiles(root, absolute, output);
@@ -96,7 +103,7 @@ export async function discoverStableIdRegistry(root: string): Promise<StableIdRe
   const files: string[] = [];
   const contractsPath = path.join(rootReal, "contracts");
   if ((await lstat(contractsPath)).isSymbolicLink()) fail("path_symlink_escape", "", "Contract discovery root must not be a symbolic link");
-  await walkFiles(rootReal, await resolveRepositoryFile(rootReal, "contracts", ""), files);
+  await walkFiles(rootReal, await resolveRepositoryDirectory(rootReal, "contracts", ""), files);
   for (const relative of files.sort(compareCodeUnits)) {
     const normalized = normalizeRepositoryPath(relative, "");
     const value = parseJsonBytes(await readRepositoryBytes(rootReal, normalized, ""));
@@ -121,15 +128,36 @@ export function collectReferences(value: unknown, output = new Set<string>(), se
   return output;
 }
 
+type ReferenceEntry = { reference: string; pointer: string };
+
+function pointerKey(key: string): string {
+  return key.replaceAll("~", "~0").replaceAll("/", "~1");
+}
+
+function collectReferenceEntries(value: unknown, pointer = "", output: ReferenceEntry[] = [], seen = new Set<object>()): ReferenceEntry[] {
+  if (value === null || typeof value !== "object" || seen.has(value)) return output;
+  seen.add(value);
+  if (Array.isArray(value)) {
+    value.forEach((entry, index) => collectReferenceEntries(entry, `${pointer}/${index}`, output, seen));
+  } else {
+    for (const [key, entry] of Object.entries(value)) {
+      const childPointer = `${pointer}/${pointerKey(key)}`;
+      if (key === "$ref" && typeof entry === "string") output.push({ reference: entry, pointer: childPointer });
+      else collectReferenceEntries(entry, childPointer, output, seen);
+    }
+  }
+  return output;
+}
+
 export function assertReferencesResolve(registry: StableIdRegistry): void {
   for (const { id, document } of registry.documents.values()) {
-    for (const reference of collectReferences(document)) {
+    for (const { reference, pointer } of collectReferenceEntries(document)) {
       if (reference.startsWith("#")) {
-        registry.resolve(`${id}${reference}`);
+        registry.resolve(`${id}${reference}`, pointer);
       } else if (reference.startsWith("https://invoice-manager.invalid/contracts/")) {
-        registry.resolve(reference);
+        registry.resolve(reference, pointer);
       } else if (/^https?:/u.test(reference)) {
-        fail("schema_network_reference", "", "Network schema references are forbidden");
+        fail("schema_network_reference", pointer, "Network schema references are forbidden");
       }
     }
   }

@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -36,6 +36,41 @@ function ownerModule(): ModuleContribution {
 }
 
 describe("root-contained paths and strict UTF-8", () => {
+  it("rejects a declared directory where a regular fragment file is required", async () => {
+    const root = await temporary("invoice-manager-directory-fragment-");
+    await mkdir(path.join(root, "contracts/api/v1/fragments/p7/api.openapi.json"), { recursive: true });
+    await expect(() => composeModules(root, new StableIdRegistry(), [ownerModule()])).rejects.toMatchObject({
+      code: "path_not_file",
+      pointer: "/api_fragments/0",
+    });
+  });
+
+  it("translates unreadable files and discovery directories into stable pointer diagnostics", async () => {
+    const root = await temporary("invoice-manager-unreadable-");
+    await mkdir(path.join(root, "contracts/blocked"), { recursive: true });
+    const file = path.join(root, "contracts/evidence.json");
+    await writeFile(file, "{}\n");
+    await chmod(file, 0o000);
+    try {
+      await expect(() => readRepositoryBytes(root, "contracts/evidence.json", "/evidence")).rejects.toMatchObject({
+        code: "path_read_failed",
+        pointer: "/evidence",
+      });
+    } finally {
+      await chmod(file, 0o600);
+    }
+
+    await chmod(path.join(root, "contracts/blocked"), 0o000);
+    try {
+      await expect(() => discoverStableIdRegistry(root)).rejects.toMatchObject({
+        code: "path_directory_read_failed",
+        pointer: "/contracts/blocked",
+      });
+    } finally {
+      await chmod(path.join(root, "contracts/blocked"), 0o700);
+    }
+  });
+
   it("rejects escaping fragment symlinks and invalid UTF-8 before parsing", async () => {
     const root = await temporary("invoice-manager-paths-");
     const external = await temporary("invoice-manager-external-");

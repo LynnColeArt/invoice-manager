@@ -21,14 +21,14 @@ import { readRepositoryBytes } from "./paths.js";
 import { type ContractManifest, validateLifecycleManifest } from "./lifecycle.js";
 import { discoverAndValidateMigrations } from "./migrations.js";
 import { composeModules, type ComposedContracts } from "./modules.js";
-import { composeRealOwners } from "./real-conformance.js";
+import { inspectPinnedConformance, type PinnedOwnerMaterial } from "./pinned-conformance.js";
 import { assertReferencesResolve, discoverStableIdRegistry, isJsonObject, type StableIdRegistry } from "./registry.js";
 
 export type PreflightResult = {
   registry: StableIdRegistry;
   conformance: VerifiedConformance[];
   composition: ComposedContracts;
-  realOwnerComposition: ComposedContracts;
+  pinnedConformance: PinnedOwnerMaterial[];
 };
 
 type TreeSnapshot = Map<string, { bytes: Buffer; mode: number }>;
@@ -58,17 +58,12 @@ export async function preflightContracts(
   registry.validate("https://invoice-manager.invalid/contracts/manifests/v1/schema.json", draftValue);
   await validateLifecycleManifest(root, draftValue as unknown as ContractManifest);
   const composition = await composeModules(root, registry);
-  const realOwnerComposition = await composeRealOwners(root, registry, conformance);
-  await discoverAndValidateMigrations(
-    root,
-    [...composition.modules, ...realOwnerComposition.modules].map((module) => module.migration_root),
-    registry,
-  );
+  const pinnedConformance = await inspectPinnedConformance(root, conformance, registry);
+  await discoverAndValidateMigrations(root, composition.modules.map((module) => module.migration_root), registry);
   await validateOpenApi(composition.openapi, registry);
-  await validateOpenApi(realOwnerComposition.openapi, registry);
   await validateCanonicalFixtures(root);
   await validateCanonicalEventFixtures(root, registry);
-  return { registry, conformance, composition, realOwnerComposition };
+  return { registry, conformance, composition, pinnedConformance };
 }
 
 export async function buildValidatedBaselineRefreshCandidate(
@@ -168,26 +163,32 @@ export function buildGeneratorOpenApi(openapi: Record<string, unknown>, registry
   return clone;
 }
 
-async function snapshotTree(root: string): Promise<TreeSnapshot> {
+async function snapshotTree(root: string, options: { optionalRoot?: boolean } = {}): Promise<TreeSnapshot> {
   const snapshot: TreeSnapshot = new Map();
-  const walk = async (current: string, relative: string): Promise<void> => {
+  const walk = async (current: string, relative: string, optionalRoot = false): Promise<void> => {
     let entries;
     try {
       entries = await readdir(current, { withFileTypes: true });
-    } catch {
-      return;
+    } catch (error) {
+      if (optionalRoot && (error as NodeJS.ErrnoException).code === "ENOENT") return;
+      fail("generation_snapshot_read_failed", relative ? `/${relative}` : "", "Generated output snapshot could not read a directory");
     }
     for (const entry of entries.sort((a, b) => compareCodeUnits(a.name, b.name))) {
       const childRelative = relative ? `${relative}/${entry.name}` : entry.name;
       const child = path.join(current, entry.name);
+      if (entry.isSymbolicLink()) fail("generation_snapshot_entry_invalid", `/${childRelative}`, "Generated output snapshots must not contain symbolic links");
       if (entry.isDirectory()) await walk(child, childRelative);
       else if (entry.isFile()) {
-        const metadata = await stat(child);
-        snapshot.set(childRelative, { bytes: await readFile(child), mode: metadata.mode & 0o777 });
-      }
+        try {
+          const metadata = await stat(child);
+          snapshot.set(childRelative, { bytes: await readFile(child), mode: metadata.mode & 0o777 });
+        } catch {
+          fail("generation_snapshot_read_failed", `/${childRelative}`, "Generated output snapshot could not read a file");
+        }
+      } else fail("generation_snapshot_entry_invalid", `/${childRelative}`, "Generated output snapshots require regular files and directories");
     }
   };
-  await walk(root, "");
+  await walk(root, "", options.optionalRoot === true);
   return snapshot;
 }
 
@@ -374,7 +375,7 @@ function spawnCaptured(command: string, args: string[], cwd: string): Promise<{ 
 }
 
 async function snapshotGeneratedPair(root: string): Promise<TreeSnapshot> {
-  return snapshotTree(path.join(root, "tools/contracts/.generated"));
+  return snapshotTree(path.join(root, "tools/contracts/.generated"), { optionalRoot: true });
 }
 
 async function restoreGeneratedPair(root: string, snapshot: TreeSnapshot): Promise<void> {

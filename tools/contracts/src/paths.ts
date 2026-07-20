@@ -1,6 +1,6 @@
-import { lstat, readFile, realpath } from "node:fs/promises";
+import { lstat, readFile, realpath, stat } from "node:fs/promises";
 import path from "node:path";
-import { fail } from "./errors.js";
+import { ContractError, fail } from "./errors.js";
 import { decodeUtf8 } from "./json.js";
 
 export function normalizeRepositoryPath(value: string, pointer: string, allowGlob = false): string {
@@ -19,24 +19,56 @@ export function normalizeRepositoryPath(value: string, pointer: string, allowGlo
   return normalized;
 }
 
-export async function resolveRepositoryFile(root: string, value: string, pointer: string): Promise<string> {
+type RepositoryPathKind = "file" | "directory";
+
+async function resolveRepositoryPath(root: string, value: string, pointer: string, expectedKind: RepositoryPathKind): Promise<string> {
   const normalized = normalizeRepositoryPath(value, pointer);
-  const rootReal = await realpath(root);
+  let rootReal: string;
+  try {
+    rootReal = await realpath(root);
+  } catch {
+    fail("path_root_unavailable", pointer, "Repository root is unavailable");
+  }
   const candidate = path.resolve(rootReal, ...normalized.split("/"));
   let candidateReal: string;
   try {
     await lstat(candidate);
     candidateReal = await realpath(candidate);
-  } catch {
-    fail("path_missing", pointer, "Declared repository path does not exist");
+  } catch (error) {
+    if (error instanceof ContractError) throw error;
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") fail("path_missing", pointer, "Declared repository path does not exist");
+    fail("path_io_error", pointer, "Declared repository path could not be resolved");
   }
   const relative = path.relative(rootReal, candidateReal!);
   if (relative.startsWith("..") || path.isAbsolute(relative)) fail("path_symlink_escape", pointer, "Declared path escapes through a symlink");
+  let metadata;
+  try {
+    metadata = await stat(candidateReal!);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") fail("path_missing", pointer, "Declared repository path does not exist");
+    fail("path_io_error", pointer, "Declared repository path metadata is unavailable");
+  }
+  if (expectedKind === "file" && !metadata.isFile()) fail("path_not_file", pointer, "Declared repository path must be a regular file");
+  if (expectedKind === "directory" && !metadata.isDirectory()) fail("path_not_directory", pointer, "Declared repository path must be a directory");
   return candidateReal!;
 }
 
+export function resolveRepositoryFile(root: string, value: string, pointer: string): Promise<string> {
+  return resolveRepositoryPath(root, value, pointer, "file");
+}
+
+export function resolveRepositoryDirectory(root: string, value: string, pointer: string): Promise<string> {
+  return resolveRepositoryPath(root, value, pointer, "directory");
+}
+
 export async function readRepositoryBytes(root: string, value: string, pointer: string): Promise<Buffer> {
-  return readFile(await resolveRepositoryFile(root, value, pointer));
+  const resolved = await resolveRepositoryFile(root, value, pointer);
+  try {
+    return await readFile(resolved);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") fail("path_missing", pointer, "Declared repository file disappeared before it could be read");
+    fail("path_read_failed", pointer, "Declared repository file could not be read");
+  }
 }
 
 export async function readRepositoryText(root: string, value: string, pointer: string): Promise<string> {
@@ -53,8 +85,9 @@ export async function resolveRepositoryWritePath(root: string, value: string, po
     let metadata;
     try {
       metadata = await lstat(current);
-    } catch {
-      fail("path_parent_missing", pointer, `Write parent segment ${index} does not exist`);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") fail("path_parent_missing", pointer, `Write parent segment ${index} does not exist`);
+      fail("path_io_error", pointer, "Write path parent metadata is unavailable");
     }
     if (metadata.isSymbolicLink()) fail("path_symlink_escape", pointer, "Write path traverses a symbolic link");
     if (!metadata.isDirectory()) fail("path_parent_invalid", pointer, "Write path parent is not a directory");
