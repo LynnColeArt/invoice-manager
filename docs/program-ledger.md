@@ -1,7 +1,9 @@
 # Invoice Manager Spec Kitty Program Ledger
 
-- Status: P0-P4 specified and planned; task generation intentionally parked
-- Program implementation baseline: `e185ecc` on `main` (P0/P1 were branched
+- Status: P0-P4 specified and planned; cross-mission Draft review completed and
+  corrections required before P0 task generation
+- Review input baseline: `14377fb` on `main`; canonical GPL-2.0-only legal
+  baseline: `e185ecc` (P0/P1 were branched
   from `ee5ac9e`; P2-P4 were branched from `78a7aaa`; all require refresh before
   tasking or implementation)
 - Contract posture: every published contract is `0.1.0-draft.1`, Draft, and not
@@ -74,8 +76,8 @@ records the blocker in the dependency register.
 | Domain event envelope | P0 | P1, P3, P4, P5, P6 | `0.1.0-draft.1` / `84f0be0` | Draft | `feat/p0-contract-spine:kitty-specs/p0-contract-spine-01KXYY0J/contracts/event-envelope-v1.schema.json` |
 | Migration naming and schema-version protocol | P0 | P1, P3, P4, P5, P6 | `0.1.0-draft.1` / `84f0be0` | Draft | `feat/p0-contract-spine:kitty-specs/p0-contract-spine-01KXYY0J/contracts/migration-manifest-v1.schema.json` |
 | Mutable Resolved Invoice Configuration | P1 | P2, P5, P6 | `0.1.0-draft.1` / `cf74aae` | Draft | `feat/p1-parties-projects:kitty-specs/p1-parties-projects-01KXYZD3/contracts/resolved-invoice-configuration-v1.schema.json` |
-| Invoice draft, snapshot, preview, digest, and staged-artifact interfaces | P2 | P5, P6 | `0.1.0-draft.1` / `1575fcd` | Draft | `feat/p2-invoice-document-engine:kitty-specs/p2-invoice-document-engine-01KXZ0ET/contracts/` |
-| Backup, restore, auth, and private-deployment contract | P3 | P8 | `0.1.0-draft.1` / `c691dd5` | Draft | `feat/p3-platform-security-operations:kitty-specs/p3-platform-security-operations-01KXZ0Y2/contracts/` |
+| Invoice document input; snapshot, preview, digest, and staged-artifact interfaces remain planned | P2 | P5, P6 | `0.1.0-draft.1` / `1575fcd` | Draft | `feat/p2-invoice-document-engine:kitty-specs/p2-invoice-document-engine-01KXZ0ET/contracts/` |
+| Backup manifest; restore, auth, and private-deployment contracts remain planned | P3 | P8 | `0.1.0-draft.1` / `c691dd5` | Draft | `feat/p3-platform-security-operations:kitty-specs/p3-platform-security-operations-01KXZ0Y2/contracts/` |
 | Normalized reporting snapshot input | P4 | P7 | `0.1.0-draft.1` / `bb010e4` | Draft | `feat/p4-reporting-dashboard:kitty-specs/p4-reporting-dashboard-01KXZ1AJ/contracts/normalized-reporting-snapshot-v1.schema.json` |
 | Issuance, payment, overdue, and void events | P5 | P7, P8 | TBD | Not drafted | TBD |
 | Billing-period, due-work, and draft-proposal events | P6 | P7, P8 | TBD | Not drafted | TBD |
@@ -92,7 +94,7 @@ mission plans.
 
 | Surface | Primary mission | Parallel-edit rule |
 | --- | --- | --- |
-| Root builds, dependency locks, CI, aggregate contract generation | P0, then P7 | Other missions contribute domain fragments and request integration |
+| Root builds, dependency locks, CI, aggregate contract generation | P0, then the named program integration steward | Other missions contribute domain fragments and request integration |
 | Shared Zig primitives and infrastructure interfaces | P0 | Changes require a versioned contract update and consumer review |
 | Identity, client, contact, and project domain/UI | P1 | P1 owns feature paths |
 | Invoice document model, renderer, templates, preview UI | P2 | P2 owns feature paths |
@@ -107,8 +109,8 @@ mission plans.
 
 | Consumer | Dependency or blocker | Required state | Current state | Owner | Next evidence |
 | --- | --- | --- | --- | --- | --- |
-| P0 tasking | Cross-mission Draft review | Approved | Pending | P0/integration steward | Review P0-P4 dependency edges, schemas, ownership, and fixture seams at the recorded planning heads |
-| P0-P4 task generation | Coordination topology and current baseline | Healthy and refreshed | Coordination worktrees exist but do not yet carry mission dirs; all mission branches predate `e185ecc` | Integration steward | Run workspace doctor/repair and refresh each mission immediately before generating WPs |
+| P0 tasking | Cross-mission Draft review | Approved | Not ready at recorded heads; bounded corrections identified | P0/integration steward | Apply `docs/draft-contract-review-2026-07-20.md`, refresh P0, and finalize ownership-safe WPs |
+| P0-P4 task generation | Healthy registered topology and current target branch | Healthy and refreshed | Workspace doctor passes; target branches predate current `main` | Integration steward | Refresh each target branch immediately before generating its WPs; coordination branches remain planning infrastructure |
 | P1, P3, P4 | P0 shared contracts | Frozen | `0.1.0-draft.1` Draft | P0 | Implement P0, validate fixtures, promote exact manifest, merge, then refresh baselines |
 | P2 | P0 shared contracts | Frozen | `0.1.0-draft.1` Draft | P0 | Same P0 freeze/merge evidence |
 | P2 | P1 Resolved Invoice Configuration | Frozen | `0.1.0-draft.1` Draft | P1 | Decision fixtures, schema compatibility, and Frozen P1 manifest |
@@ -145,6 +147,7 @@ wave.
 | --- | --- | --- | --- | --- |
 | Initial repository baseline | `e185ecc` | Pass | Governance, planning brief, canonical GPL-2.0-only license, worktree ignore | P0-P4 feature branches must refresh from this baseline before tasking |
 | P0-P4 planning snapshot | `78a7aaa`; heads `84f0be0`, `cf74aae`, `1575fcd`, `c691dd5`, `bb010e4` | Pass for planning only | Five specs, plans, manifests, schemas, and quickstarts | Cross-mission Draft review pending; implementation blocked |
+| P0-P4 Draft contract review | Heads `84f0be0`, `cf74aae`, `1575fcd`, `c691dd5`, `bb010e4` | Not ready; bounded corrections required | `docs/draft-contract-review-2026-07-20.md`; three independent review lenses | Canonical manifest, P0 references, composition, durability, migration integrity, baseline refresh, and task ownership |
 | P0 foundation | Pending | Pending | TBD | TBD |
 | Wave A integration | Pending | Pending | TBD | TBD |
 | Wave B integration | Pending | Pending | TBD | TBD |
