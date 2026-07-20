@@ -37,7 +37,7 @@ history:
 - at: '2026-07-20T07:01:00Z'
   actor: system
   action: Prompt generated via /spec-kitty.tasks
-agent_profile: reviewer-renata
+agent_profile: node-norris
 authoritative_surface: contracts/
 create_intent:
 - contracts/api/v1/base.openapi.yaml
@@ -73,7 +73,7 @@ owned_files:
 - tools/contracts/src/**
 - tools/contracts/tests/**
 - tools/contracts/.generated/**
-role: reviewer
+role: implementer
 tags: []
 task_type: implement
 ---
