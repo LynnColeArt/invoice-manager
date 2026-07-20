@@ -39,10 +39,10 @@ requirement_refs:
   - C-009
 agent_profile: node-norris
 role: implementer
-agent: codex
+agent: "codex:gpt-5:node-norris:implementer"
 model: ""
 assignee: ""
-shell_pid: ""
+shell_pid: "1807838"
 history:
   - at: "2026-07-20T07:00:27Z"
     actor: system
@@ -454,3 +454,4 @@ Verify the full command surface is compatible with later work without preempting
 
 - 2026-07-20T07:00:27Z – system – Prompt created for WP01 reproducible repository substrate implementation.
 - Append implementation start, material decisions, verification commands, and results chronologically below this line.
+- 2026-07-20T17:51:14Z – codex:gpt-5:node-norris:implementer – shell_pid=1807838 – Assigned agent via action command
