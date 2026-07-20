@@ -44,8 +44,8 @@ Draft state.
 
 **Language/Version**: Zig 0.16.0; TypeScript 6.0.3; Node.js 24.18.0 LTS
 **Primary Dependencies**: Next.js 16.2.10; React/React DOM 19.2.7; ESLint
-10.7.0; npm 11.16.0; ShovelerDB commit
-`fc7539a3874293540a4de6d228b3ea670a8ca2e8`; OpenAPI 3.1; JSON Schema
+9.39.5; npm 11.16.0; ShovelerDB commit
+`021e3b3d9247a181252329d6ba7ec8d2ed943a97`; OpenAPI 3.1; JSON Schema
 2020-12
 **Storage**: One serialized ShovelerDB handle per database path; binary
 artifacts remain outside the database
@@ -324,7 +324,7 @@ mutation.
 
 ### ShovelerDB boundary
 
-- Pin `fc7539a3874293540a4de6d228b3ea670a8ca2e8`.
+- Pin `021e3b3d9247a181252329d6ba7ec8d2ed943a97`.
 - Prefer a small upstream package-metadata release. Until available, use an
   exact-commit submodule/source module under `deps/shovelerdb/`; never use a
   sibling checkout or floating branch.

@@ -31,7 +31,8 @@ subtasks:
 - T014
 phase: Phase 2 - Shared Contracts
 assignee: ''
-agent: codex
+agent: "codex:gpt-5:reviewer-renata:reviewer"
+shell_pid: "1807838"
 history:
 - at: '2026-07-20T07:01:00Z'
   actor: system
@@ -497,3 +498,17 @@ It must never infer public access independently or maintain a second route regis
 - 2026-07-20T07:01:00Z — system — Prompt generated for WP03 with WP01/WP02
   dependencies, exact ownership/requirement metadata, real P1-P4 evidence, and
   deterministic no-committed-aggregate constraints.
+- 2026-07-20T19:43:00Z – codex:gpt-5:node-norris:implementer – shell_pid=1807838 – Assigned agent via action command
+- 2026-07-20T19:47:28Z – codex:gpt-5:node-norris:implementer – shell_pid=1807838 – Red-first plan: npm run test --workspace @invoice-manager/contracts -- lifecycle.transition rejects Frozen->Verified with lifecycle_transition_forbidden; route-policy defaults missing metadata to protected while reporting route_access_metadata_missing; composition preflight rejects duplicate normalized mount/path/operation/component/schema/event identities before replacing generated outputs. Initial producer command currently fails because tools/contracts/src/main.ts and tests are absent.
+- 2026-07-20T20:25:54Z – codex:gpt-5:node-norris:implementer – shell_pid=1807838 – Implementation evidence commit 5eda01c: exact Node 24.18.0/npm 11.16.0; strict TypeScript source+test compile exit 0; Vitest 5 files/26 tests pass; literal npm run contracts:check pass with two root contracts:generate invocations (modules=1 routes=1 conformance=4); npm audit found 0 vulnerabilities; npm run verify:substrate pass; git diff --check pass; ruff diff-scoped not applicable (0 Python files); generated TypeScript+route inventory byte-identical and ignored; failure preserves prior pair; exact P1-P4 manifest/content pins recomputed; WP01 metadata SHA-256 values unchanged.
+- 2026-07-20T20:25:57Z – codex:gpt-5:node-norris:implementer – shell_pid=1807838 – Ready for independent review: deterministic contract lifecycle, convention composition/collision gates, event binding, exact immutable conformance pins, stable-ID no-network generation, atomic ignored outputs, migration integrity, and focused check in 5eda01c; all recorded gates green.
+- 2026-07-20T20:26:41Z – codex:gpt-5:reviewer-renata:reviewer – shell_pid=1807838 – Started review via action command
+- 2026-07-20T20:44:39Z – user – shell_pid=1807838 – Moved to planned
+- 2026-07-20T20:46:04Z – codex:gpt-5:node-norris:implementer – shell_pid=1807838 – Started implementation via action command
+- 2026-07-20T21:19:00Z – codex:gpt-5:node-norris:implementer – shell_pid=1807838 – Correction cycle 2 ready at lane tip cfaad69 (implementation 563a8b8 plus planning-artifact cleanup): all 5 review blockers closed; exact Node 24/npm 11 strict TypeScript passes; Vitest 6 files/39 tests; focused contracts:check two-pass generation passes; offline audit 0 vulnerabilities; verify:substrate passes; diff-scoped ruff 0 Python files, exit 0; generated outputs remain ignored/untracked; b79af5c..HEAD contains only WP03-owned implementation paths.
+- 2026-07-20T21:21:02Z – codex:gpt-5:reviewer-renata:reviewer – shell_pid=1807838 – Started review via action command
+- 2026-07-20T21:34:26Z – user – shell_pid=1807838 – Moved to planned
+- 2026-07-20T21:42:49Z – codex:gpt-5:node-norris:implementer – shell_pid=1807838 – Started implementation via action command
+- 2026-07-20T21:57:34Z – codex:gpt-5:node-norris:implementer – shell_pid=1807838 – Correction cycle 3 ready at d686a6b: fabricated P1-P4 route/module/catalog adapters removed; full preflight now inspects only exact pinned manifests, owners, dependency/input edges, complete output schema/reference graphs, absent declared fixture edges, and migration strategies/roots. Repository reads require regular files with stable code/pointer diagnostics; snapshots suppress only explicit optional-root ENOENT and fail loudly on EISDIR, unreadable directories, symlinks, and nested I/O while preserving the prior generated pair. Exact Node 24/npm 11 strict TypeScript pass; Vitest 6 files/42 tests; literal generation twice byte-identical; focused contracts:check pass; offline audit 0 vulnerabilities; verify:substrate pass; diff check pass; ruff 0 Python files. Charter terminology/checklist selectors were requested but unavailable.
+- 2026-07-20T21:58:31Z – codex:gpt-5:reviewer-renata:reviewer – shell_pid=1807838 – Started review via action command
+- 2026-07-20T22:07:58Z – user – shell_pid=1807838 – Review passed: exact pinned P1-P4 artifact inspection is honest; regular-file and snapshot failures are stable and fail loud; all 42 tests and full gates pass

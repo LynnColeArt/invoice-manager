@@ -60,14 +60,17 @@ shared files.
 ## Decision 3: Toolchain baseline
 
 **Decision:** Pin Node.js 24.18.0 LTS, npm 11.16.0, Next.js 16.2.10,
-React/React DOM 19.2.7, TypeScript 6.0.3, ESLint 10.7.0, and Zig 0.16.0.
+React/React DOM 19.2.7, TypeScript 6.0.3, ESLint 9.39.5, and Zig 0.16.0.
 Commit the npm lockfile and use exact toolchain versions in CI and containers.
 
 **Rationale:** Node 24 is the production LTS line; local Node 26 is a Current
 release. TypeScript 6.0.3 remains compatible with the current lint/tooling
 programmatic API while TypeScript 7.0 does not yet provide that API. Zig 0.16.0
 is both the current stable toolchain and the toolchain used by local
-ShovelerDB.
+ShovelerDB. ESLint 9.39.5 is the newest registry release compatible without
+peer overrides with `eslint-config-next` 16.2.10 and its imported React,
+accessibility, and import plugins; ESLint 10.7.0 was rejected after npm 11
+resolution proved those transitive peers remain capped at ESLint 9.
 
 **Deferred to owning missions:** P2 will own the pinned TeX Live 2026 package
 manifest and LuaLaTeX container. P3 will own Docker Compose deployment. P0 may
@@ -150,8 +153,8 @@ parallel missions to coordinate every new migration.
 
 ## Decision 8: ShovelerDB consumption and durability seam
 
-**Decision:** Pin local ShovelerDB commit
-`fc7539a3874293540a4de6d228b3ea670a8ca2e8`. Consume it through one narrow
+**Decision:** Pin public ShovelerDB commit
+`021e3b3d9247a181252329d6ba7ec8d2ed943a97`. Consume it through one narrow
 invoice-manager adapter; domain code must not import its handles, SQL, results,
 or borrowed values. Own one handle per path and serialize access. The reference
 deployment runs one Zig API replica per database path.
