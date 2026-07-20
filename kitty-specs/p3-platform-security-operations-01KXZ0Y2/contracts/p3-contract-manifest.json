@@ -1,0 +1,14 @@
+{
+  "manifest_version": "1",
+  "mission": "p3-platform-security-operations-01KXZ0Y2",
+  "owner": "p3",
+  "contract_version": "0.1.0-draft.1",
+  "lifecycle_state": "Draft",
+  "implementation_authorized": false,
+  "consumes": [
+    { "owner": "p0", "version": "0.1.0-draft.1", "required_state_for_implementation": "Frozen" }
+  ],
+  "artifacts": ["backup-manifest-v1.schema.json"],
+  "consumers": ["p8"],
+  "notes": "Planning-only; exact auth, deployment, migration, backup, and restore fixture digests are added before freeze."
+}
