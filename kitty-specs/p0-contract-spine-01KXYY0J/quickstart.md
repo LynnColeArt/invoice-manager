@@ -20,11 +20,12 @@ reference deployment and P2 owns the document runtime.
 ```bash
 git clone --recurse-submodules <invoice-manager-repository>
 cd invoice-manager
-npm ci
-npm run verify:foundation
+npm run verify:foundation:clean
 ```
 
-`verify:foundation` will run deterministic contract composition, generated type
+`verify:foundation:clean` starts from the empty clean-checkout dependency/build
+cache state, runs `npm ci` inside its measured boundary, and then delegates to
+`verify:foundation`. The aggregate will run deterministic contract composition, generated type
 checks, web validation/build, Zig formatting/build/tests/coverage, migration
 negative tests, real ShovelerDB persistence integration, black-box HTTP/proxy
 smoke, and runtime-license validation.
@@ -33,15 +34,22 @@ smoke, and runtime-license validation.
 
 ```bash
 npm run contracts:check
+npm run contracts:generate
 npm run web:check
 npm run api:check
 npm run persistence:integration
+npm run migration:negative
 npm run http:smoke
 npm run licenses:check
 ```
 
 Each command must be independently diagnosable and use the same underlying
 commands as CI.
+
+The separate NFR-001 first-run measurement invokes `npm run
+bootstrap:foundation`; that wrapper also runs `npm ci` inside the monotonic
+timer, performs all required validation, starts production-shaped Zig/Next.js,
+and stops after the same-origin health smoke succeeds.
 
 ## Planned local run
 
@@ -65,12 +73,12 @@ or recurrence routes exist in P0.
 1. Add a namespaced fragment under the mission-owned API or event directory.
 2. Add valid and invalid synthetic fixtures under the same owner/version.
 3. Update only that owner's contract manifest.
-4. Run `npm run contracts:check`.
+4. Run `npm run contracts:generate`, then `npm run contracts:check`.
 5. If the mission needs a shared/root change, route it to the integration
    steward instead of editing the aggregate directly.
 
-Generated aggregate schemas and TypeScript types are build outputs and must not
-be committed.
+Generated aggregate schemas, TypeScript types, and runtime route inventory are
+build outputs and must not be committed.
 
 ## Storage acceptance flow
 

@@ -148,7 +148,8 @@ kitty-specs/p0-contract-spine-01KXYY0J/
 │   ├── modules/<owner>/module.json
 │   ├── fixtures/<owner>/v1/
 │   ├── manifests/v1/schema.json
-│   ├── manifests/<owner>.json
+│   ├── manifests/drafts/p0.json    # WP03 validation input
+│   ├── manifests/p0.json           # WP12 canonical closure record
 │   └── migrations/v1/manifest.schema.json
 ├── deps/
 │   └── shovelerdb/                 # exact-commit submodule/source shim
@@ -167,7 +168,9 @@ kitty-specs/p0-contract-spine-01KXYY0J/
 │   ├── .gitignore
 │   ├── package.json                # workspace/export boundary
 │   ├── src/
-│   └── .generated/typescript/v1/  # sole generated TS output, ignored
+│   └── .generated/                 # sole ignored derived-output root
+│       ├── typescript/v1/
+│       └── runtime/v1/route-inventory.json
 ├── package.json
 └── package-lock.json
 ```
@@ -179,7 +182,12 @@ owner directories deterministically, so adding a mission does not modify a
 shared registry.
 
 `tools/contracts/.generated/typescript/v1/` is the only generated TypeScript
-contract location and the contract generator is its only writer.
+contract location; `tools/contracts/.generated/runtime/v1/route-inventory.json`
+is the only generated Zig route-inventory input; and the contract generator is
+the only writer of either derived surface. The literal root command
+`npm run contracts:generate` materializes both outputs deterministically before
+any Zig HTTP compile or web typecheck/build. `npm run contracts:check` runs that
+materialization twice and compares bytes in addition to validating inputs.
 `tools/contracts/.gitignore` excludes the generated tree while the
 `tools/contracts` workspace exposes the version-one output through a stable
 package export. The web application imports that workspace export and must not
@@ -281,10 +289,13 @@ mutation.
 - The command rejects duplicate paths/methods, operation IDs, schema IDs,
   component names, event identities/versions, and module mount keys.
 - Composition runs twice in CI and compares bytes.
-- OpenAPI aggregates are ignored build outputs. Generated TypeScript is written
-  only to `tools/contracts/.generated/typescript/v1/`, ignored by
-  `tools/contracts/.gitignore`, and exported through the `tools/contracts`
-  workspace for consumers.
+- OpenAPI aggregates are ignored build outputs. `npm run contracts:generate`
+  writes generated TypeScript only to
+  `tools/contracts/.generated/typescript/v1/` and the canonical route inventory
+  only to `tools/contracts/.generated/runtime/v1/route-inventory.json`; both are
+  ignored by `tools/contracts/.gitignore`. The TypeScript output is exported
+  through the `tools/contracts` workspace, while WP04 makes HTTP build/test
+  hooks depend on route-inventory materialization before Zig compilation.
 - Commit `contracts/conformance/p0-p4-inputs.json` as the authoritative P0-P4
   conformance-input lock. It contains exactly one canonically sorted record per
   P0-P4 input with owner, contract ID/version, repository-relative manifest
@@ -323,8 +334,10 @@ mutation.
 - One process owns one handle per path and serializes all operations.
 - Compile-time SQL identifiers and one tested text-literal encoder are the only
   permitted SQL construction path until bound parameters exist upstream.
-- Translate storage diagnostics to stable application categories; do not expose
-  internal file paths or engine details to HTTP clients.
+- Translate storage diagnostics to stable application categories. Production
+  logs and HTTP responses contain only the stable category plus correlation
+  metadata; raw engine prose, SQL, paths, values, and user or sensitive data are
+  forbidden. Synthetic adapter tests prove those sentinels never leak.
 - WP04 owns `services/api/build.zig` and publishes a convention-scanned test
   hook surface once. Test roots below `services/api/tests/shared/`,
   `services/api/tests/persistence/`, and `services/api/tests/http/` are
@@ -332,10 +345,15 @@ mutation.
   duplicate logical test names rejected.
 - The stable service build surface includes `zig build test`,
   `zig build test-shared`, `zig build test-persistence`,
-  `zig build migration-negative`, `zig build test-http`, and
-  `zig build coverage`. WP04 supplies the hooks even when a later category is
-  initially empty; a required gate fails on an empty category once its producer
-  WP is present rather than reporting vacuous success.
+  `zig build test-migration`, `zig build test-migration-integration`,
+  `zig build migration-negative`, `zig build coverage-migration`,
+  `zig build test-http`, and `zig build coverage`. The HTTP hook depends on
+  `npm run contracts:generate` before Zig compilation. The aggregate coverage
+  hook includes shared, persistence, and migration logic, with migration at
+  90% or better and every enumerated critical branch covered. WP04 supplies the
+  hooks even when a later category is initially empty; a required gate fails on
+  an empty category once its producer WP is present rather than reporting
+  vacuous success.
 - Later shared, durable-store, migration, and HTTP packages add tests only below
   their owned convention roots. They do not edit `build.zig`, add one-off build
   steps, or replace these command names.
@@ -421,8 +439,12 @@ shutdown during an active operation, and close/reopen through this public seam.
    web smoke test calls it through the same-origin proxy.
 6. **Web gates** run formatting, ESLint Flat Config, strict types, component
    accessibility tests, and the production build independently of Zig. The
-   codebase-wide integration package adds the real shell/proxy and a Playwright
+   application-integration package adds the real shell/proxy and a Playwright
    same-origin health workflow only after the Zig HTTP boundary is ready.
+   Accessibility targets WCAG 2.2 AA: zero configured automated serious or
+   critical violations, normal-text contrast at least 4.5:1, large-text contrast
+   at least 3:1, keyboard-visible focus/skip-link operation, 200% zoom, and no
+   horizontal overflow at 320 CSS pixels.
 7. **Coverage** enforces 90%+ on P0 shared Zig behavior and 100% coverage of
    enumerated critical error branches.
 8. **Lifecycle mutation tests** prove Frozen and later states cannot contain
@@ -439,9 +461,10 @@ shutdown during an active operation, and close/reopen through this public seam.
 
 ### Red-first evidence protocol
 
-- Route-policy, migration, and durable-persistence implementation begins with a
-  named behavior case that fails for the intended reason through the package's
-  public boundary.
+- ShovelerDB adapter persistence/checkpoint/literal behavior, durable-store
+  behavior, migration behavior, route policy, and Next.js proxy security each
+  begin with a named behavior case that fails for the intended reason through
+  the package's public boundary.
 - Before production changes for that case, the implementing agent records the
   stable case ID, exact focused command, expected observable failure, and actual
   failing result in the WP Activity Log. Temporary failing source need not be
@@ -451,7 +474,9 @@ shutdown during an active operation, and close/reopen through this public seam.
   not satisfy the evidence requirement.
 - Review rejects tautological, inside-boundary, mocked-away, or zero-case tests.
   Route policy is exercised through composed metadata and dispatch, migrations
-  through the durable store seam, and persistence through its public store API.
+  through the durable store seam, adapter persistence through its public adapter
+  API, durable persistence through its public store API, and proxy security
+  through the public same-origin route with attacker-controlled inputs.
 
 ### Reference performance protocol
 
@@ -463,15 +488,16 @@ shutdown during an active operation, and close/reopen through this public seam.
 - The synthetic dataset is the committed P0 bootstrap migration plus an empty
   feature-domain store. No private or randomly sized dataset participates.
 - The first-run 15-minute clock uses a monotonic wall clock, starts immediately
-  before the documented clean-checkout bootstrap command with dependency/build
-  caches disabled, includes dependency resolution, build, all required
+  before `npm run bootstrap:foundation` in a clean checkout with dependency/build
+  caches disabled, and that wrapper runs `npm ci` before build, all required
   foundation validation, service/web startup, and one valid same-origin health
   response, and stops only after all complete successfully. Installation of the
   documented prerequisite toolchains is outside the clock.
 - The validation-duration 15-minute clock uses a monotonic wall clock and starts
-  immediately before the canonical full foundation command from a clean checkout
-  with empty dependency and build caches. It includes dependency resolution,
-  builds, tests, audits, and every independently required gate, and stops only
+  immediately before `npm run verify:foundation:clean` from a clean checkout
+  with empty dependency and build caches. That wrapper runs `npm ci` and then
+  `npm run verify:foundation`; dependency resolution, builds, tests, audits, and
+  every independently required gate are inside the boundary, which stops only
   after the final gate reports a result on the same reference runner.
 - Health responsiveness is measured through the real same-origin proxy with a
   ready ReleaseSafe Zig service and production Next.js build. After ten
@@ -491,13 +517,15 @@ shutdown during an active operation, and close/reopen through this public seam.
 - **Purpose**: Pin the root Node/Zig toolchain substrate and declare one
   documented bootstrap plus focused validation command surface.
 - **Relevant requirements**: FR-001, FR-002, FR-015; NFR-001, NFR-008, NFR-012.
-- **Affected surfaces**: root `package.json`, initial `package-lock.json` seed,
-  tool-version files, and root bootstrap documentation only. Application
-  builds/source and CI are owned by later concerns; IC-09 performs the sole
-  later lock reconciliation after web dependency metadata exists.
+- **Affected surfaces**: root `package.json`, the sole immutable root
+  `package-lock.json`, exact `tools/contracts/package.json`, exact
+  `apps/web/package.json`, tool-version files, and root bootstrap commands.
+  WP01 declares the complete npm graph before locking it; later concerns own
+  implementation/configuration but never mutate package metadata or the lock.
 - **Sequencing/depends-on**: none.
-- **Risks**: Root files are high-contention; only P0/integration steward edits
-  them after this mission.
+- **Risks**: Package metadata is high-contention; predeclaring both workspaces
+  and exact tool versions once prevents later phased lock ownership and cyclic
+  execution-lane collapse.
 
 ### IC-02 — Canonical shared values
 
@@ -517,10 +545,12 @@ shutdown during an active operation, and close/reopen through this public seam.
 - **Purpose**: Let missions add namespaced fragments without shared registries.
 - **Relevant requirements**: FR-004-FR-008; NFR-002, NFR-003.
 - **Affected surfaces**: `contracts/api/`, `contracts/events/`,
-  `contracts/modules/`, `contracts/fixtures/`, `contracts/manifests/`,
+  `contracts/modules/`, `contracts/fixtures/`, `contracts/manifests/v1/`,
+  `contracts/manifests/drafts/`,
   `contracts/conformance/p0-p4-inputs.json`, `tools/contracts/`,
-  `tools/contracts/.gitignore`, and the sole ignored generated output
-  `tools/contracts/.generated/typescript/v1/`.
+  `tools/contracts/.gitignore`, contract-tool source/tests, and the sole ignored
+  generated outputs below `tools/contracts/.generated/`. WP01 owns the workspace
+  package metadata; WP03 consumes it read-only.
 - **Sequencing/depends-on**: IC-01, IC-02.
 - **Risks**: Generated aggregate or route registry must remain deterministic and
   uncommitted; conformance inputs must never resolve moving heads; non-vacuity
@@ -533,7 +563,8 @@ shutdown during an active operation, and close/reopen through this public seam.
 - **Relevant requirements**: FR-009, FR-010; NFR-003, NFR-009.
 - **Affected surfaces**: `services/api/migrations/`,
   `services/api/src/platform/persistence/migrations.zig`.
-- **Sequencing/depends-on**: IC-02, IC-05, and IC-06. Migration application
+- **Sequencing/depends-on**: IC-02, IC-03, IC-05, and IC-06. IC-03 supplies the
+  canonical migration descriptor schema. Migration application
   consumes the durable store's public operation/readiness seam and never the raw
   adapter; IC-05 supplies the stable migration test hook.
 - **Risks**: ShovelerDB DDL is not transaction-scoped; failure recovery must
@@ -582,38 +613,57 @@ shutdown during an active operation, and close/reopen through this public seam.
   red-first route-policy mutations and real socket tests must prove the route
   path and protected-default policy are real.
 
-### IC-08 — Web package and configuration substrate
+### IC-08 — Web configuration substrate
 
-- **Purpose**: Pin the Next.js/React/testing dependency declarations and static
-  configuration without claiming the real application integration is ready.
+- **Purpose**: Publish static Next.js/tool configuration against the exact app
+  package metadata and lock already owned by IC-01, without claiming the real
+  application integration is ready.
 - **Relevant requirements**: FR-001, FR-015; NFR-001, NFR-004, NFR-012; C-002.
-- **Affected surfaces**: `apps/web/package.json`, app-local configuration files,
-  and tool configuration required for formatting, lint, strict types,
+- **Affected surfaces**: App-local configuration files required for formatting,
+  lint, strict types,
   accessibility tests, production build, and Playwright.
 - **Sequencing/depends-on**: IC-01, IC-02, and IC-03. It may proceed in parallel
-  with service work and does not update the root lockfile or create the real
+  with service work and does not update package metadata/the root lock or create the real
   shell/proxy/E2E implementation.
-- **Risks**: App metadata may drift from the root lock. IC-09 performs the sole
-  authorized lock reconciliation after both package metadata and backend are ready.
+- **Risks**: Configuration may request an undeclared tool. Static validation
+  rejects any package/version expectation not already present in IC-01's lock.
 
-### IC-09 — Codebase-wide shell, proxy, and E2E integration
+### IC-09 — Shell, proxy, and E2E integration
 
 - **Purpose**: Integrate the real Next.js shell with the ready Zig boundary and
   prove the same-origin public workflow through production-shaped processes.
 - **Relevant requirements**: FR-001, FR-002, FR-004, FR-015; NFR-001, NFR-004,
   NFR-007, NFR-012; C-002.
-- **Affected surfaces**: root `package-lock.json`, real `apps/web/src/app/`
-  shell/style files, `apps/web/src/lib/api/`, handwritten generated-contract
+- **Affected surfaces**: Real `apps/web/src/app/` shell/style files,
+  `apps/web/src/lib/api/`, handwritten generated-contract
   adapters, foundation component/accessibility tests, and Playwright E2E.
 - **Sequencing/depends-on**: IC-07 and IC-08, plus IC-03's generated workspace
-  export. This is an explicit `scope: codebase-wide` package because it performs
-  the one post-metadata root lockfile update. It begins only after WP08's Zig
-  HTTP/readiness package is accepted.
-- **Risks**: Combining the lock update with application integration is a
-  high-contention boundary. It must be one small reviewed package, may not edit
-  root `package.json`, and must prove the real proxy rather than a mocked API.
+  export. It begins only after WP08's Zig HTTP/readiness package is accepted and
+  materializes contracts before typecheck/build.
+- **Risks**: The real proxy/security boundary can be hidden by mocks. Red-first
+  attacker-input tests and production-process E2E must prove it without editing
+  package metadata or the root lock.
 
-### IC-10 — Program gates and ownership handoff
+### IC-10 — Governed documentation sync attestation
+
+- **Purpose**: Reconcile shipped behavior with the closed governed-artifact set and
+  produce one schema-validated attestation and committed drift baseline before acceptance.
+- **Relevant requirements**: FR-015, FR-016; NFR-010; C-007, C-010.
+- **Affected surfaces**: The exact read-only inventory in `Pre-Acceptance Governance
+  Sync` plus the sole WP-owned receipt at
+  `docs/governance/p0-governed-doc-sync.json`. The project charter is checked
+  read-only; there is no tracked project glossary or architecture-note artifact at
+  this baseline, so those categories require explicit `not_applicable` rationales.
+- **Sequencing/depends-on**: IC-03 through IC-09. This is a Spec Kitty
+  `planning_artifact` work package after every producer is reviewed, not an informal
+  acceptance assumption and not a code package. Spec Kitty forbids a WP from owning
+  its mission definition, so any required mission-document correction is committed by
+  the authorized orchestrator through the literal sync command before WP11 resumes.
+- **Risks**: A partial receipt could hide drift. The formal schema, closed literal
+  inventory, exact commit command, and WP dependency make omissions fail before
+  closure starts.
+
+### IC-11 — Program gates and ownership handoff
 
 - **Purpose**: Make validation, GPL compatibility, shared-file ownership, and
   P1-P4 readiness auditable.
@@ -623,8 +673,8 @@ shutdown during an active operation, and close/reopen through this public seam.
   orchestration, runtime/license tooling, `README.md`,
   `docs/program-ledger.md`, and explicit manifest promotion at
   `contracts/manifests/p0.json`.
-- **Sequencing/depends-on**: IC-01 through IC-09, plus
-  successful orchestrator-owned pre-acceptance planning sync.
+- **Sequencing/depends-on**: IC-01 through IC-10. WP12 cannot begin until the
+  governed-document sync WP11 is accepted and committed.
 - **Risks**: This is an explicit codebase-wide closure package and depends on
   every producing package. Tests, notices, fixtures, and focused commands stay
   with their producing concerns; closure runs the full gate, promotes exact
@@ -637,17 +687,16 @@ proceed in parallel. IC-02's Zig runtime portion then consumes both, while
 IC-06 follows IC-05 and delivers the migration-agnostic durable store. IC-03
 follows the contract portion of IC-02 and may run beside IC-05/IC-06; it pins
 all P0-P4 conformance inputs and exposes the sole generated TypeScript workspace
-output. IC-08 may start after IC-02/IC-03 while service work continues. IC-04
-consumes IC-02, IC-05, and IC-06 to apply migrations through the public durable
-seam.
+outputs. IC-08 may start after IC-02/IC-03 while service work continues. IC-04
+consumes IC-02, IC-03, IC-05, and IC-06 to apply migrations through the public
+durable seam and canonical descriptor schema.
 
 IC-07 waits for IC-02, IC-03, IC-04, and IC-06 so HTTP readiness cannot outrun
-durable/migration readiness. IC-09 waits for IC-07 and IC-08, then performs
-the one codebase-wide root lock reconciliation and real shell/proxy/E2E
-integration. The orchestrator-owned governed-doc sync follows reviewed producer
-work. IC-10 is the final codebase-wide closure after that sync and every
-producer. Tasking keeps narrow-package paths disjoint and names the two
-intentional codebase-wide integration/closure packages explicitly.
+durable/migration readiness. IC-09 waits for IC-07 and IC-08, then performs the
+real shell/proxy/E2E integration without touching package metadata or the lock.
+IC-10's governed-doc planning package follows reviewed producer work. IC-11
+is the final codebase-wide closure after that sync and every producer. All code
+WP ownership is disjoint, so lane computation must remain acyclic.
 
 ## Task Ownership Contract
 
@@ -656,27 +705,24 @@ two narrow work packages claiming the same file:
 
 | Concern package | Exclusive primary surfaces |
 | --- | --- |
-| Repository substrate | Root `package.json`, initial bootstrap lock, npm policy, and tool-version files; declares all focused commands up front and does not absorb app dependencies |
+| Repository substrate | Root `package.json`, sole root lock, exact contract-tool/web workspace package manifests, npm policy, and tool-version files; declares the complete npm graph and focused commands once |
 | Shared values | `contracts/common/v1/`, Zig shared values, and their tests |
-| Contract composition | API/event/module/manifest/fixture trees, creation and validation of the Draft `contracts/manifests/p0.json`, `contracts/conformance/p0-p4-inputs.json`, `tools/contracts/.gitignore`, contract-tool workspace, and sole writer of `tools/contracts/.generated/typescript/v1/` |
+| Contract composition | API/event/module/fixture trees, manifest schema plus Draft `contracts/manifests/drafts/p0.json`, conformance lock, contract-tool source/tests, and sole writer of ignored TypeScript/runtime generated outputs; package metadata remains read-only |
 | Migration runner | P0 descriptors, migration application/readiness, and migration tests through the public durable seam; excludes adapter/store/directory-sync implementation |
 | ShovelerDB consumption | Dependency source, service build files, dependency adapter, dependency notice, and convention-scanned stable Zig test/coverage hooks |
 | Durable storage | Migration-agnostic persistence state machine, serialized store, directory sync, diagnostics, and store tests; excludes every `migrations*` file |
 | Zig HTTP boundary | `services/api/src/main.zig`, HTTP modules, and black-box service tests |
-| Web package/config substrate | `apps/web/package.json` and app-local configuration only; no root lock, shell, proxy, or E2E source |
-| Application integration | One `scope: codebase-wide` package after Zig HTTP: the sole post-metadata `package-lock.json` updater plus real shell/style, proxy/client adapters, accessibility tests, and Playwright E2E |
-| Pre-acceptance planning sync | Orchestrator-owned governed-artifact operation, not a code WP: synchronizes mission spec/plan/data model/quickstart, canonical examples, architecture notes, and glossary |
-| Program closure | One `scope: codebase-wide` package owning foundation CI, full-gate execution, license tooling, `README.md`, `docs/program-ledger.md`, and sole post-producer promotion of `contracts/manifests/p0.json` after all producers and planning sync |
+| Web configuration substrate | App-local configuration only; no package metadata, root lock, shell, proxy, or E2E source |
+| Application integration | Narrow app-owned shell/style, proxy/client adapters, accessibility tests, and Playwright E2E after Zig HTTP; package metadata and lock remain read-only |
+| Pre-acceptance planning sync | One `planning_artifact` WP owns only `docs/governance/p0-governed-doc-sync.json`: it checks the exact mission spec/plan/data model/quickstart/research/contracts inventory read-only, blocks for an authorized exact sync commit when corrections are needed, records absent glossary/architecture categories, and commits a formal attestation |
+| Program closure | One `scope: codebase-wide` package owning foundation CI, full-gate execution, license tooling, `README.md`, `docs/program-ledger.md`, and sole creation/promotion of canonical `contracts/manifests/p0.json` from WP03's disjoint Draft input after all producers and planning sync |
 
 The closure package rejects or routes unfinished producer work back to its
 owner. It does not become the routine author of another package's tests,
-notices, fixtures, source, or governed mission planning documents. The
-two declared serialized, phase-scoped ownership handoffs are: the
-application-integration package's root lock reconciliation after the substrate's
-initial lock, and WP11's exact `contracts/manifests/p0.json` promotion after WP03
-creates and validates the Draft manifest and every producer finishes. At that
-second handoff, codebase-wide WP11 alone may edit the exact manifest to promote
-closure evidence.
+notices, fixtures, source, or governed mission planning documents. There are no
+phase-scoped shared-file handoffs: WP01 is the only package/lock writer, WP03
+owns only `contracts/manifests/drafts/p0.json`, and WP12 alone creates the
+disjoint canonical `contracts/manifests/p0.json` closure record.
 
 P1-P4 may begin specification and planning as soon as this draft contract set is
 committed. Their implementation remains blocked until their consumed contracts
@@ -685,17 +731,81 @@ are Frozen and P0 is merged/revalidated on the program baseline.
 ## Pre-Acceptance Governance Sync
 
 After all producer WPs are implemented and reviewed, but before the acceptance
-gate, the Spec Kitty orchestrator performs one governed planning-document sync.
-This is not a code WP and must not be assigned to the program-closure package.
+gate, WP11 performs one governed planning-document reconciliation and attestation in
+`planning_artifact` mode. It owns only the receipt under `docs/governance/`; it is not
+a code WP and is not assigned to the program-closure package.
 It compares shipped observable behavior and canonical terminology with
-`spec.md`, `plan.md`, `data-model.md`, `quickstart.md`, contract examples,
-architecture notes, and the project glossary; then it updates every affected
-governed artifact together or records an explicit no-change rationale.
+the exact inventory below; then it updates every affected writable artifact
+together through the authorized orchestrator or records an explicit no-change
+rationale. The charter and all mission artifacts remain read-only to WP11 itself.
+When a correction is required, WP11 pauses, identifies the exact change, and resumes
+only after the orchestrator commits the corrected mission artifacts with the schema's
+literal `sync_safe_commit` command. If no correction is required, the synchronized
+baseline equals the producer baseline.
+Because this baseline has no tracked project glossary or architecture-note file,
+the receipt records both categories as `not_applicable` with nonempty rationales;
+an implementation may not invent or omit paths to make the check pass.
 
-The sync records example-to-requirement and acceptance-check traceability and
-must finish before IC-10 begins final acceptance. Code WPs may cite a needed
-planning correction in their Activity Log, but they do not claim `quickstart.md`
-or other governed planning paths merely to close their own package.
+The resolver is closed: `required_artifacts` and `checked_artifacts` must each
+contain exactly these paths, once, in this bytewise canonical order, with no glob,
+directory walk, optional entry, or additional path:
+
+1. `.kittify/charter/charter.md`
+2. `kitty-specs/p0-contract-spine-01KXYY0J/contracts/README.md`
+3. `kitty-specs/p0-contract-spine-01KXYY0J/contracts/api-v1.openapi.yaml`
+4. `kitty-specs/p0-contract-spine-01KXYY0J/contracts/common-v1.schema.json`
+5. `kitty-specs/p0-contract-spine-01KXYY0J/contracts/contract-manifest-v1.schema.json`
+6. `kitty-specs/p0-contract-spine-01KXYY0J/contracts/event-catalog-v1.schema.json`
+7. `kitty-specs/p0-contract-spine-01KXYY0J/contracts/event-envelope-v1.schema.json`
+8. `kitty-specs/p0-contract-spine-01KXYY0J/contracts/governed-doc-sync-v1.schema.json`
+9. `kitty-specs/p0-contract-spine-01KXYY0J/contracts/migration-manifest-v1.schema.json`
+10. `kitty-specs/p0-contract-spine-01KXYY0J/contracts/module-contribution-v1.schema.json`
+11. `kitty-specs/p0-contract-spine-01KXYY0J/contracts/p0-contract-manifest.json`
+12. `kitty-specs/p0-contract-spine-01KXYY0J/data-model.md`
+13. `kitty-specs/p0-contract-spine-01KXYY0J/plan.md`
+14. `kitty-specs/p0-contract-spine-01KXYY0J/quickstart.md`
+15. `kitty-specs/p0-contract-spine-01KXYY0J/research.md`
+16. `kitty-specs/p0-contract-spine-01KXYY0J/research/evidence-log.csv`
+17. `kitty-specs/p0-contract-spine-01KXYY0J/research/source-register.csv`
+18. `kitty-specs/p0-contract-spine-01KXYY0J/spec.md`
+
+WP11 creates `docs/governance/p0-governed-doc-sync.json` with schema
+`invoice-manager.governed-doc-sync/v1`, the producer and synchronized baseline full
+commits, a
+`required_artifacts` array equal to the inventory above, a canonically sorted
+`checked_artifacts` array with every path and SHA-256, `changed`/`no_change` status
+plus rationale, example-to-requirement/acceptance mappings, glossary and
+architecture decisions, and a `commands` object whose `resolver`, `sync_safe_commit`,
+`drift`, and `receipt_safe_commit` values equal the schema's literal constants. The
+receipt must validate against
+`contracts/governed-doc-sync-v1.schema.json` before commit.
+
+When reconciliation requires mission-document corrections, the literal orchestrator
+sync operation is the following command with every writable argument shown. Unchanged
+writable files are intentionally included so Spec Kitty reports the closed scope. The
+read-only charter and WP-owned receipt are deliberately absent:
+
+```bash
+spec-kitty safe-commit kitty-specs/p0-contract-spine-01KXYY0J/contracts/README.md kitty-specs/p0-contract-spine-01KXYY0J/contracts/api-v1.openapi.yaml kitty-specs/p0-contract-spine-01KXYY0J/contracts/common-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/contract-manifest-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/event-catalog-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/event-envelope-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/governed-doc-sync-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/migration-manifest-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/module-contribution-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/p0-contract-manifest.json kitty-specs/p0-contract-spine-01KXYY0J/data-model.md kitty-specs/p0-contract-spine-01KXYY0J/plan.md kitty-specs/p0-contract-spine-01KXYY0J/quickstart.md kitty-specs/p0-contract-spine-01KXYY0J/research.md kitty-specs/p0-contract-spine-01KXYY0J/research/evidence-log.csv kitty-specs/p0-contract-spine-01KXYY0J/research/source-register.csv kitty-specs/p0-contract-spine-01KXYY0J/spec.md --message "docs: synchronize governed P0 artifacts" --to-branch feat/p0-contract-spine
+```
+
+WP11 then validates and commits only its attestation with the schema's literal
+`receipt_safe_commit` command:
+
+```bash
+spec-kitty safe-commit docs/governance/p0-governed-doc-sync.json --message "docs: attest governed P0 artifacts" --to-branch feat/p0-contract-spine
+```
+
+WP12 validates the formal schema and exact inventory, recomputes every recorded digest,
+and runs the receipt's self-contained command beginning
+`receipt_commit="$(git log -1 --format=%H -- docs/governance/p0-governed-doc-sync.json)" && git diff --exit-code "$receipt_commit" --`
+with all 18 required paths and the receipt path fully expanded to prove no later drift. Missing or
+additional artifacts, unsorted/duplicate paths, digest differences, an empty
+rationale, a command mismatch, or an unmapped example fail closure. WP12 has a
+hard WP11 dependency, so the sync must finish before IC-11 begins final
+acceptance. Code WPs may cite a needed planning correction in their Activity
+Log, but they do not claim `quickstart.md` or other governed planning paths
+merely to close their own package.
 
 ## Risks and Mitigations
 
@@ -706,13 +816,14 @@ or other governed planning paths merely to close their own package.
 | DDL failure leaves dirty in-memory schema | Migration application uses the durable store seam to discard uncheckpointed state and reopen; HTTP remains unready | P0 |
 | Durable storage imports migration policy and creates a dependency cycle | Keep durable storage migration-agnostic; migration depends on its public seam, never the inverse | P0 |
 | HTTP binds before durable/migration readiness | IC-07 depends on IC-04 and IC-06 and requires both explicit readiness results before listen/accept | P0 |
-| Later WPs edit `build.zig` for each test | WP04 publishes convention-scanned stable shared/persistence/migration-negative/HTTP/coverage hooks once | P0 |
+| Later WPs edit `build.zig` for each test | WP04 publishes convention-scanned stable shared/persistence/migration unit/integration/negative/HTTP/coverage hooks once | P0 |
 | Shared registries reintroduce merge conflicts | Convention scanning, collision checks, generated ignored aggregates | P0 |
-| Generated TypeScript gains multiple writers or copies | `tools/contracts/.generated/typescript/v1/` is the only output; contract tooling is the only writer and workspace exporter | P0 |
+| Generated contracts gain multiple writers or are absent at compile time | `contracts:generate` is the sole writer of TypeScript and runtime route inventory; HTTP/web hooks depend on it | P0 |
 | Conformance silently follows a moving mission head | Commit and validate full commits plus manifest/content digests in `contracts/conformance/p0-p4-inputs.json` | P0 / program orchestrator |
-| Web metadata and root lock race with backend work | Keep metadata/config narrow; perform one codebase-wide lock/shell/proxy/E2E integration only after IC-07 | P0 integration steward |
+| Workspace metadata and root lock race with later work | WP01 predeclares both exact workspace manifests and is the only lock writer; all consumers verify read-only | P0 substrate |
+| Proxy accepts attacker-controlled destinations or leaks internal origin | Require charter-mandated red-first public-route security cases and production E2E | P0 web integration |
 | Timing gates vary by machine or discard slow samples | Enforce the reference runner, cache, dataset, monotonic timing, sample, and evidence protocol above | P0 closure |
-| Governed docs drift or closure absorbs quickstart | Run orchestrator planning sync before IC-10; closure owns only README, ledger, CI/license tooling, and P0 manifest | Program orchestrator |
+| Governed docs drift or closure absorbs quickstart | Run planning-artifact WP11 before IC-11; WP12 closure owns only README, ledger, CI/license tooling, and P0 manifest | Program orchestrator |
 | P0 absorbs feature behavior | Explicit exclusions and requirement/path review | Program orchestrator |
 | GPLv2-only incompatibility enters runtime | Runtime dependency classifier, license allow/deny evidence, notices | P0 then integration steward |
 | ShovelerDB snapshot cap is reached | Store binary artifacts externally; monitoring and operational limits | P3 |
@@ -733,20 +844,21 @@ or other governed planning paths merely to close their own package.
   are normative rather than left to work-package implementers.
 - The dependency graph is adapter -> durable store -> migration application ->
   HTTP readiness; the durable store has no migration dependency.
-- WP04's convention-scanned stable build/test surface and mandatory
-  `migration:negative` root gate are fully named.
-- `tools/contracts/.generated/typescript/v1/` and
-  `tools/contracts/.gitignore` define the sole generated TypeScript path/writer
-  and contract-workspace export.
-- Web metadata/config and the later codebase-wide lock/shell/proxy/E2E
-  integration are separate ownership packages, with the latter after IC-07.
-- Route-policy, migration, and persistence work require chronological red-first
-  evidence through their public responsibility boundaries.
+- WP04's convention-scanned stable build/test surface names migration
+  unit/integration/negative/coverage plus the mandatory root gate.
+- `contracts:generate`, `tools/contracts/.generated/{typescript,runtime}/`, and
+  `tools/contracts/.gitignore` define the sole generated writers/materialization
+  order for both consumers.
+- WP01 alone owns the complete package graph and lock; web configuration and
+  later shell/proxy/E2E packages have disjoint ownership after IC-07.
+- Adapter persistence/checkpoint, durable store, migration, route policy, and
+  proxy security require chronological red-first public-boundary evidence.
 - The reference first-run, validation-duration, and health-p99 protocols define
   runner, dataset, cache state, timing boundaries, sample handling, and evidence.
 - Quickstart describes planned commands without claiming implementation exists.
-- The orchestrator-owned pre-acceptance governed-doc sync is declared outside
-  code-WP ownership; program closure explicitly owns
+- The pre-acceptance governed-doc sync is a formal `planning_artifact` WP with a
+  closed resolver, schema, exact safe-commit call, and dependency before closure;
+  program closure explicitly owns
   `contracts/manifests/p0.json`, README, and ledger evidence.
 - Decision verifier reports no deferred or stale decisions.
 - Program ledger records P0 handle, baseline, Draft contract version, ownership,
@@ -759,18 +871,21 @@ or other governed planning paths merely to close their own package.
 - Every producer package passes its stable focused hook without editing
   `services/api/build.zig`; `npm run migration:negative` executes nonzero case
   counts and all expected rejection categories.
-- Route-policy, migration, and persistence reviews contain chronological
-  red-first then green evidence for every critical case.
+- Adapter persistence/checkpoint/literal, durable-store, migration, route-policy,
+  and proxy-security reviews contain chronological red-first then green evidence
+  for every critical case.
 - Durable store and migration readiness are both successful before the Zig HTTP
   process accepts traffic; injected store/migration failures prove no listener
   reports ready.
-- The codebase-wide application integration updates the root lock exactly once,
-  imports generated contracts through the contract-tool workspace, and passes
-  component accessibility, production build, real proxy, and Playwright E2E.
+- The application integration leaves package metadata/root lock unchanged,
+  materializes/imports generated contracts through the contract-tool workspace,
+  and passes WCAG 2.2 AA component accessibility, production build, red-first
+  proxy security, real proxy, and Playwright E2E.
 - Reference first-run, full-validation, and 100-request same-origin health
   measurements pass using the defined protocol and publish complete evidence.
-- The orchestrator planning sync completes before closure and reports governed
-  docs/examples/glossary aligned or an approved explicit no-change rationale.
+- WP11 attestation completes after any required orchestrator planning sync and
+  reports governed docs/examples/glossary aligned or an approved explicit
+  `no_change` rationale.
 - Closure runs every independent gate, verifies the immutable conformance lock,
   promotes exactly `contracts/manifests/p0.json`, and updates README/ledger
   evidence without taking ownership of producer tests or quickstart.

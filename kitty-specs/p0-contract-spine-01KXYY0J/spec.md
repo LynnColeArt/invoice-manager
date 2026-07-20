@@ -306,3 +306,7 @@ jobs remain independently diagnosable.
 - **SC-006**: Every required P0 quality and licensing gate passes independently,
   and the program ledger records P1-P4 contract readiness without unresolved
   ownership conflicts.
+- **SC-007**: The foundation shell meets WCAG 2.2 AA with zero configured
+  automated serious or critical violations, normal-text contrast of at least
+  4.5:1, large-text contrast of at least 3:1, visible keyboard focus and working
+  skip link, usable 200% zoom, and no horizontal overflow at 320 CSS pixels.

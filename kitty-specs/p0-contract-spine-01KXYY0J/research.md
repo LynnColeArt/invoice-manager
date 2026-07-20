@@ -166,8 +166,11 @@ On the supported Linux baseline the application performs one additional step:
 
 If commit succeeds but checkpoint or parent-directory sync fails, retry only the
 persistence-completion boundary and report `durability_unconfirmed`; do not
-replay the mutation blindly. Always checkpoint and directory-sync before close.
-Startup migrations are forward-only, idempotent, checkpointed, and
+replay the mutation blindly. During ordinary successful shutdown, checkpoint
+and directory-sync committed durable state before close. A dirty failed-startup
+or durability-uncertain handle must instead be discarded/closed without a new
+checkpoint and reopened from the last confirmed durable snapshot; never persist
+the state being rejected. Startup migrations are forward-only, idempotent, checkpointed, and
 directory-synchronized before traffic is served. Since ShovelerDB DDL is not
 session-transactional, a failed migration discards the dirty handle without
 checkpointing and reopens the last durable snapshot.
