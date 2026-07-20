@@ -1,0 +1,646 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://invoice-manager.invalid/contracts/governed-doc-sync/v1/schema.json",
+  "title": "Invoice Manager Governed Document Sync Receipt",
+  "description": "Closed receipt contract for the P0 pre-acceptance governed-document synchronization operation.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "producer_baseline_commit",
+    "synchronized_baseline_commit",
+    "required_artifacts",
+    "checked_artifacts",
+    "example_mappings",
+    "architecture",
+    "glossary",
+    "commands"
+  ],
+  "properties": {
+    "schema": {
+      "const": "invoice-manager.governed-doc-sync/v1"
+    },
+    "producer_baseline_commit": {
+      "$ref": "#/$defs/fullCommit"
+    },
+    "synchronized_baseline_commit": {
+      "description": "The full commit produced by the governed-document synchronization commit and attested by the later receipt-only commit.",
+      "$ref": "#/$defs/fullCommit"
+    },
+    "required_artifacts": {
+      "description": "The complete, lexicographically sorted artifact inventory. The receipt is excluded to avoid self-hashing.",
+      "const": [
+        ".kittify/charter/charter.md",
+        "kitty-specs/p0-contract-spine-01KXYY0J/contracts/README.md",
+        "kitty-specs/p0-contract-spine-01KXYY0J/contracts/api-v1.openapi.yaml",
+        "kitty-specs/p0-contract-spine-01KXYY0J/contracts/common-v1.schema.json",
+        "kitty-specs/p0-contract-spine-01KXYY0J/contracts/contract-manifest-v1.schema.json",
+        "kitty-specs/p0-contract-spine-01KXYY0J/contracts/event-catalog-v1.schema.json",
+        "kitty-specs/p0-contract-spine-01KXYY0J/contracts/event-envelope-v1.schema.json",
+        "kitty-specs/p0-contract-spine-01KXYY0J/contracts/governed-doc-sync-v1.schema.json",
+        "kitty-specs/p0-contract-spine-01KXYY0J/contracts/migration-manifest-v1.schema.json",
+        "kitty-specs/p0-contract-spine-01KXYY0J/contracts/module-contribution-v1.schema.json",
+        "kitty-specs/p0-contract-spine-01KXYY0J/contracts/p0-contract-manifest.json",
+        "kitty-specs/p0-contract-spine-01KXYY0J/data-model.md",
+        "kitty-specs/p0-contract-spine-01KXYY0J/plan.md",
+        "kitty-specs/p0-contract-spine-01KXYY0J/quickstart.md",
+        "kitty-specs/p0-contract-spine-01KXYY0J/research.md",
+        "kitty-specs/p0-contract-spine-01KXYY0J/research/evidence-log.csv",
+        "kitty-specs/p0-contract-spine-01KXYY0J/research/source-register.csv",
+        "kitty-specs/p0-contract-spine-01KXYY0J/spec.md"
+      ]
+    },
+    "checked_artifacts": {
+      "description": "Exactly one digest and disposition record for each required artifact, in the same closed order.",
+      "type": "array",
+      "minItems": 18,
+      "maxItems": 18,
+      "uniqueItems": true,
+      "prefixItems": [
+        {
+          "$ref": "#/$defs/checkedCharter"
+        },
+        {
+          "$ref": "#/$defs/checkedContractsReadme"
+        },
+        {
+          "$ref": "#/$defs/checkedApi"
+        },
+        {
+          "$ref": "#/$defs/checkedCommon"
+        },
+        {
+          "$ref": "#/$defs/checkedContractManifest"
+        },
+        {
+          "$ref": "#/$defs/checkedEventCatalog"
+        },
+        {
+          "$ref": "#/$defs/checkedEventEnvelope"
+        },
+        {
+          "$ref": "#/$defs/checkedSyncSchema"
+        },
+        {
+          "$ref": "#/$defs/checkedMigrationManifest"
+        },
+        {
+          "$ref": "#/$defs/checkedModuleContribution"
+        },
+        {
+          "$ref": "#/$defs/checkedP0Manifest"
+        },
+        {
+          "$ref": "#/$defs/checkedDataModel"
+        },
+        {
+          "$ref": "#/$defs/checkedPlan"
+        },
+        {
+          "$ref": "#/$defs/checkedQuickstart"
+        },
+        {
+          "$ref": "#/$defs/checkedResearch"
+        },
+        {
+          "$ref": "#/$defs/checkedEvidenceLog"
+        },
+        {
+          "$ref": "#/$defs/checkedSourceRegister"
+        },
+        {
+          "$ref": "#/$defs/checkedSpec"
+        }
+      ],
+      "items": false
+    },
+    "example_mappings": {
+      "description": "Closed, path-sorted mappings from each canonical contract example to one or more requirements and acceptance references.",
+      "type": "array",
+      "minItems": 8,
+      "maxItems": 8,
+      "uniqueItems": true,
+      "prefixItems": [
+        {
+          "$ref": "#/$defs/mappingApi"
+        },
+        {
+          "$ref": "#/$defs/mappingCommon"
+        },
+        {
+          "$ref": "#/$defs/mappingContractManifest"
+        },
+        {
+          "$ref": "#/$defs/mappingEventCatalog"
+        },
+        {
+          "$ref": "#/$defs/mappingEventEnvelope"
+        },
+        {
+          "$ref": "#/$defs/mappingMigrationManifest"
+        },
+        {
+          "$ref": "#/$defs/mappingModuleContribution"
+        },
+        {
+          "$ref": "#/$defs/mappingP0Manifest"
+        }
+      ],
+      "items": false
+    },
+    "architecture": {
+      "description": "Explicit disposition for the absent standalone project architecture artifact.",
+      "$ref": "#/$defs/notApplicableCategory"
+    },
+    "glossary": {
+      "description": "Explicit disposition for the absent tracked project glossary artifact.",
+      "$ref": "#/$defs/notApplicableCategory"
+    },
+    "commands": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "resolver",
+        "sync_safe_commit",
+        "drift",
+        "receipt_safe_commit"
+      ],
+      "properties": {
+        "resolver": {
+          "const": "git ls-files --error-unmatch -- .kittify/charter/charter.md kitty-specs/p0-contract-spine-01KXYY0J/contracts/README.md kitty-specs/p0-contract-spine-01KXYY0J/contracts/api-v1.openapi.yaml kitty-specs/p0-contract-spine-01KXYY0J/contracts/common-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/contract-manifest-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/event-catalog-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/event-envelope-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/governed-doc-sync-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/migration-manifest-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/module-contribution-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/p0-contract-manifest.json kitty-specs/p0-contract-spine-01KXYY0J/data-model.md kitty-specs/p0-contract-spine-01KXYY0J/plan.md kitty-specs/p0-contract-spine-01KXYY0J/quickstart.md kitty-specs/p0-contract-spine-01KXYY0J/research.md kitty-specs/p0-contract-spine-01KXYY0J/research/evidence-log.csv kitty-specs/p0-contract-spine-01KXYY0J/research/source-register.csv kitty-specs/p0-contract-spine-01KXYY0J/spec.md"
+        },
+        "sync_safe_commit": {
+          "const": "spec-kitty safe-commit kitty-specs/p0-contract-spine-01KXYY0J/contracts/README.md kitty-specs/p0-contract-spine-01KXYY0J/contracts/api-v1.openapi.yaml kitty-specs/p0-contract-spine-01KXYY0J/contracts/common-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/contract-manifest-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/event-catalog-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/event-envelope-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/governed-doc-sync-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/migration-manifest-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/module-contribution-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/p0-contract-manifest.json kitty-specs/p0-contract-spine-01KXYY0J/data-model.md kitty-specs/p0-contract-spine-01KXYY0J/plan.md kitty-specs/p0-contract-spine-01KXYY0J/quickstart.md kitty-specs/p0-contract-spine-01KXYY0J/research.md kitty-specs/p0-contract-spine-01KXYY0J/research/evidence-log.csv kitty-specs/p0-contract-spine-01KXYY0J/research/source-register.csv kitty-specs/p0-contract-spine-01KXYY0J/spec.md --message \"docs: synchronize governed P0 artifacts\" --to-branch feat/p0-contract-spine"
+        },
+        "drift": {
+          "const": "test -n \"$accepted_wp11_receipt_commit\" && test \"$accepted_wp11_receipt_commit\" = \"$(git log -1 --format=%H -- docs/governance/p0-governed-doc-sync.json)\" && git diff --exit-code \"$accepted_wp11_receipt_commit\" -- .kittify/charter/charter.md kitty-specs/p0-contract-spine-01KXYY0J/contracts/README.md kitty-specs/p0-contract-spine-01KXYY0J/contracts/api-v1.openapi.yaml kitty-specs/p0-contract-spine-01KXYY0J/contracts/common-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/contract-manifest-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/event-catalog-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/event-envelope-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/governed-doc-sync-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/migration-manifest-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/module-contribution-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/p0-contract-manifest.json kitty-specs/p0-contract-spine-01KXYY0J/data-model.md kitty-specs/p0-contract-spine-01KXYY0J/plan.md kitty-specs/p0-contract-spine-01KXYY0J/quickstart.md kitty-specs/p0-contract-spine-01KXYY0J/research.md kitty-specs/p0-contract-spine-01KXYY0J/research/evidence-log.csv kitty-specs/p0-contract-spine-01KXYY0J/research/source-register.csv kitty-specs/p0-contract-spine-01KXYY0J/spec.md docs/governance/p0-governed-doc-sync.json"
+        },
+        "receipt_safe_commit": {
+          "const": "spec-kitty safe-commit docs/governance/p0-governed-doc-sync.json --message \"docs: attest governed P0 artifacts\" --to-branch feat/p0-contract-spine"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "fullCommit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "checkedArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "sha256",
+        "status",
+        "rationale"
+      ],
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "status": {
+          "enum": [
+            "changed",
+            "no_change"
+          ]
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": ".*\\S.*"
+        }
+      }
+    },
+    "checkedCharter": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/checkedArtifact"
+        },
+        {
+          "properties": {
+            "path": {
+              "const": ".kittify/charter/charter.md"
+            },
+            "status": {
+              "const": "no_change"
+            }
+          }
+        }
+      ]
+    },
+    "checkedContractsReadme": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/checkedArtifact"
+        },
+        {
+          "properties": {
+            "path": {
+              "const": "kitty-specs/p0-contract-spine-01KXYY0J/contracts/README.md"
+            }
+          }
+        }
+      ]
+    },
+    "checkedApi": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/checkedArtifact"
+        },
+        {
+          "properties": {
+            "path": {
+              "const": "kitty-specs/p0-contract-spine-01KXYY0J/contracts/api-v1.openapi.yaml"
+            }
+          }
+        }
+      ]
+    },
+    "checkedCommon": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/checkedArtifact"
+        },
+        {
+          "properties": {
+            "path": {
+              "const": "kitty-specs/p0-contract-spine-01KXYY0J/contracts/common-v1.schema.json"
+            }
+          }
+        }
+      ]
+    },
+    "checkedContractManifest": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/checkedArtifact"
+        },
+        {
+          "properties": {
+            "path": {
+              "const": "kitty-specs/p0-contract-spine-01KXYY0J/contracts/contract-manifest-v1.schema.json"
+            }
+          }
+        }
+      ]
+    },
+    "checkedEventCatalog": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/checkedArtifact"
+        },
+        {
+          "properties": {
+            "path": {
+              "const": "kitty-specs/p0-contract-spine-01KXYY0J/contracts/event-catalog-v1.schema.json"
+            }
+          }
+        }
+      ]
+    },
+    "checkedEventEnvelope": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/checkedArtifact"
+        },
+        {
+          "properties": {
+            "path": {
+              "const": "kitty-specs/p0-contract-spine-01KXYY0J/contracts/event-envelope-v1.schema.json"
+            }
+          }
+        }
+      ]
+    },
+    "checkedSyncSchema": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/checkedArtifact"
+        },
+        {
+          "properties": {
+            "path": {
+              "const": "kitty-specs/p0-contract-spine-01KXYY0J/contracts/governed-doc-sync-v1.schema.json"
+            }
+          }
+        }
+      ]
+    },
+    "checkedMigrationManifest": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/checkedArtifact"
+        },
+        {
+          "properties": {
+            "path": {
+              "const": "kitty-specs/p0-contract-spine-01KXYY0J/contracts/migration-manifest-v1.schema.json"
+            }
+          }
+        }
+      ]
+    },
+    "checkedModuleContribution": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/checkedArtifact"
+        },
+        {
+          "properties": {
+            "path": {
+              "const": "kitty-specs/p0-contract-spine-01KXYY0J/contracts/module-contribution-v1.schema.json"
+            }
+          }
+        }
+      ]
+    },
+    "checkedP0Manifest": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/checkedArtifact"
+        },
+        {
+          "properties": {
+            "path": {
+              "const": "kitty-specs/p0-contract-spine-01KXYY0J/contracts/p0-contract-manifest.json"
+            }
+          }
+        }
+      ]
+    },
+    "checkedDataModel": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/checkedArtifact"
+        },
+        {
+          "properties": {
+            "path": {
+              "const": "kitty-specs/p0-contract-spine-01KXYY0J/data-model.md"
+            }
+          }
+        }
+      ]
+    },
+    "checkedPlan": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/checkedArtifact"
+        },
+        {
+          "properties": {
+            "path": {
+              "const": "kitty-specs/p0-contract-spine-01KXYY0J/plan.md"
+            }
+          }
+        }
+      ]
+    },
+    "checkedQuickstart": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/checkedArtifact"
+        },
+        {
+          "properties": {
+            "path": {
+              "const": "kitty-specs/p0-contract-spine-01KXYY0J/quickstart.md"
+            }
+          }
+        }
+      ]
+    },
+    "checkedResearch": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/checkedArtifact"
+        },
+        {
+          "properties": {
+            "path": {
+              "const": "kitty-specs/p0-contract-spine-01KXYY0J/research.md"
+            }
+          }
+        }
+      ]
+    },
+    "checkedEvidenceLog": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/checkedArtifact"
+        },
+        {
+          "properties": {
+            "path": {
+              "const": "kitty-specs/p0-contract-spine-01KXYY0J/research/evidence-log.csv"
+            }
+          }
+        }
+      ]
+    },
+    "checkedSourceRegister": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/checkedArtifact"
+        },
+        {
+          "properties": {
+            "path": {
+              "const": "kitty-specs/p0-contract-spine-01KXYY0J/research/source-register.csv"
+            }
+          }
+        }
+      ]
+    },
+    "checkedSpec": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/checkedArtifact"
+        },
+        {
+          "properties": {
+            "path": {
+              "const": "kitty-specs/p0-contract-spine-01KXYY0J/spec.md"
+            }
+          }
+        }
+      ]
+    },
+    "requirementRef": {
+      "type": "string",
+      "pattern": "^(?:FR|NFR|C)-[0-9]{3}$"
+    },
+    "acceptanceRef": {
+      "type": "string",
+      "pattern": "^(?:US-[1-4]/AS-[1-4]|SC-00[1-7])$"
+    },
+    "exampleMapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "requirement_refs",
+        "acceptance_refs"
+      ],
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "requirement_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/requirementRef"
+          }
+        },
+        "acceptance_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/acceptanceRef"
+          }
+        }
+      }
+    },
+    "mappingApi": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/exampleMapping"
+        },
+        {
+          "properties": {
+            "path": {
+              "const": "kitty-specs/p0-contract-spine-01KXYY0J/contracts/api-v1.openapi.yaml"
+            }
+          }
+        }
+      ]
+    },
+    "mappingCommon": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/exampleMapping"
+        },
+        {
+          "properties": {
+            "path": {
+              "const": "kitty-specs/p0-contract-spine-01KXYY0J/contracts/common-v1.schema.json"
+            }
+          }
+        }
+      ]
+    },
+    "mappingContractManifest": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/exampleMapping"
+        },
+        {
+          "properties": {
+            "path": {
+              "const": "kitty-specs/p0-contract-spine-01KXYY0J/contracts/contract-manifest-v1.schema.json"
+            }
+          }
+        }
+      ]
+    },
+    "mappingEventCatalog": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/exampleMapping"
+        },
+        {
+          "properties": {
+            "path": {
+              "const": "kitty-specs/p0-contract-spine-01KXYY0J/contracts/event-catalog-v1.schema.json"
+            }
+          }
+        }
+      ]
+    },
+    "mappingEventEnvelope": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/exampleMapping"
+        },
+        {
+          "properties": {
+            "path": {
+              "const": "kitty-specs/p0-contract-spine-01KXYY0J/contracts/event-envelope-v1.schema.json"
+            }
+          }
+        }
+      ]
+    },
+    "mappingMigrationManifest": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/exampleMapping"
+        },
+        {
+          "properties": {
+            "path": {
+              "const": "kitty-specs/p0-contract-spine-01KXYY0J/contracts/migration-manifest-v1.schema.json"
+            }
+          }
+        }
+      ]
+    },
+    "mappingModuleContribution": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/exampleMapping"
+        },
+        {
+          "properties": {
+            "path": {
+              "const": "kitty-specs/p0-contract-spine-01KXYY0J/contracts/module-contribution-v1.schema.json"
+            }
+          }
+        }
+      ]
+    },
+    "mappingP0Manifest": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/exampleMapping"
+        },
+        {
+          "properties": {
+            "path": {
+              "const": "kitty-specs/p0-contract-spine-01KXYY0J/contracts/p0-contract-manifest.json"
+            }
+          }
+        }
+      ]
+    },
+    "notApplicableCategory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "rationale"
+      ],
+      "properties": {
+        "status": {
+          "const": "not_applicable"
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": ".*\\S.*"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://invoice-manager.invalid/contracts/migrations/v1/manifest.schema.json",
+  "title": "Invoice Manager Migration Manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "owner",
+    "name",
+    "depends_on",
+    "script_path",
+    "script_digest",
+    "descriptor_digest"
+  ],
+  "properties": {
+    "id": {
+      "$ref": "https://invoice-manager.invalid/contracts/common/v1/schema.json#/$defs/EntityId"
+    },
+    "owner": { "type": "string", "pattern": "^p[0-8]$" },
+    "name": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+    "depends_on": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "https://invoice-manager.invalid/contracts/common/v1/schema.json#/$defs/EntityId"
+      }
+    },
+    "script_path": { "type": "string", "const": "up.sql" },
+    "script_digest": {
+      "$ref": "https://invoice-manager.invalid/contracts/common/v1/schema.json#/$defs/Sha256Digest"
+    },
+    "descriptor_digest": {
+      "$ref": "https://invoice-manager.invalid/contracts/common/v1/schema.json#/$defs/Sha256Digest",
+      "description": "SHA-256 of RFC 8785 JCS bytes for id, owner, name, lexicographically sorted depends_on, script_path, and script_digest; descriptor_digest itself is excluded."
+    }
+  }
+}

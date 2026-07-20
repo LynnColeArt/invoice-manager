@@ -1,0 +1,88 @@
+openapi: 3.1.0
+info:
+  title: Invoice Manager Foundation API
+  version: 0.1.0-draft.1
+  description: P0 planning contract; Draft status does not authorize implementation.
+servers:
+  - url: /api/v1
+paths:
+  /health:
+    get:
+      operationId: P0Health
+      x-invoice-manager-access: public
+      summary: Report whether the business service is ready.
+      responses:
+        "200":
+          description: Service is ready.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/P0HealthResponse"
+        "503":
+          description: Service is not ready.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/P0ErrorResponse"
+components:
+  schemas:
+    P0RequestMeta:
+      type: object
+      additionalProperties: false
+      required: [request_id]
+      properties:
+        request_id:
+          $ref: "https://invoice-manager.invalid/contracts/common/v1/schema.json#/$defs/RequestId"
+    P0HealthData:
+      type: object
+      additionalProperties: false
+      required: [status]
+      properties:
+        status:
+          type: string
+          const: ready
+    P0HealthResponse:
+      type: object
+      additionalProperties: false
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/P0HealthData"
+        meta:
+          $ref: "#/components/schemas/P0RequestMeta"
+    P0ErrorField:
+      type: object
+      additionalProperties: false
+      required: [path, code, message]
+      properties:
+        path:
+          type: string
+          description: JSON Pointer to the rejected field.
+        code:
+          type: string
+          pattern: "^[a-z][a-z0-9_]*$"
+        message:
+          type: string
+    P0ErrorBody:
+      type: object
+      additionalProperties: false
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          pattern: "^[a-z][a-z0-9_]*$"
+        message:
+          type: string
+        fields:
+          type: array
+          items:
+            $ref: "#/components/schemas/P0ErrorField"
+    P0ErrorResponse:
+      type: object
+      additionalProperties: false
+      required: [error, meta]
+      properties:
+        error:
+          $ref: "#/components/schemas/P0ErrorBody"
+        meta:
+          $ref: "#/components/schemas/P0RequestMeta"

@@ -1,0 +1,16 @@
+{
+  "coordination_branch": "kitty/mission-p0-contract-spine-01KXYY0J",
+  "created_at": "2026-07-20T04:54:38.567235+00:00",
+  "flattened": false,
+  "friendly_name": "P0 Contract Spine",
+  "mission_id": "01KXYY0J76QBNSWXX0SHMZNXC4",
+  "mission_number": null,
+  "mission_slug": "p0-contract-spine-01KXYY0J",
+  "mission_type": "software-dev",
+  "pr_bound": true,
+  "purpose_context": "This foundation mission gives downstream teams a real Next.js and Zig baseline, verified ShovelerDB consumption, shared domain primitives, collision-safe migrations, composable API and event envelopes, contract fixtures, and CI test harnesses. It deliberately excludes invoice-manager feature behavior so P1 through P4 can own their domains and proceed concurrently against frozen contracts.",
+  "purpose_tldr": "Establish the runnable repository and stable shared contracts that unblock parallel Invoice Manager missions.",
+  "slug": "p0-contract-spine-01KXYY0J",
+  "target_branch": "feat/p0-contract-spine",
+  "topology": "coord"
+}
