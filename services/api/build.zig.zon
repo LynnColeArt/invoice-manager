@@ -1,0 +1,12 @@
+.{
+    .name = .invoice_manager_api,
+    .version = "0.0.0",
+    .fingerprint = 0x55cdc7945a944d8,
+    .minimum_zig_version = "0.16.0",
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+        "tests",
+    },
+}
