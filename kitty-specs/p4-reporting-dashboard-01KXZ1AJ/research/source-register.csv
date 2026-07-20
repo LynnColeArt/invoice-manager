@@ -1,0 +1,4 @@
+source_id,title,url,source_type,accessed_at,notes
+SRC-001,WCAG 2.2,https://www.w3.org/TR/WCAG22/,standard,2026-07-19,Accessible dashboard baseline
+SRC-002,P0 Draft event envelope,git:feat/p0-contract-spine:kitty-specs/p0-contract-spine-01KXYY0J/contracts/event-envelope-v1.schema.json,project,2026-07-19,Planning-only transport envelope
+SRC-003,P0 Draft common values,git:feat/p0-contract-spine:kitty-specs/p0-contract-spine-01KXYY0J/contracts/common-v1.schema.json,project,2026-07-19,Money LocalDate EntityId revision primitives

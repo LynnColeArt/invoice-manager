@@ -1,0 +1,4 @@
+evidence_id,claim,source_id,decision,confidence
+EV-001,WCAG 2.2 provides the accessibility baseline,SRC-001,Chart/table pairs keyboard focus zoom and non-color acceptance,high
+EV-002,P0 defines a common event envelope,SRC-002,Carry P4 normalized snapshots without inventing producer events,high
+EV-003,P0 defines canonical Money and LocalDate values,SRC-003,Exact per-currency integer/date metrics,high
