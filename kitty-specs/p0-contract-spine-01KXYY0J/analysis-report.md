@@ -4,7 +4,7 @@ artifact_type: spec-kitty.analysis-report
 command: /spec-kitty.analyze
 mission_slug: p0-contract-spine-01KXYY0J
 mission_id: 01KXYY0J76QBNSWXX0SHMZNXC4
-generated_at: '2026-07-20T22:35:55.988431+00:00'
+generated_at: '2026-07-20T22:36:51.124300+00:00'
 analyzer_agent: codex:gpt-5:architect-aida:architect
 input_artifacts:
   spec.md:
@@ -19,13 +19,13 @@ input_artifacts:
   charter:
     path: /home/lynn/projects/invoice-manager/.kittify/charter/charter.md
     sha256: a1176517b273e322d3dc408e369ef836c40e3bb84c69ae140ad554cffbb53f0f
-verdict: unknown
+verdict: ready
 issue_counts:
-  low:
-  high:
-  medium:
-  critical:
-  info:
+  critical: 0
+  medium: 0
+  low: 0
+  high: 0
+  info: 0
 findings: []
 ---
 
