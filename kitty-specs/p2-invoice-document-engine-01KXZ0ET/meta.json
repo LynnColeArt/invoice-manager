@@ -1,0 +1,15 @@
+{
+  "coordination_branch": "kitty/mission-p2-invoice-document-engine-01KXZ0ET",
+  "created_at": "2026-07-20T05:37:23.318061+00:00",
+  "flattened": false,
+  "friendly_name": "P2 Invoice Document Engine",
+  "mission_id": "01KXZ0ETVNZY05CYJRSVYTFVSN",
+  "mission_number": null,
+  "mission_slug": "p2-invoice-document-engine-01KXZ0ET",
+  "mission_type": "software-dev",
+  "purpose_context": "This Wave A mission owns structured invoice drafts, exact line and tax calculation, immutable document snapshots, versioned typography, secure LuaLaTeX rendering, PDF preview, and the staged-artifact handoff to issuance. It consumes P0 and P1 Draft contracts for planning only and does not allocate invoice numbers, issue invoices, retain issued artifacts, advance schedules, authenticate users, or calculate analytics.",
+  "purpose_tldr": "Calculate exact invoice documents and render typographically beautiful PDF previews through a secure Zig-orchestrated LuaLaTeX sandbox.",
+  "slug": "p2-invoice-document-engine-01KXZ0ET",
+  "target_branch": "feat/p2-invoice-document-engine",
+  "topology": "coord"
+}
