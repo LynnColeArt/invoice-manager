@@ -72,6 +72,10 @@ change edits a shared registry or collides with the other.
 3. **Given** a frozen contract fixture, **When** a consumer changes a formerly
    valid representation incompatibly, **Then** contract validation fails before
    the change can be accepted.
+4. **Given** a recorded P1-P4 conformance input, **When** composition resolves
+   it, **Then** the source is identified by a full commit plus manifest/content
+   digest and can change only through an explicit baseline refresh that
+   revalidates every affected input.
 
 ---
 
@@ -137,6 +141,8 @@ jobs remain independently diagnosable.
   version.
 - A previously applied migration changes content without changing identity.
 - A migration dependency is absent or cyclic.
+- A migration checkpoint succeeds but supported Linux parent-directory
+  synchronization fails; it must not be recorded as Applied or permit traffic.
 - Storage commits in memory but the durable checkpoint fails.
 - Storage checkpoint returns but parent-directory synchronization fails.
 - The process exits after commit, checkpoint, or directory synchronization but
@@ -146,6 +152,9 @@ jobs remain independently diagnosable.
 - Dependency resolution points at a sibling checkout or floating branch.
 - A dependency is individually open source but incompatible with the
   GPL-2.0-only combined runtime.
+- A contract is moved to terminal Superseded and a later change attempts to
+  transition it back, reuse its version for changed content, or redirect a
+  pinned consumer silently.
 
 ## Requirements
 
@@ -160,7 +169,7 @@ jobs remain independently diagnosable.
 | FR-005 | Additive module contracts | As a domain contributor, I want to add a namespaced module manifest, HTTP fragment, event catalog, fixtures, and migrations without editing a global registry so that missions can proceed independently. | High | Approved |
 | FR-006 | Collision detection | As a maintainer, I want composition to reject duplicate paths, operations, schemas, events, and generated mount keys so that parallel work cannot overwrite another mission silently. | High | Approved |
 | FR-007 | Event and fixture envelope | As a producer or consumer contributor, I want a versioned immutable event envelope and synthetic fixture-batch format so that reporting work can proceed against frozen examples. | High | Approved |
-| FR-008 | Contract lifecycle manifest | As an orchestrator, I want every shared contract to record owner, mission, state, version, exact planning base, dependencies, inputs, outputs, ownership, shared touchpoints, migration strategy, integration fixtures, and digests so that Draft, Frozen, Implemented, and Verified have enforceable meanings. | High | Approved |
+| FR-008 | Contract lifecycle manifest | As an orchestrator, I want every shared contract to record owner, mission, state, version, exact planning base, dependencies, full-commit and manifest/content-digest pins for P1-P4 conformance inputs, outputs, ownership, shared touchpoints, migration strategy, integration fixtures, and digests so that Draft, Frozen, Implemented, Verified, and terminal Superseded have enforceable meanings. Superseded is reachable from any non-Superseded state, has no outgoing transition, and never permits same-version content changes or silent consumer redirection. | High | Approved |
 | FR-009 | Parallel-safe migrations | As a domain contributor, I want owner-scoped forward migrations with collision-resistant identities and explicit dependencies so that no shared next-number registry is required. | High | Approved |
 | FR-010 | Migration integrity | As a maintainer, I want missing dependencies, cycles, duplicate identities, and any changed applied descriptor or script content rejected so that schema history is deterministic and append-only. | High | Approved |
 | FR-011 | Reproducible storage dependency | As a contributor, I want the approved storage engine resolved at one immutable revision through a clean-clone-consumable boundary so that builds never depend on a sibling checkout or floating branch. | High | Approved |
@@ -174,18 +183,37 @@ jobs remain independently diagnosable.
 
 | ID | Title | Requirement | Category | Priority | Status |
 | --- | --- | --- | --- | --- | --- |
-| NFR-001 | First-run time | A contributor with documented prerequisites completes bootstrap, required foundation validation, and the health smoke path within 15 minutes on the reference Linux development environment. | Usability | High | Approved |
-| NFR-002 | Deterministic composition | Repeated contract composition from an unchanged checkout produces byte-identical aggregates in 100% of validation runs. | Reliability | High | Approved |
-| NFR-003 | Collision rejection | The validation suite rejects 100% of covered duplicate route, operation, schema, event, mount-key, and migration cases. | Integrity | High | Approved |
+| NFR-001 | First-run time | Under the reference measurement protocol, a contributor with documented prerequisites completes bootstrap, required foundation validation, and the health smoke path within 15 minutes. | Usability | High | Approved |
+| NFR-002 | Deterministic composition | Repeated contract composition from an unchanged checkout and unchanged full-commit/digest-pinned P1-P4 conformance inputs produces byte-identical aggregates in 100% of validation runs. | Reliability | High | Approved |
+| NFR-003 | Collision rejection | The validation suite rejects every case in the closed P0 collision matrix: duplicate normalized method-plus-path, operation ID, schema ID or component name, event identity plus version, module mount key, migration ID, and owner/path disagreement. | Integrity | High | Approved |
 | NFR-004 | Numeric fidelity | Round trips preserve every supported signed 64-bit monetary and revision boundary value exactly between contract fixtures, service validation, and web type checks. | Correctness | High | Approved |
 | NFR-005 | Durability cycles | The persistence acceptance suite passes at least 20 consecutive commit-checkpoint-directory-sync-close-reopen cycles with no acknowledged record loss and rejects injected checkpoint/sync failures plus external-process termination after each boundary. | Durability | High | Approved |
 | NFR-006 | Critical branch coverage | Shared service value, migration, and durability code maintains at least 90% automated coverage and covers every documented error branch regardless of aggregate percentage. | Testability | High | Approved |
-| NFR-007 | Health responsiveness | The health path completes within one second for 99% of 100 local reference requests while the service is ready. | Performance | Medium | Approved |
-| NFR-008 | Validation duration | Required P0 validation completes within 15 minutes on the reference CI runner, with jobs independently runnable for focused feedback. | Delivery | Medium | Approved |
+| NFR-007 | Health responsiveness | Under the reference health protocol, the nearest-rank p99 of exactly 100 sequential measured requests completes within one second while the service is Ready. | Performance | Medium | Approved |
+| NFR-008 | Validation duration | Under the reference measurement protocol, required P0 validation completes within 15 minutes, with jobs independently runnable for focused feedback. | Delivery | Medium | Approved |
 | NFR-009 | Failure safety | Corrupt storage, unresolved dependencies, contract drift, and license incompatibility produce zero silent fallbacks or destructive replacement attempts in acceptance tests. | Safety | High | Approved |
 | NFR-010 | Synthetic evidence | 100% of committed fixtures, examples, and logs contain synthetic data and no client, bank, invoice, password, token, or private-key material. | Privacy | High | Approved |
 | NFR-011 | License cleanliness | The distribution audit reports zero known runtime components incompatible with GPL-2.0-only and records notices for every distributed third-party component. | Compliance | High | Approved |
 | NFR-012 | Reproducible dependency graph | Every service and web dependency used by a clean build is pinned by immutable version, lockfile integrity, source digest, or commit. | Reproducibility | High | Approved |
+
+#### Reference Measurement Protocol
+
+- The reference runner is Linux x86_64 with at least 4 logical CPUs and 16 GiB
+  RAM, pinned prerequisite toolchains preinstalled, and no deliberate competing
+  workload. Each measured run starts from a clean checkout with empty dependency
+  and build caches where applicable.
+- All durations use a monotonic clock. The NFR-001 timer starts immediately
+  before the documented bootstrap command and stops after its same-origin health
+  smoke succeeds; it includes dependency resolution, builds, required validation,
+  startup, and smoke, but excludes checkout and prerequisite-tool installation.
+- The NFR-008 timer starts immediately before the documented full P0 validation
+  command and stops when its final required gate reports a result; dependency
+  resolution, builds, tests, and audits are inside the boundary.
+- For NFR-007, first reach Ready, issue 10 unmeasured sequential warmup requests,
+  then issue exactly 100 sequential measured health requests with no concurrency.
+  Each sample starts immediately before request send and stops after the complete
+  response body is read. Sort monotonic durations ascending; nearest-rank p99 is
+  sample `ceil(0.99 * 100) = 99`.
 
 ### Constraints
 
@@ -213,8 +241,10 @@ jobs remain independently diagnosable.
 - **Migration Descriptor**: An owner-scoped forward schema change with
   collision-resistant identity, dependencies, script digest, and canonical
   descriptor digest.
-- **Applied Migration**: Durable evidence that a descriptor reached the
-  checkpointed state.
+- **Applied Migration**: Durable evidence that a descriptor committed,
+  ShovelerDB checkpoint succeeded, and the supported Linux database parent
+  directory synchronized. Earlier committed or checkpointed-but-unsynchronized
+  states are pending durability evidence, not Applied.
 - **Storage Handle Lease**: Exclusive serialized ownership of one storage path.
 - **Durable Mutation Receipt**: The distinction between rollback, commit with
   unconfirmed durability, and fully durable success.
@@ -227,6 +257,10 @@ jobs remain independently diagnosable.
   calling it a plugin; runtime plugin loading is not part of P0.
 - **Frozen Contract**: A version with immutable sources and fixture digests that
   consumers may implement against.
+- **Superseded Contract**: A terminal contract state reachable from Draft,
+  Frozen, Implemented, or Verified with no transition out. Supersession preserves
+  the old version and pins; replacement behavior requires a new version and an
+  explicit baseline refresh rather than silent consumer redirection.
 - **Durable Success**: A mutation that committed, checkpointed, and completed
   supported parent-directory synchronization. Avoid using commit, checkpoint,
   and durable interchangeably.
@@ -245,6 +279,9 @@ jobs remain independently diagnosable.
   harness. P3 owns authentication, deployment composition, backup, and restore.
 - The program ledger is the authoritative cross-mission readiness view; each
   mission's Spec Kitty artifacts remain authoritative for its own gates.
+- P1-P4 conformance inputs are immutable full-commit and manifest/content-digest
+  pins. Changing any pin requires an explicit baseline refresh that records the
+  old and new pins and revalidates every affected composition and fixture.
 
 ## Success Criteria
 
@@ -256,9 +293,10 @@ jobs remain independently diagnosable.
 - **SC-002**: Four synthetic domain owners can contribute contracts, fixtures,
   and migrations concurrently without editing a shared registry or overwriting
   another owner's contribution.
-- **SC-003**: Every covered incompatible contract, duplicate identity, missing
+- **SC-003**: Every closed-matrix incompatible contract, duplicate identity, missing
   dependency, cycle, route/event mismatch, manifest freeze violation, and
-  descriptor/script digest mutation is rejected before acceptance.
+  descriptor/script digest mutation is rejected before acceptance; conformance
+  pin drift and illegal transitions out of Superseded are rejected as well.
 - **SC-004**: Every acknowledged record survives at least 20 consecutive
   checkpoint-directory-sync-close-reopen acceptance cycles, while rollback,
   injected sync failure, process-crash boundary, and durability-uncertain cases
