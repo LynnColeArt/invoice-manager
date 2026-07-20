@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://invoice-manager.invalid/contracts/events/envelope/v1",
+  "title": "Invoice Manager Domain Event Envelope v1",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "envelope_version",
+    "event_id",
+    "event_type",
+    "event_version",
+    "source",
+    "aggregate",
+    "occurred_at",
+    "recorded_at",
+    "correlation_id",
+    "causation_id",
+    "data"
+  ],
+  "properties": {
+    "envelope_version": { "const": 1 },
+    "event_id": { "$ref": "./common-v1.schema.json#/$defs/EntityId" },
+    "event_type": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+$"
+    },
+    "event_version": { "type": "integer", "minimum": 1 },
+    "source": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+    "aggregate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id", "revision"],
+      "properties": {
+        "type": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+        "id": { "$ref": "./common-v1.schema.json#/$defs/EntityId" },
+        "revision": { "$ref": "./common-v1.schema.json#/$defs/NonNegativeInt64" }
+      }
+    },
+    "occurred_at": { "$ref": "./common-v1.schema.json#/$defs/UtcInstant" },
+    "recorded_at": { "$ref": "./common-v1.schema.json#/$defs/UtcInstant" },
+    "correlation_id": {
+      "oneOf": [
+        { "$ref": "./common-v1.schema.json#/$defs/EntityId" },
+        { "type": "null" }
+      ]
+    },
+    "causation_id": {
+      "oneOf": [
+        { "$ref": "./common-v1.schema.json#/$defs/EntityId" },
+        { "type": "null" }
+      ]
+    },
+    "data": { "type": "object" }
+  }
+}

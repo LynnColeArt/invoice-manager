@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://invoice-manager.invalid/contracts/migrations/manifest/v1",
+  "title": "Invoice Manager Migration Manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "owner", "name", "depends_on", "checksum", "script"],
+  "properties": {
+    "id": { "$ref": "./common-v1.schema.json#/$defs/EntityId" },
+    "owner": { "type": "string", "pattern": "^p[0-8]$" },
+    "name": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+    "depends_on": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "./common-v1.schema.json#/$defs/EntityId" }
+    },
+    "checksum": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "script": { "type": "string", "pattern": "^up\\.sql$" }
+  }
+}

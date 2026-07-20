@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://invoice-manager.invalid/contracts/manifests/v1",
+  "title": "Invoice Manager Contract Manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_id",
+    "owner_mission",
+    "version",
+    "state",
+    "baseline_commit",
+    "sources",
+    "fixtures"
+  ],
+  "properties": {
+    "contract_id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+$"
+    },
+    "owner_mission": { "type": "string", "pattern": "^p[0-8]$" },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?$"
+    },
+    "state": {
+      "enum": ["Draft", "Frozen", "Implemented", "Verified", "Superseded"]
+    },
+    "baseline_commit": {
+      "type": "string",
+      "pattern": "^(pending|[0-9a-f]{40})$"
+    },
+    "sources": { "$ref": "#/$defs/DigestedPaths" },
+    "fixtures": { "$ref": "#/$defs/DigestedPaths" }
+  },
+  "$defs": {
+    "DigestedPaths": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "digest"],
+        "properties": {
+          "path": { "type": "string", "minLength": 1 },
+          "digest": {
+            "type": "string",
+            "pattern": "^(pending|sha256:[0-9a-f]{64})$"
+          }
+        }
+      }
+    }
+  }
+}

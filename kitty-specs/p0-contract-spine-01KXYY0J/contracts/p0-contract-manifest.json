@@ -1,0 +1,15 @@
+{
+  "contract_id": "invoice-manager.foundation",
+  "owner_mission": "p0",
+  "version": "0.1.0-draft.1",
+  "state": "Draft",
+  "baseline_commit": "23a10cd4f5ec76aba89ce5be65eb08350b5c2078",
+  "sources": [
+    { "path": "common-v1.schema.json", "digest": "pending" },
+    { "path": "api-v1.openapi.yaml", "digest": "pending" },
+    { "path": "event-envelope-v1.schema.json", "digest": "pending" },
+    { "path": "migration-manifest-v1.schema.json", "digest": "pending" },
+    { "path": "contract-manifest-v1.schema.json", "digest": "pending" }
+  ],
+  "fixtures": []
+}
