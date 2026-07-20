@@ -48,8 +48,8 @@
     "complete": { "const": true }
   },
   "$defs": {
-    "EntityId": { "type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" },
-    "UtcInstant": { "type": "string", "format": "date-time" },
-    "Digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+    "EntityId": { "$ref": "https://invoice-manager.invalid/contracts/common/v1/schema.json#/$defs/EntityId" },
+    "UtcInstant": { "$ref": "https://invoice-manager.invalid/contracts/common/v1/schema.json#/$defs/UtcInstant" },
+    "Digest": { "$ref": "https://invoice-manager.invalid/contracts/common/v1/schema.json#/$defs/Sha256Digest" }
   }
 }

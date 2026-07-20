@@ -1,14 +1,73 @@
 {
-  "manifest_version": "1",
+  "manifest_version": 1,
+  "contract_id": "invoice-manager.platform-security-operations",
+  "owner_mission": "p3",
   "mission": "p3-platform-security-operations-01KXZ0Y2",
-  "owner": "p3",
-  "contract_version": "0.1.0-draft.1",
-  "lifecycle_state": "Draft",
-  "implementation_authorized": false,
-  "consumes": [
-    { "owner": "p0", "version": "0.1.0-draft.1", "required_state_for_implementation": "Frozen" }
+  "version": "0.1.0-draft.1",
+  "state": "Draft",
+  "baseline_commit": "78a7aaac2a02829ccb5358eae565a7f1620814da",
+  "content_digest": "pending",
+  "dependencies": ["p0"],
+  "inputs": [
+    {
+      "contract_id": "invoice-manager.foundation",
+      "owner_mission": "p0",
+      "version": "0.1.0-draft.1",
+      "required_state": "Frozen",
+      "content_digest": "pending"
+    }
   ],
-  "artifacts": ["backup-manifest-v1.schema.json"],
-  "consumers": ["p8"],
-  "notes": "Planning-only; exact auth, deployment, migration, backup, and restore fixture digests are added before freeze."
+  "outputs": [
+    {
+      "path": "kitty-specs/p3-platform-security-operations-01KXZ0Y2/contracts/backup-manifest-v1.schema.json",
+      "kind": "domain_schema",
+      "digest": "pending"
+    }
+  ],
+  "owned_paths": [
+    "contracts/api/v1/fragments/p3/**",
+    "contracts/events/v1/catalogs/p3/**",
+    "contracts/events/v1/payloads/p3/**",
+    "contracts/platform/v1/p3/**",
+    "contracts/modules/p3/**",
+    "contracts/fixtures/p3/v1/**",
+    "contracts/manifests/p3.json",
+    "services/api/migrations/p3/**",
+    "services/api/src/domains/platform_security/**",
+    "services/api/src/platform/auth/**",
+    "services/api/src/platform/backup_restore/**",
+    "services/api/src/cli/**",
+    "services/api/tests/platform_security/**",
+    "apps/web/src/features/session/**",
+    "deploy/p3/**",
+    "docs/operations/**"
+  ],
+  "shared_touchpoints": [
+    {
+      "path": "services/api/src/main.zig",
+      "steward": "program-integration-steward",
+      "reason": "Default-deny outer route wrapping is integrated at the service composition boundary"
+    },
+    {
+      "path": "apps/web/src/app/layout.tsx",
+      "steward": "program-integration-steward",
+      "reason": "Authenticated application layout is a release integration surface"
+    }
+  ],
+  "migration_strategy": {
+    "mode": "owner_scoped_forward_only",
+    "root": "services/api/migrations/p3"
+  },
+  "integration_fixtures": [
+    {
+      "path": "contracts/fixtures/p3/v1/valid/backup-manifest.json",
+      "expectation": "valid",
+      "digest": "pending"
+    },
+    {
+      "path": "contracts/fixtures/p3/v1/invalid/backup-traversal.json",
+      "expectation": "invalid",
+      "digest": "pending"
+    }
+  ]
 }
