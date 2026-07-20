@@ -1,0 +1,13 @@
+evidence_id,source_id,claim,confidence,decision
+EV-001,SRC-001,P0 must provide the shared build and contract spine without feature behavior,high,Foundation scope
+EV-002,SRC-002,P1-P4 consume P0 primitives envelopes migration protocol and fixtures,high,Contract ownership
+EV-003,SRC-004,One shared ShovelerDB handle requires serialized access,high,Persistence seam
+EV-004,SRC-005,Checkpoint and close are separate ABI calls,high,Explicit durability boundary
+EV-005,SRC-006,Checkpoint close reopen behavior has real integration acceptance coverage,high,P0 consumer test
+EV-006,SRC-007,Snapshot files are capped at 128 MiB and rename lacks directory sync,high,P3 routed risk
+EV-007,SRC-008,Node 24 is an LTS production line while Node 26 is Current,high,Node 24.18.0 pin
+EV-008,SRC-009,Next.js 16 is the supported LTS major,high,Next.js 16.2.10 pin
+EV-009,SRC-011,TypeScript 7.0 lacks a programmatic API,high,TypeScript 6.0.3 pin
+EV-010,SRC-012,Current typescript-eslint supports TypeScript below 6.1,high,TypeScript 6.0.3 pin
+EV-011,SRC-013,Zig 0.16.0 is the current stable release,high,Zig 0.16.0 pin
+EV-012,SRC-016,Apache-2.0 is incompatible with GPLv2-only when combined,high,Runtime license gate

@@ -1,0 +1,17 @@
+source_id,kind,title,location,accessed_at,relevance
+SRC-001,project,Invoice Manager planning brief,docs/planning-brief.md,2026-07-19,Approved product architecture and P0 scope
+SRC-002,project,Invoice Manager program ledger,docs/program-ledger.md,2026-07-19,Dependencies contract states and ownership
+SRC-003,project,Invoice Manager charter,.kittify/charter/charter.md,2026-07-19,Binding quality architecture and licensing policy
+SRC-004,local-repo,ShovelerDB embedding ABI,/home/lynn/projects/shovelerdb/docs/embedding-abi.md,2026-07-19,Stable handles checkpoint and serialization contract
+SRC-005,local-repo,ShovelerDB public header,/home/lynn/projects/shovelerdb/include/shovelerdb.h,2026-07-19,ABI version and callable surface
+SRC-006,local-repo,ShovelerDB ABI acceptance test,/home/lynn/projects/shovelerdb/tests/integration/abi_acceptance.zig,2026-07-19,Checkpoint close reopen acceptance evidence
+SRC-007,local-repo,ShovelerDB persistence implementation,/home/lynn/projects/shovelerdb/src/db/persistence.zig,2026-07-19,Snapshot cap and durable-write mechanics
+SRC-008,official-web,Node.js releases,https://nodejs.org/en/about/previous-releases,2026-07-19,Production LTS selection
+SRC-009,official-web,Next.js support policy,https://nextjs.org/support-policy,2026-07-19,Stable Next.js line
+SRC-010,official-web,Next.js 16.2 release,https://nextjs.org/blog/next-16-2,2026-07-19,Selected stable framework minor
+SRC-011,official-web,TypeScript 7 announcement,https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/,2026-07-19,Programmatic API limitation
+SRC-012,official-web,typescript-eslint dependency support,https://typescript-eslint.io/users/dependency-versions/,2026-07-19,TypeScript and ESLint compatibility
+SRC-013,official-web,Zig downloads,https://ziglang.org/download/,2026-07-19,Current stable Zig toolchain
+SRC-014,official-web,TeX Live distribution,https://tug.org/texlive/,2026-07-19,Later P2 toolchain baseline
+SRC-015,official-web,Docker Engine 29 release notes,https://docs.docker.com/engine/release-notes/29/#2962,2026-07-19,Later P3 container baseline
+SRC-016,official-web,GNU license compatibility list,https://www.gnu.org/licenses/license-list.html#apache2,2026-07-19,GPL-2.0-only compatibility constraint
