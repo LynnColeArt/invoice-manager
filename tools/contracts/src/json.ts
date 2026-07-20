@@ -1,5 +1,4 @@
 import { createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
 import { canonicalize } from "json-canonicalize";
 import { fail } from "./errors.js";
 
@@ -45,18 +44,16 @@ export function sha256Digest(bytes: Buffer | string): string {
   return `sha256:${sha256Hex(bytes)}`;
 }
 
-export async function readJson(path: string): Promise<JsonValue> {
-  let text: string;
+export function decodeUtf8(bytes: Buffer, pointer = ""): string {
   try {
-    text = await readFile(path, "utf8");
+    return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
   } catch {
-    fail("file_missing", "", "Required repository file is unavailable");
+    fail("utf8_invalid", pointer, "Structured contract input must be valid UTF-8");
   }
-  try {
-    return JSON.parse(text) as JsonValue;
-  } catch {
-    fail("json_invalid", "", "Required repository JSON is invalid");
-  }
+}
+
+export function parseJsonBytes(bytes: Buffer, pointer = ""): JsonValue {
+  return parseJson(decodeUtf8(bytes, pointer), pointer);
 }
 
 export function parseJson(text: string, pointer = ""): JsonValue {

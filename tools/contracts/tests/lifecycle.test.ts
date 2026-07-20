@@ -92,6 +92,29 @@ describe("contract lifecycle gate", () => {
     );
   });
 
+  it("verifies every concrete Draft digest and declared file while pending remains optional", async () => {
+    const { root, manifest: frozen } = await frozenFixture();
+    const concreteDraft = { ...structuredClone(frozen), state: "Draft" as const };
+    concreteDraft.content_digest = computeContentDigest(concreteDraft);
+    await expect(validateLifecycleManifest(root, concreteDraft)).resolves.toBeUndefined();
+
+    const wrongContent = { ...structuredClone(concreteDraft), content_digest: `sha256:${"0".repeat(64)}` };
+    await expectContractError(() => validateLifecycleManifest(root, wrongContent), "content_digest_mismatch", "/content_digest");
+
+    const wrongFile = structuredClone(concreteDraft);
+    wrongFile.outputs[0].digest = `sha256:${"0".repeat(64)}`;
+    wrongFile.content_digest = computeContentDigest(wrongFile);
+    await expectContractError(() => validateLifecycleManifest(root, wrongFile), "file_digest_mismatch", "/outputs/0/digest");
+
+    const missingFile = structuredClone(concreteDraft);
+    missingFile.outputs[0].path = "outputs/missing.json";
+    missingFile.content_digest = computeContentDigest(missingFile);
+    await expectContractError(() => validateLifecycleManifest(root, missingFile), "path_missing", "/outputs/0/path");
+
+    const invalidSentinel = { ...structuredClone(concreteDraft), content_digest: "PENDING" };
+    await expectContractError(() => validateLifecycleManifest(root, invalidSentinel), "digest_invalid", "/content_digest");
+  });
+
   it("derives a key-order-independent RFC 8785 identity and excludes lifecycle fields", () => {
     const first = draft();
     const reordered: ContractManifest = {

@@ -1,12 +1,11 @@
-import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { link, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { asContractError, fail } from "./errors.js";
-import { buildBaselineRefreshCandidate, readConformanceLock, type ConformancePin } from "./conformance.js";
-import { checkContracts, generateContracts } from "./generate.js";
-import { parseJson, stableJson } from "./json.js";
-import { normalizeRepositoryPath } from "./paths.js";
-import { discoverStableIdRegistry } from "./registry.js";
+import { readConformanceLock, type ConformancePin } from "./conformance.js";
+import { buildValidatedBaselineRefreshCandidate, checkContracts, generateContracts } from "./generate.js";
+import { parseJsonBytes, stableJson } from "./json.js";
+import { normalizeRepositoryPath, readRepositoryBytes, resolveRepositoryWritePath } from "./paths.js";
 
 export const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 
@@ -47,17 +46,16 @@ async function baselineRefresh(args: string[]): Promise<void> {
   if (!candidatePath.startsWith("contracts/conformance/") || !candidatePath.endsWith(".candidate.json")) {
     fail("conformance_candidate_destination_invalid", "", "Baseline refresh writes only an explicit contracts/conformance/*.candidate.json file");
   }
-  const replacements = parseJson(await readFile(path.join(repositoryRoot, ...replacementsPath.split("/")), "utf8"));
+  const replacements = parseJsonBytes(await readRepositoryBytes(repositoryRoot, replacementsPath, ""));
   if (!Array.isArray(replacements)) fail("conformance_replacements_invalid", "", "Replacement input must be a JSON array");
-  const registry = await discoverStableIdRegistry(repositoryRoot);
   const current = await readConformanceLock(repositoryRoot);
-  const candidate = await buildBaselineRefreshCandidate(repositoryRoot, registry, current, replacements as unknown as ConformancePin[]);
-  const destination = path.join(repositoryRoot, ...candidatePath.split("/"));
+  const candidate = await buildValidatedBaselineRefreshCandidate(repositoryRoot, current, replacements as unknown as ConformancePin[]);
+  const destination = await resolveRepositoryWritePath(repositoryRoot, candidatePath, "");
   const temporary = `${destination}.tmp`;
-  await mkdir(path.dirname(destination), { recursive: true });
   await writeFile(temporary, stableJson(candidate), { encoding: "utf8", flag: "wx" });
   try {
-    await rename(temporary, destination);
+    await link(temporary, destination);
+    await rm(temporary);
   } catch (error) {
     await rm(temporary, { force: true });
     throw error;

@@ -1,22 +1,34 @@
 import { spawn } from "node:child_process";
-import { mkdir, mkdtemp, readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
+import { lstat, mkdir, mkdtemp, readFile, readdir, rename, rm, rmdir, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { createClient } from "@hey-api/openapi-ts";
 import { Validator } from "@seriousme/openapi-schema-validator";
 import ts from "typescript";
 import { ContractError, fail } from "./errors.js";
-import { readConformanceLock, verifyConformanceLock, type VerifiedConformance } from "./conformance.js";
+import { validateCanonicalEventFixtures } from "./event-conformance.js";
+import {
+  buildBaselineRefreshCandidate,
+  readConformanceLock,
+  verifyConformanceLock,
+  type BaselineRefreshCandidate,
+  type ConformanceLock,
+  type ConformancePin,
+  type VerifiedConformance,
+} from "./conformance.js";
 import { validateCanonicalFixtures } from "./fixtures.js";
-import { readJson, compareCodeUnits, sha256Hex, stableJson } from "./json.js";
+import { compareCodeUnits, parseJsonBytes, sha256Hex, stableJson } from "./json.js";
+import { readRepositoryBytes } from "./paths.js";
 import { type ContractManifest, validateLifecycleManifest } from "./lifecycle.js";
 import { discoverAndValidateMigrations } from "./migrations.js";
 import { composeModules, type ComposedContracts } from "./modules.js";
+import { composeRealOwners } from "./real-conformance.js";
 import { assertReferencesResolve, discoverStableIdRegistry, isJsonObject, type StableIdRegistry } from "./registry.js";
 
 export type PreflightResult = {
   registry: StableIdRegistry;
   conformance: VerifiedConformance[];
   composition: ComposedContracts;
+  realOwnerComposition: ComposedContracts;
 };
 
 type TreeSnapshot = Map<string, { bytes: Buffer; mode: number }>;
@@ -34,19 +46,46 @@ async function validateOpenApi(openapi: Record<string, unknown>, registry: Stabl
   }
 }
 
-export async function preflightContracts(root: string): Promise<PreflightResult> {
+export async function preflightContracts(
+  root: string,
+  options: { lock?: ConformanceLock; exactBaseline?: boolean } = {},
+): Promise<PreflightResult> {
   const registry = await discoverStableIdRegistry(root);
-  const lock = await readConformanceLock(root);
-  const conformance = await verifyConformanceLock(root, registry, lock);
+  const lock = options.lock ?? await readConformanceLock(root);
+  const conformance = await verifyConformanceLock(root, registry, lock, { exactBaseline: options.exactBaseline });
   assertReferencesResolve(registry);
-  const draftValue = await readJson(path.join(root, "contracts/manifests/drafts/p0.json"));
+  const draftValue = parseJsonBytes(await readRepositoryBytes(root, "contracts/manifests/drafts/p0.json", ""));
   registry.validate("https://invoice-manager.invalid/contracts/manifests/v1/schema.json", draftValue);
   await validateLifecycleManifest(root, draftValue as unknown as ContractManifest);
   const composition = await composeModules(root, registry);
-  await discoverAndValidateMigrations(root, composition.modules.map((module) => module.migration_root), registry);
+  const realOwnerComposition = await composeRealOwners(root, registry, conformance);
+  await discoverAndValidateMigrations(
+    root,
+    [...composition.modules, ...realOwnerComposition.modules].map((module) => module.migration_root),
+    registry,
+  );
   await validateOpenApi(composition.openapi, registry);
+  await validateOpenApi(realOwnerComposition.openapi, registry);
   await validateCanonicalFixtures(root);
-  return { registry, conformance, composition };
+  await validateCanonicalEventFixtures(root, registry);
+  return { registry, conformance, composition, realOwnerComposition };
+}
+
+export async function buildValidatedBaselineRefreshCandidate(
+  root: string,
+  current: ConformanceLock,
+  replacements: ConformancePin[],
+): Promise<BaselineRefreshCandidate> {
+  const pinRegistry = await discoverStableIdRegistry(root);
+  const candidate = await buildBaselineRefreshCandidate(root, pinRegistry, current, replacements);
+  await preflightContracts(root, {
+    lock: { format_version: 1, inputs: candidate.inputs },
+    exactBaseline: false,
+  });
+  return {
+    ...candidate,
+    validation: "all-pins-composition-references-migrations-lifecycle-events-fixtures-revalidated",
+  };
 }
 
 function embeddedName(id: string): string {
@@ -210,35 +249,83 @@ async function typecheckGenerated(directory: string): Promise<void> {
   }
 }
 
-async function publishPair(root: string, generatedTypes: string, inventoryBytes: string): Promise<void> {
+export type PublishFault = "before_backup" | "after_types_backup" | "after_inventory_backup" | "after_types_publish" | "after_inventory_publish";
+
+async function pathExistsStrict(value: string): Promise<boolean> {
+  try {
+    await lstat(value);
+    return true;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return false;
+    throw error;
+  }
+}
+
+export async function publishPair(
+  root: string,
+  generatedTypes: string,
+  inventoryBytes: string,
+  fault?: PublishFault,
+): Promise<void> {
   const generatedRoot = path.join(root, "tools/contracts/.generated");
   const finalTypes = path.join(generatedRoot, "typescript/v1");
   const finalInventory = path.join(generatedRoot, "runtime/v1/route-inventory.json");
-  const token = `${process.pid}-${sha256Hex(inventoryBytes).slice(0, 12)}`;
-  const publishRoot = path.join(generatedRoot, `.publish-${token}`);
+  await mkdir(generatedRoot, { recursive: true });
+  const publishRoot = await mkdtemp(path.join(generatedRoot, ".publish-"));
   const stagedTypes = path.join(publishRoot, "typescript");
   const stagedInventory = path.join(publishRoot, "route-inventory.json");
   const backupTypes = path.join(publishRoot, "backup-types");
   const backupInventory = path.join(publishRoot, "backup-inventory.json");
-  await mkdir(publishRoot, { recursive: true });
   await rename(generatedTypes, stagedTypes);
   await writeFile(stagedInventory, inventoryBytes, "utf8");
   await mkdir(path.dirname(finalTypes), { recursive: true });
   await mkdir(path.dirname(finalInventory), { recursive: true });
+  const priorTypes = await pathExistsStrict(finalTypes);
+  const priorInventory = await pathExistsStrict(finalInventory);
+  if (priorTypes !== priorInventory) {
+    await rm(publishRoot, { recursive: true });
+    fail("generated_prior_pair_incomplete", "", "Refusing to publish over a partial generated pair");
+  }
+  const inject = (point: PublishFault): void => {
+    if (fault === point) fail("generation_publish_injected_failure", "", `Injected publish failure at ${point}`);
+  };
   let typesBackedUp = false;
   let inventoryBackedUp = false;
+  let typesPublished = false;
+  let inventoryPublished = false;
   try {
-    try { await rename(finalTypes, backupTypes); typesBackedUp = true; } catch {}
-    try { await rename(finalInventory, backupInventory); inventoryBackedUp = true; } catch {}
+    inject("before_backup");
+    if (priorTypes) {
+      await rename(finalTypes, backupTypes);
+      typesBackedUp = true;
+    }
+    inject("after_types_backup");
+    if (priorInventory) {
+      await rename(finalInventory, backupInventory);
+      inventoryBackedUp = true;
+    }
+    inject("after_inventory_backup");
     await rename(stagedTypes, finalTypes);
+    typesPublished = true;
+    inject("after_types_publish");
     await rename(stagedInventory, finalInventory);
-    await rm(publishRoot, { recursive: true, force: true });
+    inventoryPublished = true;
+    inject("after_inventory_publish");
+    await rm(publishRoot, { recursive: true });
   } catch (error) {
-    await rm(finalTypes, { recursive: true, force: true });
-    await rm(finalInventory, { force: true });
-    if (typesBackedUp) await rename(backupTypes, finalTypes);
-    if (inventoryBackedUp) await rename(backupInventory, finalInventory);
-    await rm(publishRoot, { recursive: true, force: true });
+    try {
+      if (inventoryPublished) await rm(finalInventory);
+      if (typesPublished) await rm(finalTypes, { recursive: true });
+      if (inventoryBackedUp) await rename(backupInventory, finalInventory);
+      if (typesBackedUp) await rename(backupTypes, finalTypes);
+      await rm(publishRoot, { recursive: true });
+    } catch (rollbackError) {
+      throw new ContractError(
+        "generation_publish_rollback_failed",
+        "",
+        `Publish failed and rollback could not restore the prior pair: ${rollbackError instanceof Error ? rollbackError.message : "unknown rollback error"}`,
+      );
+    }
     throw error;
   }
 }
@@ -263,7 +350,12 @@ export async function generateContracts(root: string): Promise<PreflightResult> 
     return preflight;
   } finally {
     await rm(temporaryRoot, { recursive: true, force: true });
-    try { await rm(stagingParent); } catch {}
+    try {
+      await rmdir(stagingParent);
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code !== "ENOENT" && code !== "ENOTEMPTY") throw error;
+    }
   }
 }
 

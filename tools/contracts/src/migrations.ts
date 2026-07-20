@@ -1,8 +1,8 @@
-import { readdir, readFile, stat } from "node:fs/promises";
+import { lstat, readdir } from "node:fs/promises";
 import path from "node:path";
-import { fail } from "./errors.js";
-import { jcsBytes, parseJson, sha256Digest } from "./json.js";
-import { normalizeRepositoryPath } from "./paths.js";
+import { ContractError, fail } from "./errors.js";
+import { jcsBytes, parseJsonBytes, sha256Digest } from "./json.js";
+import { normalizeRepositoryPath, readRepositoryBytes, resolveRepositoryFile } from "./paths.js";
 import type { StableIdRegistry } from "./registry.js";
 
 export type MigrationDescriptor = {
@@ -44,12 +44,15 @@ export async function validateMigrationDescriptor(
   if (descriptor.depends_on.some((entry, index) => entry !== sortedDependencies[index])) fail("migration_dependencies_unsorted", "/depends_on", "Migration dependencies must be lexicographically sorted");
   const expectedDescriptor = migrationDescriptorDigest(descriptor);
   if (descriptor.descriptor_digest !== expectedDescriptor) fail("migration_descriptor_digest_mismatch", "/descriptor_digest", "Migration descriptor digest differs");
-  const scriptPath = path.join(path.dirname(path.join(root, ...normalized.split("/"))), descriptor.script_path);
+  const scriptRelative = `${path.posix.dirname(normalized)}/${descriptor.script_path}`;
   let script: Buffer;
   try {
-    script = await readFile(scriptPath);
-  } catch {
-    fail("migration_script_missing", "/script_path", "Migration script is unavailable");
+    script = await readRepositoryBytes(root, scriptRelative, "/script_path");
+  } catch (error) {
+    if (error instanceof ContractError && error.code === "path_missing") {
+      fail("migration_script_missing", "/script_path", "Migration script is unavailable");
+    }
+    throw error;
   }
   if (sha256Digest(script) !== descriptor.script_digest) fail("migration_script_digest_mismatch", "/script_digest", "Migration script digest differs");
 }
@@ -57,12 +60,17 @@ export async function validateMigrationDescriptor(
 async function walkDescriptors(root: string, relative: string, output: string[]): Promise<void> {
   const absolute = path.join(root, ...relative.split("/"));
   try {
-    if (!(await stat(absolute)).isDirectory()) return;
-  } catch {
-    return;
+    const metadata = await lstat(absolute);
+    if (metadata.isSymbolicLink()) fail("path_symlink_escape", "", "Migration discovery must not traverse symbolic links");
+    await resolveRepositoryFile(root, relative, "");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return;
+    if (error instanceof ContractError && error.code === "path_missing") return;
+    throw error;
   }
   for (const entry of (await readdir(absolute, { withFileTypes: true })).sort((a, b) => compareCodeUnits(a.name, b.name))) {
     const child = `${relative}/${entry.name}`;
+    if (entry.isSymbolicLink()) fail("path_symlink_escape", "", "Migration discovery must not traverse symbolic links");
     if (entry.isDirectory()) await walkDescriptors(root, child, output);
     else if (entry.isFile() && entry.name === "manifest.json") output.push(child);
   }
@@ -73,7 +81,7 @@ export async function discoverAndValidateMigrations(root: string, ownerRoots: st
   for (const ownerRoot of [...ownerRoots].sort(compareCodeUnits)) await walkDescriptors(root, normalizeRepositoryPath(ownerRoot, ""), paths);
   const migrations: Array<{ path: string; descriptor: MigrationDescriptor }> = [];
   for (const relative of paths.sort(compareCodeUnits)) {
-    const descriptor = parseJson(await readFile(path.join(root, ...relative.split("/")), "utf8")) as unknown as MigrationDescriptor;
+    const descriptor = parseJsonBytes(await readRepositoryBytes(root, relative, "")) as unknown as MigrationDescriptor;
     await validateMigrationDescriptor(root, relative, descriptor, registry);
     migrations.push({ path: relative, descriptor });
   }

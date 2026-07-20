@@ -1,11 +1,9 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { readFile } from "node:fs/promises";
-import path from "node:path";
 import { fail } from "./errors.js";
 import { computeContentDigest, type ContractManifest, validateLifecycleManifest } from "./lifecycle.js";
-import { parseJson, sha256Hex, stableJson } from "./json.js";
-import { normalizeRepositoryPath } from "./paths.js";
+import { parseJsonBytes, sha256Hex, stableJson } from "./json.js";
+import { normalizeRepositoryPath, readRepositoryBytes } from "./paths.js";
 import { type StableIdRegistry, isJsonObject } from "./registry.js";
 
 const execFileAsync = promisify(execFile);
@@ -53,7 +51,7 @@ async function gitBytes(root: string, commit: string, relative: string, pointer:
 }
 
 export async function readConformanceLock(root: string): Promise<ConformanceLock> {
-  const value = parseJson(await readFile(path.join(root, "contracts/conformance/p0-p4-inputs.json"), "utf8"));
+  const value = parseJsonBytes(await readRepositoryBytes(root, "contracts/conformance/p0-p4-inputs.json", ""));
   if (!isJsonObject(value) || value.format_version !== 1 || !Array.isArray(value.inputs)) fail("conformance_lock_invalid", "", "Conformance lock has an invalid shape");
   return value as unknown as ConformanceLock;
 }
@@ -88,7 +86,7 @@ export async function verifyConformanceLock(
   for (const [index, pin] of lock.inputs.entries()) {
     const bytes = await gitBytes(root, pin.commit, pin.manifest_path, `/inputs/${index}/commit`);
     if (sha256Hex(bytes) !== pin.manifest_sha256) fail("conformance_manifest_digest_mismatch", `/inputs/${index}/manifest_sha256`, "Pinned manifest byte digest differs");
-    const value = parseJson(bytes.toString("utf8"), `/inputs/${index}`);
+    const value = parseJsonBytes(bytes, `/inputs/${index}`);
     if (!isJsonObject(value)) fail("conformance_manifest_invalid", `/inputs/${index}`, "Pinned manifest must be a JSON object");
     registry.validate("https://invoice-manager.invalid/contracts/manifests/v1/schema.json", value);
     const manifest = value as unknown as ContractManifest;
@@ -100,7 +98,7 @@ export async function verifyConformanceLock(
     await validateLifecycleManifest(root, manifest);
     results.push({ pin, manifest, manifestBytes: bytes });
   }
-  const p0Value = parseJson(await readFile(path.join(root, "contracts/manifests/drafts/p0.json"), "utf8"));
+  const p0Value = parseJsonBytes(await readRepositoryBytes(root, "contracts/manifests/drafts/p0.json", "/inputs"));
   if (!isJsonObject(p0Value)) fail("conformance_manifest_invalid", "/inputs", "P0 Draft manifest is invalid");
   const p0Manifest = p0Value as unknown as ContractManifest;
   const manifestsByOwner = new Map<string, ContractManifest>([["p0", p0Manifest], ...results.map(({ manifest }) => [manifest.owner_mission, manifest] as const)]);
@@ -118,12 +116,7 @@ export async function verifyConformanceLock(
   for (const [index, result] of results.entries()) {
     for (const [outputIndex, output] of result.manifest.outputs.entries()) {
       const bytes = await gitBytes(root, result.pin.commit, output.path, `/inputs/${index}/outputs/${outputIndex}/path`);
-      let value: unknown;
-      try {
-        value = JSON.parse(bytes.toString("utf8"));
-      } catch {
-        continue;
-      }
+      const value: unknown = parseJsonBytes(bytes);
       if (value !== null && !Array.isArray(value) && typeof value === "object" && "$id" in value) {
         registry.add(value as Record<string, unknown>, `git:${result.pin.commit}:${output.path}`);
       }
@@ -137,7 +130,7 @@ export type BaselineRefreshCandidate = {
   previous_lock_sha256: string;
   changes: Array<{ owner_mission: string; old: ConformancePin; next: ConformancePin }>;
   inputs: ConformancePin[];
-  validation: "all-pins-and-fixtures-revalidated";
+  validation: "pins-revalidated" | "all-pins-composition-references-migrations-lifecycle-events-fixtures-revalidated";
 };
 
 export async function buildBaselineRefreshCandidate(
@@ -162,6 +155,6 @@ export async function buildBaselineRefreshCandidate(
     previous_lock_sha256: sha256Hex(stableJson(current)),
     changes,
     inputs: next.inputs,
-    validation: "all-pins-and-fixtures-revalidated",
+    validation: "pins-revalidated",
   };
 }

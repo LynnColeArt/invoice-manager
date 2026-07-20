@@ -1,10 +1,10 @@
-import { readdir, readFile, realpath } from "node:fs/promises";
+import { lstat, readdir, realpath } from "node:fs/promises";
 import path from "node:path";
 import Ajv2020, { type AnySchema, type ErrorObject, type ValidateFunction } from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
 import { fail } from "./errors.js";
-import { compareCodeUnits, type JsonValue, parseJson } from "./json.js";
-import { normalizeRepositoryPath } from "./paths.js";
+import { compareCodeUnits, type JsonValue, parseJsonBytes } from "./json.js";
+import { normalizeRepositoryPath, readRepositoryBytes, resolveRepositoryFile } from "./paths.js";
 
 export type RegistryDocument = {
   id: string;
@@ -84,7 +84,7 @@ function throwAjvError(validate: ValidateFunction, code: string): never {
 async function walkFiles(root: string, current: string, output: string[]): Promise<void> {
   for (const entry of await readdir(current, { withFileTypes: true })) {
     const absolute = path.join(current, entry.name);
-    if (entry.isSymbolicLink()) continue;
+    if (entry.isSymbolicLink()) fail("path_symlink_escape", "", "Contract discovery must not traverse symbolic links");
     if (entry.isDirectory()) await walkFiles(root, absolute, output);
     else if (entry.isFile() && entry.name.endsWith(".json")) output.push(path.relative(root, absolute).split(path.sep).join("/"));
   }
@@ -94,10 +94,12 @@ export async function discoverStableIdRegistry(root: string): Promise<StableIdRe
   const registry = new StableIdRegistry();
   const rootReal = await realpath(root);
   const files: string[] = [];
-  await walkFiles(rootReal, path.join(rootReal, "contracts"), files);
+  const contractsPath = path.join(rootReal, "contracts");
+  if ((await lstat(contractsPath)).isSymbolicLink()) fail("path_symlink_escape", "", "Contract discovery root must not be a symbolic link");
+  await walkFiles(rootReal, await resolveRepositoryFile(rootReal, "contracts", ""), files);
   for (const relative of files.sort(compareCodeUnits)) {
     const normalized = normalizeRepositoryPath(relative, "");
-    const value = parseJson(await readFile(path.join(rootReal, ...normalized.split("/")), "utf8"));
+    const value = parseJsonBytes(await readRepositoryBytes(rootReal, normalized, ""));
     if (value !== null && !Array.isArray(value) && typeof value === "object" && "$id" in value) {
       registry.add(value as Record<string, unknown>, normalized);
     }

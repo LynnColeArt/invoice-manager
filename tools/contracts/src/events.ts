@@ -1,5 +1,6 @@
 import type { ErrorObject } from "ajv";
 import { ContractError, fail } from "./errors.js";
+import { decodeUtf8 } from "./json.js";
 import type { EventCatalog } from "./modules.js";
 import type { StableIdRegistry } from "./registry.js";
 
@@ -75,8 +76,12 @@ export function validateDomainEvent(event: unknown, catalogs: EventCatalog[], re
 }
 
 export function validateEventJsonl(bytes: Buffer, catalogs: EventCatalog[], registry: StableIdRegistry): void {
-  const text = bytes.toString("utf8");
-  if (Buffer.from(text, "utf8").compare(bytes) !== 0) fail("event_jsonl_utf8_invalid", "", "Event batch must be valid UTF-8");
+  let text: string;
+  try {
+    text = decodeUtf8(bytes);
+  } catch {
+    fail("event_jsonl_utf8_invalid", "", "Event batch must be valid UTF-8");
+  }
   if (!text.endsWith("\n") || text.includes("\r")) fail("event_jsonl_termination_invalid", "", "Event batch must use LF-terminated records");
   const lines = text.slice(0, -1).split("\n");
   if (lines.some((line) => line.length === 0)) fail("event_jsonl_empty_line", "", "Event batch must not contain empty records");

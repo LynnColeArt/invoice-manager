@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import { ContractError } from "../src/errors.js";
+import { preflightContracts } from "../src/generate.js";
 import { sha256Digest, stableJson } from "../src/json.js";
 import {
   discoverAndValidateMigrations,
@@ -82,6 +83,22 @@ describe("owner-scoped migration contracts", () => {
     await writeFile(path.join(workspace, path.dirname(created.relative), "up.sql"), created.script);
     const descriptorMutation = { ...created.descriptor, name: "mutated_name" };
     await expectCode(async () => validateMigrationDescriptor(workspace, created.relative, descriptorMutation, await registry()), "migration_descriptor_digest_mismatch");
+  });
+
+  it("binds frozen descriptor and script mutations to a real pinned owner's Draft migration root", async () => {
+    const realP1 = (await preflightContracts(repository)).conformance.find(({ manifest }) => manifest.owner_mission === "p1")!.manifest;
+    expect(realP1.migration_strategy).toEqual({ mode: "owner_scoped_forward_only", root: "services/api/migrations/p1" });
+    const workspace = await root();
+    const created = await writeMigration(workspace, realP1.owner_mission, "01890f3a-1234-7abc-8def-0123456789af");
+    await expect(validateMigrationDescriptor(workspace, created.relative, created.descriptor, await registry())).resolves.toBeUndefined();
+
+    await writeFile(path.join(workspace, path.dirname(created.relative), "up.sql"), "-- real-owner script mutation\n");
+    await expectCode(async () => validateMigrationDescriptor(workspace, created.relative, created.descriptor, await registry()), "migration_script_digest_mismatch");
+    await writeFile(path.join(workspace, path.dirname(created.relative), "up.sql"), created.script);
+    await expectCode(
+      async () => validateMigrationDescriptor(workspace, created.relative, { ...created.descriptor, name: "real_owner_descriptor_mutation" }, await registry()),
+      "migration_descriptor_digest_mismatch",
+    );
   });
 
   it("rejects duplicate IDs, missing dependencies, cycles, and owner/path mismatch", async () => {

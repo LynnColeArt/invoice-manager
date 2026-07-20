@@ -1,7 +1,6 @@
-import { readFile } from "node:fs/promises";
 import { compareCodeUnits, jcsBytes, sha256Digest } from "./json.js";
 import { fail } from "./errors.js";
-import { assertUniqueNormalizedPaths, normalizeRepositoryPath, resolveRepositoryFile } from "./paths.js";
+import { assertUniqueNormalizedPaths, normalizeRepositoryPath, readRepositoryBytes } from "./paths.js";
 
 export const lifecycleStates = ["Draft", "Frozen", "Implemented", "Verified", "Superseded"] as const;
 export type LifecycleState = (typeof lifecycleStates)[number];
@@ -66,9 +65,10 @@ export function computeContentDigest(manifest: ContractManifest): string {
 }
 
 function assertEvidence(manifest: ContractManifest): void {
-  if (manifest.state === "Draft") return;
   if (manifest.content_digest === "pending") {
-    fail("lifecycle_pending_evidence", "/content_digest", "Pending content evidence is allowed only in Draft");
+    if (manifest.state !== "Draft") fail("lifecycle_pending_evidence", "/content_digest", "Pending content evidence is allowed only in Draft");
+  } else if (!/^sha256:[0-9a-f]{64}$/u.test(manifest.content_digest)) {
+    fail("digest_invalid", "/content_digest", "Expected pending or a canonical SHA-256 digest");
   }
   const evidenceGroups: Array<[DigestedPath[], string]> = [
     [manifest.outputs, "/outputs"],
@@ -76,13 +76,19 @@ function assertEvidence(manifest: ContractManifest): void {
   ];
   for (const [entries, pointer] of evidenceGroups) {
     entries.forEach((entry, index) => {
-      if (entry.digest === "pending") fail("lifecycle_pending_evidence", `${pointer}/${index}/digest`, "Pending file evidence is allowed only in Draft");
-      if (!/^sha256:[0-9a-f]{64}$/u.test(entry.digest)) fail("digest_invalid", `${pointer}/${index}/digest`, "Expected a canonical SHA-256 digest");
+      if (entry.digest === "pending") {
+        if (manifest.state !== "Draft") fail("lifecycle_pending_evidence", `${pointer}/${index}/digest`, "Pending file evidence is allowed only in Draft");
+      } else if (!/^sha256:[0-9a-f]{64}$/u.test(entry.digest)) {
+        fail("digest_invalid", `${pointer}/${index}/digest`, "Expected pending or a canonical SHA-256 digest");
+      }
     });
   }
   manifest.inputs.forEach((entry, index) => {
-    if (entry.content_digest === "pending") fail("lifecycle_pending_evidence", `/inputs/${index}/content_digest`, "Pending input evidence is allowed only in Draft");
-    if (!/^sha256:[0-9a-f]{64}$/u.test(entry.content_digest)) fail("digest_invalid", `/inputs/${index}/content_digest`, "Expected a canonical SHA-256 digest");
+    if (entry.content_digest === "pending") {
+      if (manifest.state !== "Draft") fail("lifecycle_pending_evidence", `/inputs/${index}/content_digest`, "Pending input evidence is allowed only in Draft");
+    } else if (!/^sha256:[0-9a-f]{64}$/u.test(entry.content_digest)) {
+      fail("digest_invalid", `/inputs/${index}/content_digest`, "Expected pending or a canonical SHA-256 digest");
+    }
   });
 }
 
@@ -150,25 +156,28 @@ export async function validateLifecycleManifest(
       fail("lifecycle_content_mutated", "/content_digest", "Frozen contract content cannot change within one version");
     }
   }
-  if (manifest.state === "Draft") return;
-  if (!manifest.integration_fixtures.some((entry) => entry.expectation === "valid")) {
+  if (manifest.state !== "Draft" && !manifest.integration_fixtures.some((entry) => entry.expectation === "valid")) {
     fail("fixture_valid_missing", "/integration_fixtures", "Frozen contracts require a valid integration fixture");
   }
-  if (!manifest.integration_fixtures.some((entry) => entry.expectation === "invalid")) {
+  if (manifest.state !== "Draft" && !manifest.integration_fixtures.some((entry) => entry.expectation === "invalid")) {
     fail("fixture_invalid_missing", "/integration_fixtures", "Frozen contracts require an invalid integration fixture");
   }
-  const computedContent = computeContentDigest(manifest);
-  if (manifest.content_digest !== computedContent) fail("content_digest_mismatch", "/content_digest", "Contract content digest does not match its RFC 8785 projection");
+  if (manifest.content_digest !== "pending") {
+    const computedContent = computeContentDigest(manifest);
+    if (manifest.content_digest !== computedContent) fail("content_digest_mismatch", "/content_digest", "Contract content digest does not match its RFC 8785 projection");
+  }
 
   for (const [group, pointer] of [[manifest.outputs, "/outputs"], [manifest.integration_fixtures, "/integration_fixtures"]] as const) {
     for (const [index, entry] of group.entries()) {
-      const resolved = await resolveRepositoryFile(root, entry.path, `${pointer}/${index}/path`);
-      const actual = sha256Digest(await readFile(resolved));
+      if (entry.digest === "pending") continue;
+      const actual = sha256Digest(await readRepositoryBytes(root, entry.path, `${pointer}/${index}/path`));
       if (actual !== entry.digest) fail("file_digest_mismatch", `${pointer}/${index}/digest`, "Declared file digest does not match exact bytes");
     }
   }
-  if (manifest.inputs.length > 0 && !options.resolveInput) fail("input_resolver_missing", "/inputs", "Frozen dependencies require an immutable manifest resolver");
+  const concreteInputs = manifest.inputs.filter((entry) => entry.content_digest !== "pending");
+  if (concreteInputs.length > 0 && !options.resolveInput) fail("input_resolver_missing", "/inputs", "Concrete dependency evidence requires an immutable manifest resolver");
   for (const [index, input] of manifest.inputs.entries()) {
+    if (input.content_digest === "pending") continue;
     const dependency = await options.resolveInput!(input);
     if (dependency.contract_id !== input.contract_id) fail("input_contract_mismatch", `/inputs/${index}/contract_id`, "Resolved input contract ID differs");
     if (dependency.owner_mission !== input.owner_mission) fail("input_owner_mismatch", `/inputs/${index}/owner_mission`, "Resolved input owner differs");
