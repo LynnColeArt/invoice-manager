@@ -1,0 +1,13 @@
+{
+  "module_version": 1,
+  "module_id": "foundation",
+  "owner_mission": "p0",
+  "mount_key": "foundation",
+  "api_fragments": ["contracts/api/v1/base.openapi.yaml"],
+  "event_catalogs": [],
+  "migration_root": "services/api/migrations/p0",
+  "route_policy": {
+    "default_access": "protected",
+    "public_operations": ["P0Health"]
+  }
+}

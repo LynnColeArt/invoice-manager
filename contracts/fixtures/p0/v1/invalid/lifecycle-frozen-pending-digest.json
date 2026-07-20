@@ -1,0 +1,23 @@
+{
+  "expected": { "code": "lifecycle_pending_evidence", "pointer": "/content_digest" },
+  "manifest": {
+    "manifest_version": 1,
+    "contract_id": "invoice-manager.synthetic",
+    "owner_mission": "p8",
+    "mission": "p8-synthetic-contract-01KXYZAB",
+    "version": "0.1.0-draft.1",
+    "state": "Frozen",
+    "baseline_commit": "a71448bbec991a6bf0be805129d704beab06d486",
+    "content_digest": "pending",
+    "dependencies": [],
+    "inputs": [],
+    "outputs": [{ "path": "contracts/fixtures/p0/v1/valid/module-pair.json", "kind": "other", "digest": "pending" }],
+    "owned_paths": ["contracts/fixtures/p8/**"],
+    "shared_touchpoints": [],
+    "migration_strategy": { "mode": "none" },
+    "integration_fixtures": [
+      { "path": "contracts/fixtures/p0/v1/valid/module-pair.json", "expectation": "valid", "digest": "pending" },
+      { "path": "contracts/fixtures/p0/v1/invalid/module-duplicate-mount.json", "expectation": "invalid", "digest": "pending" }
+    ]
+  }
+}

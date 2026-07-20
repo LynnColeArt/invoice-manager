@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://invoice-manager.invalid/contracts/modules/v1/schema.json",
+  "title": "Invoice Manager Owner Module Contribution v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["module_version", "module_id", "owner_mission", "mount_key", "api_fragments", "event_catalogs", "migration_root", "route_policy"],
+  "properties": {
+    "module_version": { "const": 1 },
+    "module_id": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+    "owner_mission": { "type": "string", "pattern": "^p[0-8]$" },
+    "mount_key": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+    "api_fragments": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/RepositoryPath" } },
+    "event_catalogs": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/RepositoryPath" } },
+    "migration_root": { "$ref": "#/$defs/RepositoryPath" },
+    "route_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["default_access", "public_operations"],
+      "properties": {
+        "default_access": { "const": "protected" },
+        "public_operations": { "type": "array", "uniqueItems": true, "items": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_]*$" } }
+      }
+    }
+  },
+  "$defs": {
+    "RepositoryPath": { "type": "string", "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[A-Za-z0-9._/*?{}-]+$" }
+  }
+}
