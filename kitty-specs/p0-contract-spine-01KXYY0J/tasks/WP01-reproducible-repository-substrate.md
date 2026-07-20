@@ -39,7 +39,7 @@ requirement_refs:
   - C-009
 agent_profile: node-norris
 role: implementer
-agent: "codex:gpt-5:node-norris:implementer"
+agent: "codex:gpt-5:reviewer-renata:reviewer"
 model: ""
 assignee: ""
 shell_pid: "1807838"
@@ -202,8 +202,8 @@ Give the contract workspace one stable version-one export targeting
 
 In `apps/web/package.json`, predeclare the complete dependency and validation tool set already
 selected for WP09/WP10: Next.js exactly `16.2.10`; React and React DOM exactly `19.2.7` each;
-TypeScript exactly `6.0.3`; ESLint exactly `10.7.0`; the compatible `eslint-config-next`
-release and every formatting, DOM, component, accessibility, and Playwright package at one
+TypeScript exactly `6.0.3`; ESLint exactly `9.39.5`; `eslint-config-next` exactly `16.2.10`;
+and every formatting, DOM, component, accessibility, and Playwright package at one
 explicit full version. Include the stable package-local commands WP09/WP10 will implement or use.
 Do not add feature libraries, charts, state managers, data clients, UI kits, remote fonts,
 authentication, databases, or other speculative packages.
@@ -455,3 +455,5 @@ Verify the full command surface is compatible with later work without preempting
 - 2026-07-20T07:00:27Z – system – Prompt created for WP01 reproducible repository substrate implementation.
 - Append implementation start, material decisions, verification commands, and results chronologically below this line.
 - 2026-07-20T17:51:14Z – codex:gpt-5:node-norris:implementer – shell_pid=1807838 – Assigned agent via action command
+- 2026-07-20T18:44:53Z – codex:gpt-5:node-norris:implementer – shell_pid=1807838 – Ready for review: exact Node/npm/Zig pins, immutable peer-clean workspace graph and lock, clean/offline reproducibility, zero-vulnerability audit, and actionable missing-producer diagnostics verified under official Node 24.18.0; host Node 26 mismatch remains intentionally rejected.
+- 2026-07-20T18:45:39Z – codex:gpt-5:reviewer-renata:reviewer – shell_pid=1807838 – Started review via action command
