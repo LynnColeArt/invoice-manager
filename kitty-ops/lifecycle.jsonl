@@ -1,0 +1,7 @@
+{"agent": "codex", "at": "2026-07-20T05:52:37.653707+00:00", "canonical_action_id": "discovery::research", "mission_id": "01KXZ1AJGCN047MVMA1BPQEK59", "phase": "started", "reason": null, "wp_id": null}
+{"agent": "codex", "at": "2026-07-20T05:56:12.193376+00:00", "canonical_action_id": "discovery::research", "mission_id": "01KXZ1AJGCN047MVMA1BPQEK59", "phase": "completed", "reason": null, "wp_id": null}
+{"agent": "codex", "at": "2026-07-20T05:56:15.219349+00:00", "canonical_action_id": "specify::specify", "mission_id": "01KXZ1AJGCN047MVMA1BPQEK59", "phase": "started", "reason": null, "wp_id": null}
+{"agent": "codex", "at": "2026-07-20T05:56:28.730050+00:00", "canonical_action_id": "specify::specify", "mission_id": "01KXZ1AJGCN047MVMA1BPQEK59", "phase": "completed", "reason": null, "wp_id": null}
+{"agent": "codex", "at": "2026-07-20T05:56:37.073271+00:00", "canonical_action_id": "plan::plan", "mission_id": "01KXZ1AJGCN047MVMA1BPQEK59", "phase": "started", "reason": null, "wp_id": null}
+{"agent": "codex", "at": "2026-07-20T05:59:04.859685+00:00", "canonical_action_id": "plan::plan", "mission_id": "01KXZ1AJGCN047MVMA1BPQEK59", "phase": "completed", "reason": null, "wp_id": null}
+{"agent": "codex", "at": "2026-07-20T05:59:15.310907+00:00", "canonical_action_id": "tasks::tasks", "mission_id": "01KXZ1AJGCN047MVMA1BPQEK59", "phase": "started", "reason": null, "wp_id": null}
