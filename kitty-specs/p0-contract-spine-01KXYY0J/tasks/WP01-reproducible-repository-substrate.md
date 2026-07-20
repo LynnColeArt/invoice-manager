@@ -39,10 +39,10 @@ requirement_refs:
   - C-009
 agent_profile: node-norris
 role: implementer
-agent: "codex"
+agent: "codex-wp01-lock-rereview"
 model: ""
 assignee: ""
-shell_pid: "785373"
+shell_pid: "1807838"
 history:
   - at: "2026-07-20T07:00:27Z"
     actor: system
@@ -470,3 +470,6 @@ Verify the full command surface is compatible with later work without preempting
 - 2026-07-20T23:15:12Z – codex-wp01-advisory-review – shell_pid=1807838 – Started review via action command
 - 2026-07-20T23:20:41Z – user – shell_pid=1807838 – Moved to planned
 - 2026-07-20T23:23:05Z – codex – shell_pid=785373 – Started implementation via action command
+- 2026-07-20T23:24:22Z – codex – shell_pid=785373 – GREEN correction cycle 4: pinned npm 11.16.0 dedupe removed the sole redundant nested @eslint/eslintrc js-yaml lock row; commit 2fc13e7 now has 610 package entries and exactly one hoisted js-yaml@4.3.0. A fresh manifests-only offline lock generation byte-matched the committed lock; normal offline npm ci was metadata-immutable, npm ls problems=[], verify:substrate passed under exact Node/npm/Zig, and full plus production audits reported 0 vulnerabilities. Generated install trees were removed.
+- 2026-07-20T23:24:47Z – codex – shell_pid=785373 – Cycle 4 blocker resolved in 2fc13e7: lock deduped by pinned npm to canonical 610-entry graph, byte-equal to clean manifests-only regeneration; all prior security and substrate gates remain green.
+- 2026-07-20T23:25:16Z – codex-wp01-lock-rereview – shell_pid=1807838 – Started review via action command
