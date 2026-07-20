@@ -202,8 +202,8 @@ Give the contract workspace one stable version-one export targeting
 
 In `apps/web/package.json`, predeclare the complete dependency and validation tool set already
 selected for WP09/WP10: Next.js exactly `16.2.10`; React and React DOM exactly `19.2.7` each;
-TypeScript exactly `6.0.3`; ESLint exactly `10.7.0`; the compatible `eslint-config-next`
-release and every formatting, DOM, component, accessibility, and Playwright package at one
+TypeScript exactly `6.0.3`; ESLint exactly `9.39.5`; `eslint-config-next` exactly `16.2.10`;
+and every formatting, DOM, component, accessibility, and Playwright package at one
 explicit full version. Include the stable package-local commands WP09/WP10 will implement or use.
 Do not add feature libraries, charts, state managers, data clients, UI kits, remote fonts,
 authentication, databases, or other speculative packages.
