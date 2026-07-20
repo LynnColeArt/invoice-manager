@@ -1,7 +1,7 @@
 {
-  "event_count": 57,
-  "last_event_id": "01KY0XE5Q8B5B3BTZVW6SXG10C",
-  "materialized_at": "2026-07-20T23:23:04.800607+00:00",
+  "event_count": 63,
+  "last_event_id": "01KY0XW4MS4S2BHEXEZ0E5HJZG",
+  "materialized_at": "2026-07-20T23:30:42.450159+00:00",
   "mission_number": "",
   "mission_slug": "p0-contract-spine-01KXYY0J",
   "mission_type": "software-dev",
@@ -18,11 +18,11 @@
   },
   "work_packages": {
     "WP01": {
-      "actor": "codex",
+      "actor": "user",
       "force_count": 3,
-      "lane": "in_progress",
-      "last_event_id": "01KY0XE5Q8B5B3BTZVW6SXG10C",
-      "last_transition_at": "2026-07-20T23:23:04.800607+00:00"
+      "lane": "approved",
+      "last_event_id": "01KY0XSHGKZY2R78D9PAGM8WNK",
+      "last_transition_at": "2026-07-20T23:29:17.331429+00:00"
     },
     "WP02": {
       "actor": "user",
@@ -32,11 +32,11 @@
       "last_transition_at": "2026-07-20T19:40:50.031025+00:00"
     },
     "WP03": {
-      "actor": "user",
-      "force_count": 2,
-      "lane": "approved",
-      "last_event_id": "01KY0S4MXGQGXKSVAVNMDRZ84G",
-      "last_transition_at": "2026-07-20T22:07:58.384900+00:00"
+      "actor": "codex",
+      "force_count": 3,
+      "lane": "in_progress",
+      "last_event_id": "01KY0XW4MS4S2BHEXEZ0E5HJZG",
+      "last_transition_at": "2026-07-20T23:30:42.450159+00:00"
     },
     "WP04": {
       "actor": "codex:gpt-5:implementer-ivan:implementer",
