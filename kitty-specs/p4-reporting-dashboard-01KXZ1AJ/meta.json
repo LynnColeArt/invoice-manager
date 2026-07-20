@@ -1,0 +1,15 @@
+{
+  "coordination_branch": "kitty/mission-p4-reporting-dashboard-01KXZ1AJ",
+  "created_at": "2026-07-20T05:52:32.269083+00:00",
+  "flattened": false,
+  "friendly_name": "P4 Reporting Dashboard",
+  "mission_id": "01KXZ1AJGCN047MVMA1BPQEK59",
+  "mission_number": null,
+  "mission_slug": "p4-reporting-dashboard-01KXZ1AJ",
+  "mission_type": "software-dev",
+  "purpose_context": "This Wave A mission owns the reporting projection, metric semantics, query API, dashboard, accessible chart/table views, and synthetic normalized reporting fixtures. It consumes the P0 event envelope for planning and develops against P4-owned synthetic invoice, payment-allocation, client, project, and due-work snapshots until P5/P6 publish real producer contracts. It owns no invoice/payment lifecycle, scheduling decisions, foreign-exchange conversion, or source-domain mutation.",
+  "purpose_tldr": "Build deterministic per-currency revenue, collections, outstanding, aging, forecast, client, project, and due-work analytics with accessible charts and tables.",
+  "slug": "p4-reporting-dashboard-01KXZ1AJ",
+  "target_branch": "feat/p4-reporting-dashboard",
+  "topology": "coord"
+}
