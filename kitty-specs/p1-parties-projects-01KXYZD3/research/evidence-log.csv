@@ -1,0 +1,8 @@
+evidence_id,source_id,claim,confidence,decision
+EV-001,SRC-001,Every client requires a default Billing Identity and a project may visibly override it,high,P1 aggregate rules
+EV-002,SRC-001,Billing Market is explicit and domestic/europe/other determine remittance behavior,high,Remittance resolver
+EV-003,SRC-001,Project logo policy is On or Off and applies to new invoice work,high,Logo model
+EV-004,SRC-002,P1 owns identity client and project snapshot inputs consumed by P2 P5 and P6,high,Resolved configuration contract
+EV-005,SRC-003,Successful consequential mutations checkpoint before success,high,P1 mutation boundary
+EV-006,SRC-004,Feature missions add owner files and consume P0 Draft contracts only for planning,high,Parallel ownership gate
+EV-007,SRC-005,Money uses currency plus canonical signed-64-bit decimal minor units,high,Project defaults

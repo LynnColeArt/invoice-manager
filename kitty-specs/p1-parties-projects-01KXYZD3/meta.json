@@ -7,6 +7,7 @@
   "mission_number": null,
   "mission_slug": "p1-parties-projects-01KXYZD3",
   "mission_type": "software-dev",
+  "pr_bound": true,
   "purpose_context": "This Wave A mission gives the consulting-business owner a complete internal client and project manager. Every client selects a default Billing Identity, projects may visibly override it, European billing requires configured remittance details, domestic billing omits them, and project logo policy is explicit. P1 owns configuration facts and contracts while invoice documents, issuance, scheduling, and analytics remain in their missions.",
   "purpose_tldr": "Manage billing identities, clients, contacts, and projects with explicit issuer, remittance, currency, and logo policies.",
   "slug": "p1-parties-projects-01KXYZD3",

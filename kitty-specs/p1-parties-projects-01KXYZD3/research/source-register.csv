@@ -1,0 +1,7 @@
+source_id,kind,title,location,accessed_at,relevance
+SRC-001,project,Invoice Manager planning brief,docs/planning-brief.md,2026-07-19,P1 workflow rules and domain model
+SRC-002,project,Invoice Manager program ledger,docs/program-ledger.md,2026-07-19,P1 ownership and downstream consumers
+SRC-003,project,Invoice Manager charter,.kittify/charter/charter.md,2026-07-19,Security durability testing and UI boundaries
+SRC-004,mission,P0 Contract Spine specification,feat/p0-contract-spine:kitty-specs/p0-contract-spine-01KXYY0J/spec.md,2026-07-19,Consumed Draft values and ownership rules
+SRC-005,mission,P0 Draft common values,feat/p0-contract-spine:kitty-specs/p0-contract-spine-01KXYY0J/contracts/common-v1.schema.json,2026-07-19,IDs money dates and instants
+SRC-006,mission,P0 Draft API contract,feat/p0-contract-spine:kitty-specs/p0-contract-spine-01KXYY0J/contracts/api-v1.openapi.yaml,2026-07-19,HTTP envelope and version
