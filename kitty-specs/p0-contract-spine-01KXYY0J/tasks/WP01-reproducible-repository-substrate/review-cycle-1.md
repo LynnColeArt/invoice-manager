@@ -1,3 +1,22 @@
+---
+affected_files:
+  - .node-version
+  - .npmrc
+  - .zig-version
+  - apps/web/package.json
+  - package-lock.json
+  - package.json
+  - tools/contracts/package.json
+blocking_findings: 3
+cycle_number: 1
+implementation_commit: 34f899e
+mission_slug: p0-contract-spine-01KXYY0J
+reviewed_at: '2026-07-20T18:54:02Z'
+reviewer_agent: 'codex:gpt-5:reviewer-renata:reviewer'
+verdict: rejected
+wp_id: WP01
+---
+
 # WP01 Review Cycle 1
 
 Verdict: changes requested.
