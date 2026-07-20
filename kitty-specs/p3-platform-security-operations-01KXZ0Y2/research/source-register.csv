@@ -1,0 +1,9 @@
+source_id,title,url,source_type,accessed_at,notes
+SRC-001,NIST SP 800-63B,https://pages.nist.gov/800-63-4/sp800-63b.html,primary,2026-07-19,Password length blocklist and rate-limit guidance
+SRC-002,libsodium password hashing,https://doc.libsodium.org/password_hashing,primary,2026-07-19,Argon2id adapter behavior
+SRC-003,OWASP Session Management Cheat Sheet,https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html,primary,2026-07-19,Server-side sessions cookie expiry no-store
+SRC-004,OWASP CSRF Prevention Cheat Sheet,https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html,primary,2026-07-19,Synchronizer token origin Fetch Metadata
+SRC-005,Docker port publishing,https://docs.docker.com/engine/network/port-publishing/,primary,2026-07-19,Explicit bind and historical localhost caveat
+SRC-006,Docker Compose services,https://docs.docker.com/reference/compose-file/services/,primary,2026-07-19,Container hardening controls
+SRC-007,NIST backup guidance,https://csrc.nist.gov/pubs/other/2020/04/24/protecting-data-from-ransomware-and-other-data-los/final,primary,2026-07-19,Maintain and test backups
+SRC-008,P0 Draft contract spine,git:feat/p0-contract-spine:kitty-specs/p0-contract-spine-01KXYY0J/contracts/,project,2026-07-19,Planning-only durability and migration seam

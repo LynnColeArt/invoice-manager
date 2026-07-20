@@ -7,6 +7,7 @@
   "mission_number": null,
   "mission_slug": "p3-platform-security-operations-01KXZ0Y2",
   "mission_type": "software-dev",
+  "pr_bound": true,
   "purpose_context": "This Wave A mission wraps the Zig service in a private-by-default single-administrator operational envelope. It owns offline bootstrap/recovery, opaque sessions, default-deny authorization, CSRF, TLS reverse-proxy deployment, container hardening, persistent-path permissions, graceful shutdown, checkpointed backup, and fresh-target restore. It consumes P0 Draft contracts for planning only and owns no invoice, client, project, rendering, scheduling, or reporting behavior.",
   "purpose_tldr": "Secure the single-admin application, private deployment, durable shutdown, offline backup, verified restore, and recovery paths.",
   "slug": "p3-platform-security-operations-01KXZ0Y2",

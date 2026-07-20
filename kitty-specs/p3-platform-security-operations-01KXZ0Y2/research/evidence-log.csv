@@ -1,0 +1,9 @@
+evidence_id,claim,source_id,decision,confidence
+EV-001,Single-factor passwords should be long blocklisted and rate-limited,SRC-001,15-code-point minimum no composition or periodic-change rule,high
+EV-002,libsodium provides encoded Argon2id password records,SRC-002,Pinned adapter rather than custom crypto,high
+EV-003,Server-side sessions require secure cookie and expiry controls,SRC-003,Opaque digest-persisted 30-minute/eight-hour session,high
+EV-004,Stateful CSRF supports synchronizer tokens plus origin/metadata checks,SRC-004,Require all evidence on unsafe requests,high
+EV-005,Published ports need explicit host binding and older localhost behavior existed,SRC-005,Loopback/private explicit binds and Docker 28+,high
+EV-006,Compose supports non-root read-only capabilities and no-new-privileges controls,SRC-006,Harden every production container,high
+EV-007,Backups must be maintained and tested,SRC-007,Repeated restore drill is acceptance evidence,high
+EV-008,P0 owns the only storage handle and durable checkpoint receipt,SRC-008,Offline exclusive backup and restore,high
