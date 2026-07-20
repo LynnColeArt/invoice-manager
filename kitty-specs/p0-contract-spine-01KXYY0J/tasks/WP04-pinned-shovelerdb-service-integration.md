@@ -74,7 +74,7 @@ Address every review item and keep remediation evidence chronological before dec
 
 ## Objectives & Success Criteria
 
-Consume the public ShovelerDB repository at exactly commit `fc7539a3874293540a4de6d228b3ea670a8ca2e8` from a clean clone.
+Consume the public ShovelerDB repository at exactly commit `021e3b3d9247a181252329d6ba7ec8d2ed943a97` from a clean clone.
 Integrate its real C embedding ABI into the Zig `0.16.0` service build through one narrow, replaceable dependency adapter.
 Prove borrowed result values are copied before result release, SQL text literals are encoded centrally, and the real engine survives checkpoint, close, and reopen.
 Preserve complete GPL-2.0 dependency attribution and immutable source provenance.
@@ -91,7 +91,7 @@ As sole `services/api/build.zig` owner, WP04 also publishes every stable Zig
 test/coverage hook that later shared, durable-store, migration, and HTTP WPs
 consume without editing the build graph.
 The canonical upstream repository is `https://github.com/LynnColeArt/ShovelerDB.git`.
-The approved public commit is `fc7539a3874293540a4de6d228b3ea670a8ca2e8`.
+The approved public commit is `021e3b3d9247a181252329d6ba7ec8d2ed943a97`.
 The approved commit exposes embedding ABI version `0.1.0` in `include/shovelerdb.h`.
 
 At the approved commit, upstream has no `build.zig.zon`, installed consumer module, installed header, or ready-made linkable ABI library.
@@ -168,7 +168,7 @@ Land completed changes back on `feat/p0-contract-spine` unless the human explici
 - `NFR-011`: notice and license evidence for every distributed ShovelerDB component.
 - `NFR-012`: commit-addressed, reproducible service dependency graph.
 - `C-001`: preserve GPL-2.0-only compatibility and notices.
-- `C-004`: use only ShovelerDB commit `fc7539a3874293540a4de6d228b3ea670a8ca2e8`.
+- `C-004`: use only ShovelerDB commit `021e3b3d9247a181252329d6ba7ec8d2ed943a97`.
 - `C-005`: one adapter instance owns one handle and serializes calls sharing it.
 - `C-009`: build from public repository inputs without sibling paths or private data.
 
@@ -178,7 +178,7 @@ Land completed changes back on `feat/p0-contract-spine` unless the human explici
 
 - **Purpose**: make the dependency immutable, inspectable, and available from a public clean clone.
 - **Source URL**: `https://github.com/LynnColeArt/ShovelerDB.git`.
-- **Commit**: `fc7539a3874293540a4de6d228b3ea670a8ca2e8`.
+- **Commit**: `021e3b3d9247a181252329d6ba7ec8d2ed943a97`.
 - **Authoritative destination**: `deps/shovelerdb/`.
 
 #### Steps
@@ -394,7 +394,7 @@ Add a concise ShovelerDB notice containing:
 
 - component name;
 - public source URL;
-- exact commit `fc7539a3874293540a4de6d228b3ea670a8ca2e8`;
+- exact commit `021e3b3d9247a181252329d6ba7ec8d2ed943a97`;
 - the license identity supported by the upstream `LICENSE` evidence;
 - the repository-relative path to the preserved full license text;
 - whether the source is unmodified or which packaging shim files are invoice-manager-authored;
@@ -455,7 +455,7 @@ Negative checks must prove:
 
 ## Definition of Done
 
-- [ ] `deps/shovelerdb/` is an auditable export of public commit `fc7539a3874293540a4de6d228b3ea670a8ca2e8`.
+- [ ] `deps/shovelerdb/` is an auditable export of public commit `021e3b3d9247a181252329d6ba7ec8d2ed943a97`.
 - [ ] No dependency path references a sibling checkout, floating branch, private registry, or unpublished source.
 - [ ] The service build uses Zig `0.16.0` and links the real ShovelerDB C ABI.
 - [ ] `build.zig` exposes every exact stable adapter/shared/persistence/migration/HTTP/coverage/service step named in T016.
@@ -506,3 +506,4 @@ Review `THIRD_PARTY_NOTICES.md` and the complete upstream license as acceptance-
 - 2026-07-20T19:22:04Z – codex:gpt-5:implementer-ivan:implementer – shell_pid=1807838 – RED/BLOCKER: WP04-LITERAL-ROUNDTRIP-001; public C ABI probe against detached exact commit fc7539a3874293540a4de6d228b3ea670a8ca2e8, built with Zig 0.16.0 via 'zig build-lib src/abi_root.zig -static ... && zig cc ... -I include && probe'; SQL INSERT used required encoded literal 'O''Reilly'; expected selected bytes O'Reilly (8 bytes); observed selected bytes O''Reilly (9 bytes), round_trip_equal=false. Source cause: tokenizer.zig:128-132 consumes doubled quotes, parser.zig:1141-1144 strips only outer delimiters and does not unescape. Exact-pin rule and prohibition on upstream changes make required literal encoder + round-trip mutually unsatisfiable.
 - 2026-07-20T19:22:05Z – codex:gpt-5:implementer-ivan:implementer – shell_pid=1807838 – Blocked: exact pinned ShovelerDB public ABI cannot round-trip the mandatory SQL-standard doubled-quote encoder case. No unsafe encoder, dependency substitution, floating revision, or vendored upstream patch was applied. Partial exact source export/provenance remains uncommitted in lane-d for inspection; WP04 is not ready for review.
 - 2026-07-20T19:24:00Z – codex:gpt-5:researcher-robbie:researcher – BLOCKER EXPANSION: exact-pin source audit found tokenizer `readQuoted` treats backslash as escaping the next byte before its doubled-quote rule. Under WP04's mandated preserve-backslash/double-quote encoder, a backslash immediately before an apostrophe can close the literal early and expose trailing SQL. Recommended resolution is an upstream parser/tokenizer fix with quote-plus-backslash regression tests, followed by an explicit ShovelerDB commit repin; no vendored security patch was authorized.
+- 2026-07-21T01:00:00Z – codex:gpt-5:orchestrator:orchestrator – REPIN: replaced the normative ShovelerDB pin with public `main` commit `021e3b3d9247a181252329d6ba7ec8d2ed943a97` after the upstream SQL-literal hardening mission passed independent review, acceptance, merge, post-merge review, and its full 190-test suite. The former `fc7539a3874293540a4de6d228b3ea670a8ca2e8` references above remain historical evidence only; WP04 may resume against the new exact public commit.

@@ -153,8 +153,8 @@ parallel missions to coordinate every new migration.
 
 ## Decision 8: ShovelerDB consumption and durability seam
 
-**Decision:** Pin local ShovelerDB commit
-`fc7539a3874293540a4de6d228b3ea670a8ca2e8`. Consume it through one narrow
+**Decision:** Pin public ShovelerDB commit
+`021e3b3d9247a181252329d6ba7ec8d2ed943a97`. Consume it through one narrow
 invoice-manager adapter; domain code must not import its handles, SQL, results,
 or borrowed values. Own one handle per path and serialize access. The reference
 deployment runs one Zig API replica per database path.
