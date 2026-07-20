@@ -5,6 +5,7 @@ dependencies:
 - WP03
 - WP05
 - WP06
+- WP07
 requirement_refs:
 - FR-002
 - FR-004
@@ -95,7 +96,8 @@ no feature APIs, and black-box evidence that the backend contract is real.
 
 - WP03 owns composed OpenAPI, module route policy, and deterministic route inventory evidence.
 - WP05 owns RequestId and other canonical Zig shared values.
-- WP06 owns migration discovery, validation, application, and failure semantics.
+- WP06 owns the migration-agnostic durable store and its typed readiness result.
+- WP07 owns migration discovery/application and its separate typed readiness result.
 - Consume those implementations; do not copy, weaken, or edit their authoritative files.
 - The API major prefix is `/api/v1`.
 - The only P0 operation is `GET /api/v1/health`, operation ID `P0Health`.
@@ -108,7 +110,7 @@ no feature APIs, and black-box evidence that the backend contract is real.
 - Field failures use JSON Pointer paths plus stable code and safe message.
 - Every response request ID must satisfy WP05's canonical RequestId type.
 - Do not disclose database paths, engine diagnostics, stack traces, or raw request bodies.
-- Traffic must not begin before store open and migrations reach their successful completion boundary.
+- Traffic must not bind or accept before both WP06 durable-store readiness and WP07 migration readiness succeed.
 - Startup failure must not activate an in-memory fallback, replace a corrupt store, or serve false readiness.
 - Use the repository-pinned Zig 0.16 APIs; do not add compatibility branches for older Zig releases.
 - All fixtures, temporary paths, logs, and request bodies must be synthetic.
@@ -128,7 +130,7 @@ logo, recurrence, reporting, PDF, authentication, or other domain routes.
 - **Strategy**: `wp_branch`
 - **Planning base**: `feat/p0-contract-spine`
 - **Merge target**: `feat/p0-contract-spine`
-- **Dependency base**: accepted WP03, WP05, and WP06 outputs.
+- **Dependency base**: accepted WP03, WP05, WP06, and WP07 outputs.
 
 Let Spec Kitty resolve the worktree base. Do not manually retarget the branch,
 merge unrelated work, or bypass the implement-review lane.
@@ -158,16 +160,18 @@ P0 HTTP operation without introducing feature behavior.
 4. Keep secrets and business settings out of P0 startup configuration.
 5. Create `services/api/src/http/root.zig` as the narrow HTTP export surface.
 6. Create `services/api/src/http/server.zig` for listener lifecycle and request dispatch.
-7. Use the standard or already-pinned HTTP implementation; do not add an unapproved dependency.
-8. Bound request-line, header, and body sizes and reject malformed input deterministically.
-9. Implement exactly `GET /api/v1/health` in `services/api/src/http/health.zig`.
-10. When ready, respond `200` with JSON `{data:{status:"ready"},meta:{request_id}}`.
-11. Set the correct JSON content type and deterministic response encoding.
-12. Generate a canonical RequestId for every request; do not trust an inbound value as authority.
-13. Return the same request ID in success or failure metadata for that request.
-14. Keep health data limited to `status: "ready"`; expose no path, version, migration, or storage detail.
-15. Reject unsupported methods and unknown paths through T038 error mapping.
-16. Shut the listener down cleanly and release all request allocations and handles.
+7. Require an opaque ready context created by `main.zig` only after both dependency readiness results succeed before constructing or starting the listener.
+8. Keep HTTP modules independent of persistence internals; only the composition root may call WP06/WP07 public seams.
+9. Use the standard or already-pinned HTTP implementation; do not add an unapproved dependency.
+10. Bound request-line, header, and body sizes and reject malformed input deterministically.
+11. Implement exactly `GET /api/v1/health` in `services/api/src/http/health.zig`.
+12. When ready, respond `200` with JSON `{data:{status:"ready"},meta:{request_id}}`.
+13. Set the correct JSON content type and deterministic response encoding.
+14. Generate a canonical RequestId for every request; do not trust an inbound value as authority.
+15. Return the same request ID in success or failure metadata for that request.
+16. Keep health data limited to `status: "ready"`; expose no path, version, migration, or storage detail.
+17. Reject unsupported methods and unknown paths through T038 error mapping.
+18. Shut the listener down cleanly and release all request allocations and handles.
 
 **Files**:
 
@@ -241,6 +245,11 @@ inventory and ensure no route becomes public by omission or typo.
 12. For protected synthetic mutation cases, prove the target handler is never invoked.
 13. Fail startup on route-inventory contract drift rather than guessing or silently dropping routes.
 14. Keep generated inventories ignored; never commit a generated aggregate from tests.
+15. Before route-policy/dispatch production changes, add a failing public-boundary test driven by WP03 composed metadata and the actual dispatch entry point.
+16. Use stable cases for public health, missing/invalid metadata becoming protected, manifest/OpenAPI disagreement, and protected-handler non-invocation.
+17. Record the case ID, exact `zig build test-http` command, expected failure, and observed red result in the Activity Log before the production change.
+18. After implementation, append the matching green command/result chronologically; do not rewrite or reorder the red entry.
+19. Direct tests of a private classifier, mocked composed metadata, or tests first observed green do not satisfy red-first evidence.
 
 **Files**:
 
@@ -254,6 +263,8 @@ inventory and ensure no route becomes public by omission or typo.
 - Reject duplicates, missing handlers, extra handlers, and public-policy disagreement.
 - Mutate health metadata to missing/invalid and prove it becomes protected, never public.
 - Add an undeclared synthetic route and prove default-protected behavior without authentication code.
+- Prove red-first cases traverse composed metadata, route resolution, and dispatch far enough to observe handler invocation or non-invocation.
+- Reviewer-visible Activity Log evidence must show red before production behavior and green afterward for each critical case.
 
 ### Subtask T040 – Prove the Boundary Black-Box and Meet Health Performance
 
@@ -264,19 +275,20 @@ cannot create a vacuous architecture gate.
 
 1. Create `services/api/tests/http/black_box_test.zig` that starts the real service on loopback.
 2. Allocate an ephemeral port and isolated temporary database path per test.
-3. Wait for explicit process readiness with a bounded timeout; never use an arbitrary long sleep.
-4. Send a real GET request to `/api/v1/health` and parse the complete response.
-5. Validate status, headers, body, RequestId, envelope shape, and connection completion.
-6. Exercise unknown path, unsupported method, malformed request, and client disconnect cases.
-7. Prove no invoice-manager domain route exists in the P0 inventory.
-8. Create `services/api/tests/http/health_performance_test.zig` for NFR-007.
-9. Warm the ready local process before measurement and use a monotonic clock.
-10. Issue exactly 100 measured local requests using the reference Debug/ReleaseSafe mode selected by CI.
-11. Require all 100 responses to be valid ready responses.
-12. Require at least 99 response durations to be at or below 1,000 milliseconds.
-13. Record min, median, p99, maximum, mode, and failure count without machine-specific absolute paths.
-14. Keep the test bounded and independently runnable through the HTTP smoke command.
-15. Shut down the child process and remove temporary data on every success/error path.
+3. Start the process with successful WP06 durable-store and WP07 migration readiness dependencies.
+4. Wait for explicit process readiness with a bounded timeout; never use an arbitrary long sleep.
+5. Send a real GET request to `/api/v1/health` and parse the complete response.
+6. Validate status, headers, body, RequestId, envelope shape, and connection completion.
+7. Exercise unknown path, unsupported method, malformed request, and client disconnect cases.
+8. Prove no invoice-manager domain route exists in the P0 inventory.
+9. Create `services/api/tests/http/health_performance_test.zig` for NFR-007.
+10. Warm the ready local process before measurement and use a monotonic clock.
+11. Issue exactly 100 measured local requests using the reference Debug/ReleaseSafe mode selected by CI.
+12. Require all 100 responses to be valid ready responses.
+13. Require at least 99 response durations to be at or below 1,000 milliseconds.
+14. Record min, median, p99, maximum, mode, and failure count without machine-specific absolute paths.
+15. Keep the test bounded and independently runnable through the HTTP smoke command.
+16. Shut down the child process and remove temporary data on every success/error path.
 
 **Files**:
 
@@ -297,22 +309,26 @@ unmigrated, corrupt, or durability-uncertain persistence state.
 **Steps**:
 
 1. Create `services/api/tests/http/startup_readiness_test.zig` around the real composition root.
-2. In `main.zig`, validate configuration before opening any listener.
-3. Open the configured ShovelerDB file through the dependency-provided application adapter.
-4. Discover and validate the complete WP06 migration set before serving traffic.
-5. Apply pending startup migrations through WP06's runner.
-6. Treat the runner's successful durable completion/no-op result as a readiness prerequisite.
-7. Bind or accept traffic only after store open and migration success are both confirmed.
-8. Keep readiness false for missing dependencies, cycles, digest drift, DDL failure, checkpoint failure, directory-sync failure, corrupt store, and open failure.
-9. On failure, stop startup, close/discard according to the dependency contract, and exit nonzero.
-10. Never delete, replace, truncate, reset, or silently recreate a corrupt configured store.
-11. Never switch to an in-memory or alternate backend.
-12. Never replay migration DDL blindly after a committed-but-not-durable result.
-13. Do not return `200 ready` from merely opened, committed, or checkpointed state.
-14. Keep public startup diagnostics stable and safe; retain detailed typed causes only internally.
-15. Test the direct not-ready handler as canonical 503 even when process-level startup policy keeps the port closed.
-16. On normal shutdown, stop accepting work before closing the store through its supported seam.
-17. Do not absorb WP07 durability state-machine implementation into this package.
+2. Keep `main.zig` as the composition root; HTTP modules must not import WP06 or WP07 internals.
+3. Validate configuration before creating, binding, listening on, or accepting from any socket.
+4. Initialize/open the configured store only through WP06's public durable-store seam.
+5. Require WP06's typed durable-store readiness result before advancing startup.
+6. Treat open/corruption, handle/serialization, checkpoint, directory-sync, and unsupported-filesystem failures as not ready.
+7. Pass only WP06's public store seam into WP07's public migration discovery/application seam.
+8. Require WP07's typed migration readiness result after validated discovery, application or no-op, and durable completion.
+9. Keep readiness false for missing migration dependencies, cycles, duplicate identities, descriptor/script digest drift, DDL failure, and propagated durability failure.
+10. Construct the opaque HTTP ready context and listener only after both typed readiness results succeed.
+11. Do not create, bind, listen on, accept from, or announce a ready socket before both results succeed.
+12. Do not return `200 ready` from merely opened, committed, checkpointed, or migration-applied state.
+13. Inject each WP06 and WP07 failure class and prove nonzero exit, no listening port, no readiness log, and no fallback.
+14. Use a bounded connection probe to prove failed startup leaves the configured address unbound rather than serving 200 or 503.
+15. On failure, close/discard only through public dependency seams and preserve the last durable store snapshot.
+16. Never delete, replace, truncate, reset, silently recreate, or substitute an in-memory/alternate store.
+17. Never replay migration DDL blindly after a committed-but-not-durable result.
+18. Keep public startup diagnostics stable and safe; retain detailed typed causes only internally.
+19. Test the direct not-ready handler as canonical 503 even though process-level startup keeps the port closed.
+20. On normal shutdown, stop accepting work before closing the store through its public seam.
+21. Do not absorb WP06 durable-store or WP07 migration-runner implementation into this package.
 
 **Files**:
 
@@ -325,8 +341,10 @@ unmigrated, corrupt, or durability-uncertain persistence state.
 
 - A new temporary store applies the bootstrap migration, becomes ready, and returns 200.
 - A second startup observes a migration no-op and becomes ready.
-- Every injected open/migration/durability failure exits nonzero without a listening ready service.
-- Reopen after failed DDL proves the last durable store was not destructively replaced.
+- Every injected WP06 store-readiness failure exits nonzero with the configured address unbound.
+- Every injected WP07 migration-readiness failure exits nonzero with the configured address unbound.
+- No failure case emits readiness, serves 200/503, activates fallback storage, or mutates the last durable snapshot destructively.
+- Reopen after failed DDL or durability completion proves the last durable store remains usable and was not replaced.
 
 ## Test Strategy and Commands
 
@@ -335,24 +353,28 @@ Run from the repository root with the dependency-resolved worktree:
 ```bash
 zig version
 zig fmt --check services/api/src/main.zig services/api/src/http services/api/tests/http
+zig build test-http --build-file services/api/build.zig
 zig build test --build-file services/api/build.zig
 npm run api:check
 npm run http:smoke
 ```
 
 The first command must report `0.16.0`. The service build/test commands must
-consume WP03/WP05/WP06 rather than copying their files. If the build graph lacks
-an HTTP test hook, report that dependency integration defect to its owner; do
-not edit `services/api/build.zig` from WP08.
+consume WP03/WP05/WP06/WP07 through their public seams rather than copying their
+files. WP04's `test-http` build step is a required stable hook; if it is missing,
+report that dependency integration defect to its owner and do not edit
+`services/api/build.zig` from WP08.
 
 Mandatory test classes:
 
 - handler-level health and error-envelope tests;
-- composed route inventory and protected-default mutations;
+- red-first composed-route dispatch cases and protected-default mutations;
 - black-box TCP success and failure requests;
 - 100-request ready-path performance evidence;
-- real store-open and startup-migration success/no-op;
-- store, migration, checkpoint, and directory-sync startup failures;
+- WP06 durable-store and WP07 migration readiness success/no-op results;
+- injected store-open/corruption, checkpoint, directory-sync, and unsupported-filesystem failures;
+- injected migration dependency, cycle, duplicate, digest-drift, DDL, and durability failures;
+- bounded proof that every startup failure leaves the configured address unbound;
 - allocation, disconnect, shutdown, and sensitive-diagnostic cleanup.
 
 Before handoff, run `git diff --check`, `git status --short`, and
@@ -371,18 +393,23 @@ Before handoff, run `git diff --check`, `git status --short`, and
 - [ ] No authentication implementation or invoice-manager domain API was added.
 - [ ] Black-box tests exercise the real listener, parser, dispatch, and writer.
 - [ ] All 100 performance responses are valid; at least 99 finish within one second.
-- [ ] Store open and migration completion precede traffic readiness.
-- [ ] Corrupt/open/migration/durability failures produce no ready listener or fallback store.
+- [ ] `main.zig` consumes WP06 and WP07 typed readiness results only through public seams.
+- [ ] Socket construction, bind, listen, accept, and ready announcement follow both successful results.
+- [ ] Injected WP06 and WP07 failures exit nonzero with no bound port or fallback store.
+- [ ] Failed startup preserves the last durable snapshot and emits no false readiness.
 - [ ] Direct controlled not-ready response is canonical HTTP 503.
 - [ ] Process and resource cleanup passes success, error, disconnect, and shutdown cases.
 - [ ] Zig formatting, service tests, API checks, and HTTP smoke pass independently.
-- [ ] Only WP08-owned files changed and Activity Log evidence is chronological.
+- [ ] Route-policy Activity Log evidence records public-boundary red before matching green.
+- [ ] Only WP08-owned files changed and all Activity Log evidence is chronological.
 
 ## Risks and Mitigations
 
 - **Vacuous health test**: exercise the spawned listener, not only a handler function.
-- **Premature readiness**: open store and complete migrations before binding/accepting traffic.
+- **Premature readiness**: require both typed dependency results before socket construction, bind, listen, accept, or ready announcement.
+- **Dependency seam bypass**: compose WP06 and WP07 public APIs in `main.zig`; keep HTTP modules free of persistence internals.
 - **Permissive policy fallback**: map missing or invalid metadata to protected.
+- **Vacuous route-policy test**: drive WP03 composed metadata through route resolution and actual dispatch with chronological red-first evidence.
 - **Accidental authentication scope**: classify protected routes without building auth machinery.
 - **Contract/runtime drift**: compare composed inventory and handler bindings at startup.
 - **Diagnostic leak**: centralize safe error mapping and test hostile internal strings.
@@ -400,10 +427,13 @@ Do not approve based only on direct handler tests.
 
 Confirm specifically:
 
-- the process cannot report ready before store open and migration completion;
-- startup failures exit nonzero without destructive replacement or fallback;
+- `main.zig` consumes WP06 store readiness and WP07 migration readiness through public seams;
+- no socket is constructed, bound, listened on, accepted from, or announced ready before both results succeed;
+- injected WP06 and WP07 failures exit nonzero with the configured address unbound;
+- startup failures emit no readiness and cause no destructive replacement or fallback;
 - health is the sole public operation and exactly matches `P0Health` metadata;
 - omitted, invalid, or mismatched access policy fails protected;
+- red-first evidence exercises composed metadata, route resolution, and actual dispatch before matching green evidence;
 - no authentication/session/token/principal implementation appears;
 - success and all mapped failures contain one canonical RequestId;
 - internal errors and paths never reach response bodies;
@@ -413,14 +443,16 @@ Confirm specifically:
 - no domain API or out-of-scope file was added.
 
 Reject implementations that hardcode a permissive public route table independent
-of WP03, bind before readiness, fake performance at handler level, or treat a
-storage/migration failure as healthy degraded operation.
+of WP03, test only a private policy classifier, bind before both readiness
+results, fake performance at handler level, or treat a storage/migration failure
+as healthy degraded operation.
 
 ## Activity Log
 
 > Append entries in chronological UTC order. Include agent, exact commands,
-> route/test counts, readiness failure matrix, performance statistics, reviewer
-> remediation, and dependency coordination.
+> route-policy red/green case IDs and results, route/test counts, readiness
+> failure matrix, performance statistics, reviewer remediation, and dependency
+> coordination.
 
 No implementation entries yet.
 

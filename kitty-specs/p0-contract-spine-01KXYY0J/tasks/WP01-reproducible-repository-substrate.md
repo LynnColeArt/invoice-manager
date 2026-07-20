@@ -63,7 +63,8 @@ history:
 
 Create the immutable, root-level repository substrate that every later work package can trust.
 Pin the supported Node.js, npm, and Zig versions exactly.
-Establish npm workspaces and a committed npm lockfile without taking ownership of application dependencies.
+Establish npm workspaces and the initial committed npm lockfile without taking ownership of web dependencies.
+Pin only the exact build-time contract-tooling dependencies WP03 needs.
 Publish stable root commands for focused verification and final foundation verification.
 Make missing prerequisites fail with precise, actionable diagnostics.
 Prove that a clean checkout can bootstrap reproducibly without mutating committed root metadata.
@@ -85,6 +86,7 @@ Create or modify only paths matched by the declared ownership patterns:
 
 Do not create or edit any application source.
 Do not create `apps/web` files or select Next.js dependencies.
+Do not add Next.js, React, React DOM, browser-test, or other web-runtime dependencies to the root package or initial lock.
 Do not create `services/api` files, Zig source, or a Zig build file.
 Do not create database adapters, ShovelerDB integration, schemas, migrations, or fixtures.
 Do not create contract sources, generated bindings, license scanners, or helper scripts.
@@ -94,6 +96,9 @@ Do not edit mission planning artifacts, task prompts, status logs, or other work
 
 The root package may declare delegation commands whose producers land in later work packages.
 Those declarations are interfaces, not authorization to create their downstream targets here.
+The only dependency exception is the minimal, exact contract-tooling set required by WP03.
+WP09 later declares exact web package metadata without editing the root lock.
+Codebase-wide WP10 is the sole named integration steward authorized to regenerate `package-lock.json` after WP09.
 
 ## Branch Strategy
 
@@ -119,6 +124,7 @@ Do not merge or rebase unrelated work as part of this package.
 Treat the mission spec, plan, research, and quickstart as authoritative intent.
 The repository is a polyglot monorepo with a Next.js frontend and a Zig backend.
 npm owns JavaScript workspace resolution and the root JavaScript lockfile.
+The root workspace patterns are `apps/*` and `tools/*`; the latter supports the WP03 contract-tool package/export boundary.
 Zig remains an external pinned toolchain in this package; no Zig package graph is introduced here.
 Later work packages will populate the workspace and service paths.
 The root command surface must therefore be declared without fabricating downstream implementation.
@@ -163,23 +169,37 @@ It must not depend on network access.
 Create a minimal root `package.json` suitable for the planned monorepo.
 Give it a stable repository package name and a non-release placeholder version.
 Set `private: true`.
-Declare the planned workspace boundary for the frontend without creating frontend files.
+Declare `apps/*` and `tools/*` as the root workspace boundaries without creating either producer's files.
 Do not include the Zig service as a synthetic npm package.
 
-Keep root dependencies empty unless a dependency is strictly required by the root substrate.
-Do not add Next.js, React, TypeScript, test frameworks, formatters, linters, or Zig tooling here.
-Those choices belong to their producing work packages.
+Keep runtime `dependencies` empty.
+Root `devDependencies` may contain only the minimal contract-tooling packages WP03 requires to parse, validate, compose, canonicalize, test, and generate its contract outputs.
+Every such package and transitive resolution must be pinned exactly through `package.json` and `package-lock.json` using npm `11.16.0`.
+Use the plan's exact TypeScript `6.0.3` when WP03 requires TypeScript execution or generation.
+Do not add a generic developer convenience package or a dependency whose WP03 call site is not identified.
+Do not add Next.js, React, React DOM, ESLint/web configuration, DOM/component/E2E tooling, or Zig tooling here.
+Web dependency choices belong to WP09 and their lock reconciliation belongs to WP10.
 Do not use global installations as hidden repository dependencies.
 
 Generate `package-lock.json` with npm `11.16.0` from the committed `package.json` and `.npmrc`.
 Use the current lockfile format produced by the pinned npm version.
 Do not hand-author or manually normalize the lockfile.
-Ensure the lockfile records the root package consistently and contains no accidental dependencies.
-Commit the lockfile as a first-class reproducibility input.
+Ensure the initial lock records the root package, the declared workspace globs, and only the approved contract-tooling graph.
+Prove the initial lock contains no Next.js, React, React DOM, web runtime, or undeclared package.
+Commit it as the first reproducibility baseline, not as the final post-web lock.
 
 Use `npm ci` as the clean-install contract whenever a lockfile already exists.
 Use lockfile-only generation only for the initial substrate or a deliberate package metadata change.
 An ordinary clean install must not change `package.json` or `package-lock.json`.
+
+Record the lock handoff explicitly:
+
+- WP01 creates and verifies the initial root lock.
+- WP03 consumes the root-pinned contract tooling and may add `tools/contracts/package.json` only within its owned workspace.
+- WP09 declares exact `apps/web/package.json` metadata and must not touch the root lock.
+- After WP09 and the real Zig boundary are ready, codebase-wide WP10 alone regenerates the root lock with npm `11.16.0`.
+- WP10 may update `package-lock.json` but must not edit WP01's root `package.json`, version files, or `.npmrc`.
+- Any other WP that needs a lock change must route a handoff to WP10 rather than making an opportunistic edit.
 
 ## T003 — Focused Command Surface and Prerequisite Diagnostics
 
@@ -191,6 +211,7 @@ Include, at minimum, the following root-facing commands:
 - `contracts:check`
 - `api:check`
 - `web:check`
+- `migration:negative`
 - `persistence:integration`
 - `http:smoke`
 - `licenses:check`
@@ -215,7 +236,23 @@ Keep inline checks readable, deterministic, and portable across supported Linux 
 Avoid shell features that obscure exit codes.
 Forward delegated command exit codes unchanged.
 
+`migration:negative` is mandatory and delegates exactly to the stable service-build surface:
+
+```bash
+zig build migration-negative --build-file services/api/build.zig
+```
+
+WP04 owns and publishes that convention-scanned build hook.
+WP07 supplies the complete migration-negative suite: discovery, collision, dependency,
+digest, DDL, checkpoint, parent-directory-sync, quarantine, and durability-uncertain cases.
+It consumes WP06's public durable fault/recovery seams; WP06 remains migration-agnostic
+and owns store, checkpoint, and directory-sync behavior rather than migration tests.
+Before WP07 lands, the root preflight must fail nonzero with a diagnostic naming the missing WP04 build hook or missing WP07 test producer.
+After they land, zero discovered negative cases, swallowed nonzero child status, or a missing required category is a hard failure.
+Never skip the command or convert absence into success.
+
 `verify:foundation` must compose the final mission checks in a stable, fail-fast order.
+It must include `migration:negative` as its own visible stage rather than hiding it inside another Zig command.
 It may remain expected to fail on missing downstream producers until those packages land.
 Its present failure must be actionable rather than a stack trace or generic file-not-found error.
 Do not weaken the final command merely to make it pass during WP01.
@@ -233,22 +270,35 @@ The verification sequence must prove all of the following:
 
 - the version files contain one exact version each;
 - `package.json` parses and contains exact engine and package-manager declarations;
-- workspace declarations match the planned frontend boundary;
+- workspace declarations match the planned monorepo boundaries;
+- workspace declarations include exactly the required `apps/*` and `tools/*` roots;
 - `.npmrc` enforces the intended deterministic settings;
 - `package-lock.json` is accepted by `npm ci` under npm `11.16.0`;
 - `npm ci` does not mutate `package.json` or `package-lock.json`;
 - repeated clean installs leave the lockfile byte-identical;
+- the initial lock contains only root metadata and the approved exact contract-tooling graph;
+- the initial lock contains no Next.js, React, React DOM, or other web dependency;
 - `verify:substrate` succeeds on the supported platform and versions;
 - a missing Zig executable produces the designed diagnostic and a nonzero exit;
 - a wrong tool version produces expected-versus-observed diagnostics and a nonzero exit;
 - a downstream focused command names its missing producer instead of silently succeeding;
+- `migration:negative` names an absent WP04 hook or WP07 producer and exits nonzero;
 - root scripts propagate failures from delegated commands.
 
 Capture a checksum of `package-lock.json` before and after repeated installs.
 Use repository diff checks to prove that the five owned files remain unchanged.
 Remove only disposable install state created by the test.
 Do not delete or rewrite user-owned files.
-Do not require network access after a valid npm cache is prepared for this dependency-free substrate.
+Do not require network access after a valid npm cache is prepared for the pinned contract-tooling graph.
+
+Test the lock handoff contract in isolated temporary copies without creating downstream files in the WP01 worktree:
+
+1. Hash the initial `package-lock.json`, run `npm ci`, and prove the hash and tracked root metadata remain unchanged.
+2. Run a second clean install from a fresh `node_modules` state and compare exact lock bytes.
+3. Inspect every locked package against the approved contract-tooling allowlist and reject ranges or unexpected web packages.
+4. Confirm the initial lock is clearly identified as pre-WP09 and remains valid for WP01/WP03 work.
+5. Define WP10 acceptance evidence: after WP09 metadata exists, regenerate once with npm `11.16.0`, run `npm ci`, repeat lock-only generation, and require byte-identical output plus no root `package.json` change.
+6. Treat any post-WP09 lock edit by WP09 or a non-WP10 package as an ownership failure even if the resulting bytes install.
 
 Where a negative case needs an alternate executable, use an isolated temporary `PATH` or a controlled process shim.
 Never replace the user's real Node.js, npm, or Zig installation.
@@ -275,7 +325,8 @@ Run static checks first:
 1. Parse `package.json` and `package-lock.json` as JSON.
 2. Compare all declared tool versions with the mission plan.
 3. Inspect the script keys and their canonical delegation targets.
-4. Confirm no unowned files were added or modified.
+4. Confirm `migration:negative` delegates to the exact WP04 hook command.
+5. Confirm no unowned files were added or modified.
 
 Run supported-path checks next:
 
@@ -286,6 +337,7 @@ Run supported-path checks next:
 5. Run `npm run prerequisites:check`.
 6. Run `npm ci` using the committed lockfile.
 7. Run `npm run verify:substrate`.
+8. Run `npm run migration:negative` once and verify its current producer diagnostic or real delegated result.
 
 Run reproducibility and negative-path checks last.
 Record exact commands and outcomes in the Activity Log.
@@ -295,9 +347,12 @@ Do run it once to verify that its first missing prerequisite is diagnosed accura
 ## Risks and Mitigations
 
 - Risk: an unpinned npm regenerates a different lockfile. Mitigation: verify npm first and generate only with `11.16.0`.
+- Risk: WP01 absorbs web dependencies early. Mitigation: allow only exact WP03 contract tooling and reject Next/React/web packages.
+- Risk: WP09 metadata leaves the root lock stale. Mitigation: reserve the sole post-WP09 regeneration for codebase-wide WP10 and test the handoff.
 - Risk: inline preflight scripts become unreadable. Mitigation: keep each guard narrow and delegate real work downstream.
-- Risk: workspace globs accidentally claim backend ownership. Mitigation: declare only the planned frontend workspace boundary.
+- Risk: workspace globs accidentally claim backend ownership. Mitigation: declare only `apps/*` and `tools/*`; never model the Zig service as npm.
 - Risk: missing downstream paths look like successful checks. Mitigation: explicit nonzero preflight guards with named producers.
+- Risk: migration-negative passes vacuously. Mitigation: require WP04 hook presence, producer/category floors, and unchanged exit-code propagation.
 - Risk: root scripts encode speculative business behavior. Mitigation: restrict them to orchestration and prerequisites.
 - Risk: install tests mutate tracked metadata. Mitigation: hash files, inspect diffs, and fail on mutation.
 - Risk: local toolchain mismatch hides static correctness. Mitigation: separate static verification from supported-toolchain execution and report both.
@@ -307,9 +362,10 @@ Do run it once to verify that its first missing prerequisite is diagnosed accura
 - All five create-intent files exist and are the only repository files changed by WP01.
 - Node.js `24.18.0`, npm `11.16.0`, and Zig `0.16.0` are pinned exactly and consistently.
 - Linux x86_64 is validated as the supported execution platform.
-- The root npm package is private and declares the planned frontend workspace boundary.
-- `package-lock.json` was generated by the pinned npm and is committed without accidental dependencies.
-- The focused command surface is present with explicit downstream prerequisite diagnostics.
+- The root npm package is private and declares exactly the planned `apps/*` and `tools/*` workspace boundaries.
+- `package-lock.json` was generated by pinned npm and contains only approved exact contract tooling, with no web dependencies.
+- The WP01→WP09→WP10 root-lock handoff is explicit and testable.
+- The focused command surface includes mandatory `migration:negative` with explicit downstream prerequisite diagnostics.
 - `verify:substrate` succeeds on the supported toolchain.
 - Clean `npm ci` runs are reproducible and leave root metadata byte-identical.
 - Negative prerequisite cases fail nonzero with expected and observed values.
@@ -322,7 +378,10 @@ Review ownership before behavior: every diff path must match `package*.json`, `.
 Reject application code, helper scripts, CI files, or service build files in this package.
 Compare every pinned version against the plan rather than the reviewer's local defaults.
 Confirm the lockfile is tool-generated and reproducible under npm `11.16.0`.
+Confirm every initial dependency is exact, justified by WP03, and not a web dependency.
+Confirm only WP10 is authorized to regenerate the root lock after WP09 metadata lands.
 Inspect prerequisite failures for actionable expected-versus-observed diagnostics.
+Confirm `migration:negative` uses the exact WP04 hook, fails on missing/empty producer categories, and propagates child failures.
 Confirm missing downstream producers fail explicitly and are not silently skipped.
 Confirm `verify:substrate` is independently useful before other work packages land.
 Treat downstream-focused checks as declared interfaces; do not require their implementations in WP01.

@@ -47,10 +47,13 @@ create_intent:
 - contracts/manifests/v1/schema.json
 - contracts/migrations/v1/manifest.schema.json
 - contracts/manifests/p0.json
+- contracts/conformance/p0-p4-inputs.json
 - contracts/fixtures/p0/v1/valid/module-pair.json
 - contracts/fixtures/p0/v1/invalid/module-duplicate-mount.json
 - contracts/fixtures/p0/v1/valid/lifecycle-draft.json
 - contracts/fixtures/p0/v1/invalid/lifecycle-frozen-pending-digest.json
+- tools/contracts/.gitignore
+- tools/contracts/package.json
 - tools/contracts/src/main.ts
 execution_mode: code_change
 model: ''
@@ -64,6 +67,7 @@ owned_files:
 - contracts/fixtures/p0/v1/invalid/module-*
 - contracts/fixtures/p0/v1/valid/lifecycle-*
 - contracts/fixtures/p0/v1/invalid/lifecycle-*
+- contracts/conformance/**
 - tools/contracts/**
 role: implementer
 tags: []
@@ -116,7 +120,9 @@ payment, reporting, authentication, PDF, or deployment behavior.
 - Sort inputs by documented semantic identity before hashing or composing.
 - Produce byte-identical output for byte-identical repository inputs.
 - Run deterministic composition twice in tests and compare exact bytes.
-- Do not commit composed OpenAPI, generated TypeScript, route inventories, or schema bundles.
+- Resolve conformance only from committed full-commit/digest pins; never inspect a current or
+  moving branch head, tag, `HEAD`, sibling checkout, or working-tree version as input.
+- Do not commit composed OpenAPI, route inventories, schema bundles, or generated TypeScript.
 
 ## Branch and Ownership Boundaries
 
@@ -124,11 +130,14 @@ payment, reporting, authentication, PDF, or deployment behavior.
 - Merge target: `feat/p0-contract-spine`.
 - Work only in paths matched by `owned_files` in the frontmatter.
 - Do not edit root `package.json`, locks, application code, CI, or downstream mission files.
-- WP01 owns repository-level command wiring and ignore scaffolding.
+- WP01 owns repository-level command wiring and the initial root tooling lock.
+- Consume WP01's root `package-lock.json` as-is; this package must not edit or regenerate it.
 - WP02 owns common values and their cross-runtime fidelity.
 - If a missing root script or ignore rule blocks acceptance, record an integration request.
 - Do not cross the ownership boundary merely to make a command look convenient.
-- Generated output may be written only to already ignored build or temporary directories.
+- WP03 owns `tools/contracts/.gitignore`, the tool-workspace export, and is the sole writer of
+  generated TypeScript at `tools/contracts/.generated/typescript/v1/`.
+- That exact versioned directory is the only ignored generated TypeScript location.
 - A clean validation run must leave tracked files byte-for-byte unchanged.
 
 ## Required Deliverables
@@ -138,10 +147,17 @@ payment, reporting, authentication, PDF, or deployment behavior.
 - Canonical module-contribution schema and P0 module manifest.
 - Canonical contract-lifecycle and migration-manifest schemas.
 - P0 lifecycle manifest using the canonical repository shape.
+- Committed immutable P1-P4 conformance-input lock with exact provenance and digests.
 - Valid and invalid module and lifecycle fixtures.
 - A deterministic TypeScript contract CLI rooted at `tools/contracts/src/main.ts`.
-- Focused tests covering schemas, lifecycle gates, composition, references, and mutations.
-- A single focused contracts command suitable for local use and CI integration.
+- A tool workspace whose stable package export exposes the version-one generated bindings.
+
+## Test-First Evidence Order
+
+- Before production logic, run failing lifecycle state/digest, protected-default route-policy,
+  and deterministic composition/collision tests; each must fail for its intended missing logic.
+- Record case names, commands, expected failures, red results, and matching green results in the
+  Activity Log without committing deliberately broken production code.
 
 ## T008 — Canonical Lifecycle, Content Identity, and State Gate
 
@@ -304,8 +320,12 @@ payment, reporting, authentication, PDF, or deployment behavior.
 - Generate TypeScript types only from the validated composed contract graph.
 - Preserve Money minor units and other signed 64-bit values as strings or `bigint` adapters,
   never an unguarded TypeScript `number`.
-- Generate into an ignored directory owned by the contract build.
-- Make output location explicit and reject destinations inside authoritative sources.
+- Generate only into `tools/contracts/.generated/typescript/v1/`; reject every override,
+  alternate generated-TypeScript destination, and destination inside authoritative sources.
+- Create `tools/contracts/.gitignore` to ignore that directory and no broader source tree.
+- Create the `tools/contracts` workspace package with one stable version-one package export;
+  later web code imports that export and never copies bindings beneath `apps/web/`.
+- Treat the generator as the sole writer; consumers have read/import access only.
 - Put a generated-file banner on output while keeping generation byte-deterministic.
 - Never import generated types back into canonical schema sources.
 - Never commit generated TypeScript or a generated schema registry.
@@ -318,19 +338,31 @@ payment, reporting, authentication, PDF, or deployment behavior.
 - Reject unknown IDs, duplicate IDs, unresolved fragments, and attempted network refs.
 - Generate twice and compare exact TypeScript bytes.
 - Assert canonical int64 fields do not become plain `number` declarations.
-- Assert generated paths are ignored and absent from `git ls-files`.
+- Assert the sole generated path is ignored, absent from `git ls-files`, and reachable through
+  the stable tool-workspace export after generation.
+- Assert attempts to generate or copy TypeScript anywhere else fail without writes.
 - Assert check mode leaves no persistent output or source mutation.
 
 ## T013 — Real Draft Inputs, Collision Matrix, and Freeze Mutations
 
 ### Implementation
 
-- Exercise the tool against the recorded real P1, P2, P3, and P4 Draft manifests.
-- Use their actual contract shapes, owner metadata, dependencies, inputs, and schema IDs.
-- Do not replace downstream inputs with toy manifests that omit real integration edges.
-- If byte-exact test copies are needed, store only representative `module-*` or
-  `lifecycle-*` fixtures under this package's owned fixture globs.
-- Record source mission, source path, and source digest in test descriptions.
+- Commit `contracts/conformance/p0-p4-inputs.json` with exactly one canonically sorted P1-P4
+  record containing owner, contract ID/version, repository-relative manifest path, full commit,
+  manifest byte SHA-256, and RFC 8785 contract-content digest computed at that commit.
+- Pin and verify these exact commit / manifest SHA-256 / content-digest triples:
+  - P1 `47638a9d95427697c1fcc74c7279f40f314450f5` / `3f28ddb033e5259163671b34c8c64f6214c5524f0f941e4dc5d03c38485a7987` / `73457636636187ff5537564a0f13ed29030d931746dbcc2740da3636cb2747f5`.
+  - P2 `8830e8bbdfb1a7ecb92015359aa28c58d9f2b078` / `24bf9f15fad1d598fae394e5ec40e7a50e6f166e7bd1202e3c51c4576c89bbc7` / `c12f5c79c21689f146c705cef5b454bca684e5e86e0ac7a326df8dc7db1f9a70`.
+  - P3 `1a83ce0523ccc793c62d7bcd3b6992eb761ec506` / `1b2013f7876a0015af7a18ed9bdc89675520c7dcf0c68f98253357af5c96c11f` / `48d85d152ab9e46efd052c4e3b02dba47a8e6bbfeac8315864cc6d470d274bf3`.
+  - P4 `860ee50cd959e75391753cafe841b4da82882a0b` / `2da1496e68aa9577a91af647af34268181c9a58ff5aec529cc71121db4159a24` / `453c138255cd525587a07049a04576c9d22919979c0c2ac45ce37f46e2e54636`.
+- Compute manifest hashes from exact `git show <full-commit>:<manifest-path>` bytes and content
+  hashes from T008's canonical projection; never copy the Draft manifest's `pending` value.
+- Reject branches, tags, abbreviated commits, `HEAD`, merge-base/current-head inference, and
+  working-tree or sibling-checkout resolution. Fail closed when an exact commit is unavailable.
+- Changing a pin requires an explicit tool-local baseline-refresh operation, a committed lock
+  diff recording old/new pins, and revalidation of every affected composition and fixture.
+- Exercise actual shapes, ownership, dependencies, inputs, schema IDs, and integration edges;
+  toy-only substitutes cannot satisfy conformance.
 - Do not edit downstream mission branches or claim ownership of their contracts.
 - Include all four real owners in at least one successful concurrent composition case.
 - Mutate one property at a time so each rejection proves a precise guardrail.
@@ -346,19 +378,19 @@ payment, reporting, authentication, PDF, or deployment behavior.
 
 ### Fixtures
 
-- `contracts/fixtures/p0/v1/valid/module-pair.json` proves additive module discovery.
-- `contracts/fixtures/p0/v1/invalid/module-duplicate-mount.json` proves mount rejection.
-- `contracts/fixtures/p0/v1/valid/lifecycle-draft.json` proves Draft pending semantics.
-- `contracts/fixtures/p0/v1/invalid/lifecycle-frozen-pending-digest.json` proves freeze gating.
-- Add further files only when their names retain the `module-*` or `lifecycle-*` prefix.
+- The valid/invalid `module-pair`, `module-duplicate-mount`, `lifecycle-draft`, and
+  `lifecycle-frozen-pending-digest` fixtures prove discovery, collision, and freeze gating.
 - Use synthetic business values only; include no real client, invoice, bank, or secret data.
-- Keep fixture output deterministic and fixture purpose obvious from the case ID.
 
 ### Tests
 
 - Run the full mutation table as data-driven cases.
 - Assert each mutation triggers only its intended stable error category.
 - Assert the unmutated P1-P4 set composes successfully and deterministically.
+- Assert all four exact commits and both recorded digests are verified before composition.
+- Reject moving references, unavailable commits, digest drift, and an unrefreshed pin change.
+- Exercise baseline refresh and prove its committed candidate records old/new pins and reruns all
+  affected composition and fixture cases without silently rewriting the lock during checks.
 - Assert every real dependency is matched by exactly one input and vice versa.
 - Assert descriptor and script digests are independently checked.
 - Assert a second run after every failed mutation starts from a clean state and passes.
@@ -372,7 +404,8 @@ payment, reporting, authentication, PDF, or deployment behavior.
 - Provide one focused `contracts:check` flow for schemas, lifecycle, references,
   composition determinism, access policy, generated-type checks, and fixtures.
 - Reuse WP01's root command wiring if it exists.
-- Otherwise expose the equivalent tool-local command and log the root integration request.
+- Consume WP01's installed root scripts and lock; expose any missing capability tool-locally and
+  log an integration request instead of changing root package metadata or `package-lock.json`.
 - Do not modify root package files outside this package's ownership.
 - Make help output list inputs, outputs, check mode, and stable exit meanings.
 - Use nonzero exit status for validation, collision, mutation, or determinism failure.
@@ -399,47 +432,46 @@ payment, reporting, authentication, PDF, or deployment behavior.
 - Dependency owners and manifest inputs form an exact bijection.
 - Draft-to-Frozen-to-Implemented-to-Verified/Superseded rules are enforced.
 - P1-P4 real Draft inputs participate in successful and mutated test cases.
+- P1-P4 inputs resolve only through the committed exact-commit/digest conformance lock.
 - Every defined collision class has a rejection test.
 - Event discriminators resolve exactly one payload schema before payload validation.
 - Composition and type generation are byte-deterministic across repeated runs.
+- The stable tool-workspace export is the only consumer path to the sole ignored TS output.
 - No generated aggregate is committed or left as a tracked worktree change.
 - The focused contracts command passes from a clean checkout.
 - `git diff --check` reports no whitespace errors in package-owned changes.
 
 ## Risks and Mitigations
 
-- Risk: RFC 8785 is approximated with ordinary key-sorted JSON.
-  Mitigation: use a standards-conforming JCS implementation and published vectors.
-- Risk: manifest self-reference makes content digests unstable.
-  Mitigation: hash only the explicitly defined immutable projection.
 - Risk: schema validation is mistaken for repository lifecycle validation.
   Mitigation: keep file, digest, transition, and dependency checks in the runtime gate.
-- Risk: additive scans become nondeterministic across filesystems.
-  Mitigation: normalize and sort semantic identities before every operation.
 - Risk: public endpoints appear through missing metadata.
   Mitigation: default to protected and require two matching explicit declarations.
-- Risk: a failed composition corrupts the last good artifact.
-  Mitigation: validate fully, write temporary output, then replace atomically.
 - Risk: real downstream contracts drift from copied fixtures.
-  Mitigation: retain provenance digests and compare against recorded Draft inputs.
+  Mitigation: resolve exact commits and verify both immutable digests before composition.
+- Risk: a branch head or hand-edited pin silently changes P1-P4 acceptance.
+  Mitigation: forbid moving references and require an explicit committed baseline refresh with
+  old/new provenance plus full affected-suite revalidation.
 - Risk: generated TypeScript becomes a shared merge surface.
-  Mitigation: keep it ignored, reproducible, and regenerated during validation.
+  Mitigation: one WP03 writer, one exact ignored directory, and one stable workspace export.
+- Risk: tests are added after logic and pass without proving the guardrail.
+  Mitigation: capture named red-first lifecycle, route-policy, and composition evidence.
 - Risk: JavaScript numeric coercion loses signed 64-bit fidelity.
   Mitigation: validate canonical strings and use bigint-aware code paths only.
 
 ## Review Guidance
 
-- Review schema semantics and runtime semantics separately; both must hold.
-- Recompute at least one content digest independently using RFC 8785.
-- Inspect the dependency/input bijection against real P1-P4 manifests.
-- Verify the lifecycle transition table includes no undocumented shortcut.
+- Review schema and runtime semantics, including lifecycle transitions and the dependency/input
+  bijection, then independently recompute one RFC 8785 content digest.
+- Recompute one pinned manifest SHA and content digest directly from its exact commit.
+- Reject review if any conformance path resolves a branch, tag, `HEAD`, or working tree.
 - Inspect every route for explicit access metadata and module-policy agreement.
-- Confirm health is public and all other undeclared routes resolve protected.
 - Run the collision matrix and verify each failure occurs before writes.
 - Inspect stable-ID resolution for hidden network or absolute-path fallback.
 - Run composition and generation twice, then compare exact bytes.
+- Confirm `.gitignore`, package exports, and imports establish one writer/path/consumer contract.
 - Confirm generated OpenAPI, TypeScript, inventories, and registries are not tracked.
-- Confirm the implementation stays inside declared owned paths.
+- Inspect the recorded red-first commands and ensure each failed for its intended missing logic.
 - Reject the package if it replaces real P1-P4 cases with toy-only evidence.
 
 ## Completion Checklist
@@ -451,11 +483,15 @@ payment, reporting, authentication, PDF, or deployment behavior.
 - [ ] T012 stable-ID registry and ignored TypeScript generation complete.
 - [ ] T013 real P1-P4 collision and freeze-mutation evidence complete.
 - [ ] T014 focused contracts command complete.
+- [ ] Immutable P1-P4 commit/digest lock and baseline-refresh guard complete.
+- [ ] Lifecycle, route-policy, and composition red-first evidence recorded.
+- [ ] Sole TS output is ignored and exposed only through the stable workspace export.
 - [ ] Package-owned tests pass.
 - [ ] Focused contracts command passes twice.
 - [ ] No generated aggregate is tracked.
 - [ ] No out-of-scope path was edited.
 - [ ] Reviewer evidence includes commands, exit status, and key mutation results.
+- [ ] WP01 root tooling lock was consumed without modification.
 
 ## Activity Log
 

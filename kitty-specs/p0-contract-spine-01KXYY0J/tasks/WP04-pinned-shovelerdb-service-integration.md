@@ -33,6 +33,7 @@ create_intent:
 - services/api/build.zig
 - services/api/build.zig.zon
 - services/api/src/platform/persistence/shovelerdb.zig
+- services/api/tests/persistence/shovelerdb_build_discovery.zig
 - services/api/tests/persistence/shovelerdb_integration.zig
 - THIRD_PARTY_NOTICES.md
 execution_mode: code_change
@@ -83,6 +84,9 @@ Success also means no ShovelerDB handle, result, row, borrowed slice, SQL constr
 This package is the implementation point for plan concern `IC-05`.
 It depends only on WP01's pinned repository substrate and Zig `0.16.0` policy.
 WP05 and later service packages depend on this stable integration boundary.
+As sole `services/api/build.zig` owner, WP04 also publishes every stable Zig
+test/coverage hook that later shared, durable-store, migration, and HTTP WPs
+consume without editing the build graph.
 The canonical upstream repository is `https://github.com/LynnColeArt/ShovelerDB.git`.
 The approved public commit is `fc7539a3874293540a4de6d228b3ea670a8ca2e8`.
 The approved commit exposes embedding ABI version `0.1.0` in `include/shovelerdb.h`.
@@ -117,6 +121,7 @@ The planned authored files are:
 - `services/api/build.zig`
 - `services/api/build.zig.zon`
 - `services/api/src/platform/persistence/shovelerdb.zig`
+- `services/api/tests/persistence/shovelerdb_build_discovery.zig`
 - `services/api/tests/persistence/shovelerdb_integration.zig`
 - `THIRD_PARTY_NOTICES.md`
 
@@ -199,8 +204,8 @@ If upstream later publishes package metadata, replacing this shim is a separate 
 
 ### Subtask T016 – Integrate the Real ABI with the Zig 0.16 Service Build
 
-- **Purpose**: make the vendored ABI buildable and linkable without turning upstream internals into application dependencies.
-- **Files**: `services/api/build.zig`, `services/api/build.zig.zon`, and build-required files under `deps/shovelerdb/`.
+- **Purpose**: make the real ABI buildable and publish the sole convention-scanned Zig test/coverage surface for every later service WP.
+- **Files**: `services/api/build.zig`, `services/api/build.zig.zon`, `services/api/tests/persistence/shovelerdb_build_discovery.zig`, and build-required files under `deps/shovelerdb/`.
 
 #### Steps
 
@@ -212,14 +217,57 @@ If upstream later publishes package metadata, replacing this shim is a separate 
 6. Expose `deps/shovelerdb/include/` to the invoice adapter for `@cImport`.
 7. Link the ABI library into the adapter test artifact.
 8. Do not expose upstream `src/lib.zig` as an invoice-manager import.
-9. Add named build steps for adapter unit checks and real ShovelerDB integration checks.
-10. Add an ABI compatibility build assertion that requires runtime/header version `0.1.0`.
-11. Preserve target and optimization options so Debug and ReleaseSafe builds can both exercise the shim.
-12. Keep service build integration here; later WPs must consume it rather than replacing it.
+9. Keep all test-root discovery and named build-step registration in `build.zig`; no later WP may edit it.
+10. Scan only the declared service test roots and sort normalized repository-relative paths bytewise before classification.
+11. Accept regular `.zig` files only; reject symlinks, escaping paths, hidden/cache/output directories, non-UTF-8 paths, and non-Zig files as roots.
+12. Normalize separators to `/` and reject two registrations resolving to the same normalized path.
+13. Reject duplicate step names, duplicate logical group/path keys, overlapping root declarations, and one test classified into multiple groups.
+14. Reject any discovered `.zig` test beneath a declared root that matches no documented group; never omit it silently.
+15. Keep grouping rules explicit and stable:
+    - WP04 adapter/integration: `tests/persistence/shovelerdb*`;
+    - WP05 shared: `tests/shared/**`;
+    - WP06 persistence unit/integration/crash: `tests/persistence/store*`, `durability*`, and `directory_sync*`;
+    - WP07 migration negative: `tests/persistence/migrations*` plus `migrations/p0/**` producer sentinels;
+    - WP08 HTTP: `tests/http/**` plus `src/main.zig` and `src/http/**` producer sentinels.
+16. Within WP06, classify `*_crash*` before `*_integration*`, then all remaining owned roots as unit tests; ambiguity is an error.
+17. Classify WP07 `*negative*` roots into `migration-negative`; migration producer presence with zero negative roots is a hard failure.
+18. Classify all WP05 and WP08 test roots into their single named groups while rejecting files outside their owned prefixes.
+19. A producer is present when any owned source/test sentinel for that WP exists; once present, its required root groups may not be empty.
+20. Before a producer is present, invoking its hook fails with a precise diagnostic naming the missing path class and owning WP, not success or skip.
+21. After a producer is present, missing, empty, duplicate, or unclassified roots fail with the same owner-specific diagnostic discipline.
+22. Compile each discovered root with the same target/optimization/module wiring as the service and preserve deterministic execution order.
+23. Add an ABI compatibility build assertion that requires runtime/header version `0.1.0`.
+24. Preserve target and optimization options so Debug and ReleaseSafe builds exercise the same discovery graph.
+25. Keep service build integration here; later WPs add files only inside their owned roots and consume these hooks unchanged.
+
+#### Stable named build steps
+
+Expose these exact names in `zig build --help`:
+
+- `test-shovelerdb-adapter` — adapter unit/lifetime/literal tests;
+- `test-shovelerdb-integration` — real ABI filesystem integration;
+- `test-build-discovery` — synthetic discovery/classification diagnostics;
+- `test-shared` and `coverage-shared` — WP05 shared values and coverage;
+- `test-persistence`, `test-persistence-integration`, and `test-persistence-crash` — WP06 persistence groups;
+- `coverage-persistence` — WP06 persistence coverage;
+- `migration-negative` — mandatory WP07 negative migration matrix;
+- `test-http` — WP08 HTTP/route-policy tests;
+- `coverage` — aggregate shared/persistence coverage gate;
+- `test` — aggregate service test gate in deterministic group order.
+
+WP01's root `migration:negative` command delegates to `zig build
+migration-negative --build-file services/api/build.zig`. WP04 must not edit the
+root package to add that delegation. A missing delegation is reported to WP01;
+the Zig step remains mandatory and must never become optional or empty-success
+once WP07 producer sentinels exist.
+
+Diagnostics must name the stable step, expected root/pattern, owning WP, and
+observed count or duplicate paths. Do not print absolute checkout paths. Do not
+silently fall back to an in-memory fake, skip a category, or turn a missing
+producer into a passing aggregate.
 
 Use Zig 0.16 build APIs as installed, not code copied from older Zig documentation.
 Fail clearly if the vendored header, source entry point, or expected ABI symbols are missing.
-Do not silently fall back to an in-memory fake.
 
 #### Validation
 
@@ -229,14 +277,24 @@ From `services/api/`, run:
 zig version
 zig fmt --check build.zig src/platform/persistence/shovelerdb.zig tests/persistence/shovelerdb_integration.zig
 zig build
+zig build test-build-discovery
 zig build test-shovelerdb-adapter
 zig build test-shovelerdb-integration
 zig build -Doptimize=ReleaseSafe test-shovelerdb-integration
+zig build --help
 ```
 
 The first command must report `0.16.0`.
 The integration executable must contain and call real `shovelerdb_*` ABI symbols.
 A missing vendored source must fail the build with a dependency-specific message.
+
+In `shovelerdb_build_discovery.zig`, construct synthetic directory layouts and
+prove canonical ordering is unchanged by creation order. Cover every exact step
+name, each valid group, a missing producer root, producer-present/zero-tests,
+duplicate normalized roots, overlapping classifications, an unclassified Zig
+root, symlink escape, and absolute-path redaction. Assert `migration-negative`
+fails when WP07 sentinels exist without negative cases. Assert the aggregate
+`test` step enumerates groups in one documented order and propagates failures.
 
 ### Subtask T017 – Implement the Narrow Borrow-Safe Adapter and Literal Encoder
 
@@ -397,6 +455,10 @@ Negative checks must prove:
 - [ ] `deps/shovelerdb/` is an auditable export of public commit `fc7539a3874293540a4de6d228b3ea670a8ca2e8`.
 - [ ] No dependency path references a sibling checkout, floating branch, private registry, or unpublished source.
 - [ ] The service build uses Zig `0.16.0` and links the real ShovelerDB C ABI.
+- [ ] `build.zig` exposes every exact stable adapter/shared/persistence/migration/HTTP/coverage/service step named in T016.
+- [ ] Discovery is canonically ordered and rejects duplicate, overlapping, escaping, or unclassified roots with owning-WP diagnostics.
+- [ ] `migration-negative` fails for missing or empty WP07 negative coverage once WP07 producer sentinels exist.
+- [ ] Later service WPs can add owned tests and consume hooks without editing `build.zig`.
 - [ ] Header and runtime ABI versions are checked as `0.1.0`.
 - [ ] The adapter is the only invoice-manager import of ShovelerDB ABI details.
 - [ ] Opaque handles and borrowed views never escape the adapter.
@@ -415,6 +477,9 @@ Negative checks must prove:
 Review the dependency pin before reviewing adapter ergonomics.
 Independently resolve the full commit from the public GitHub repository.
 Confirm the committed source and preserved license match that revision.
+Compare `zig build --help` with T016 and run the synthetic discovery diagnostic matrix.
+Reject missing-producer success, silent skips, unstable ordering, or a second build-step registry.
+Confirm WP01 `migration:negative` delegates to the mandatory Zig step without WP04 editing root metadata.
 Reject any build that works only because a sibling checkout or developer cache is present.
 Confirm service code uses the C embedding ABI rather than upstream internal Zig modules.
 Trace every C result through success, error, and allocation-failure cleanup.
