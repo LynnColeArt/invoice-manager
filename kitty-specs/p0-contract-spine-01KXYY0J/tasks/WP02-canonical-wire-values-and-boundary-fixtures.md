@@ -19,7 +19,8 @@ subtasks:
 - T007
 phase: Phase 2 - Canonical Contract Foundation
 assignee: ''
-agent: codex
+agent: "codex:gpt-5:implementer-ivan:implementer"
+shell_pid: "1807838"
 history:
 - at: '2026-07-20T06:59:16Z'
   actor: system
@@ -418,3 +419,4 @@ cases, required case IDs, or the non-launch/negative-Money sentinels.
 Status is managed through `status.events.jsonl`. Use
 `spec-kitty agent tasks move-task WP02 --to <status>` instead of editing logs or
 frontmatter status by hand.
+- 2026-07-20T19:15:29Z – codex:gpt-5:implementer-ivan:implementer – shell_pid=1807838 – Assigned agent via action command
