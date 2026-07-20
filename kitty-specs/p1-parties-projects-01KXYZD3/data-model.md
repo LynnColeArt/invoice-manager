@@ -58,9 +58,9 @@ profiles can satisfy European/show-remittance resolution.
 ## LogoAsset
 
 - `id`, `owner_kind` (BillingIdentity or Project), `owner_id`.
-- `media_type`: image/png or application/pdf.
+- `media_type`: image/png.
 - `byte_length`: 1 through 2 MiB.
-- optional raster `width`/`height`; PDF must be a single accepted page.
+- required decoded raster `width`/`height` within configured pixel limits.
 - `sha256_digest`, application-owned `storage_path`.
 - optional sanitized `display_name`.
 - `status`: Active or Inactive.

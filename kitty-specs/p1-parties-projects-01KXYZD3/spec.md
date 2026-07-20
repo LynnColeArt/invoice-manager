@@ -131,7 +131,7 @@ completed project.
 | FR-002 | Identity legal details | As the owner, I can maintain legal/contact/address details, labeled tax identifiers, default terms, and a preferred display label for each identity. | High | Approved |
 | FR-003 | European remittance profiles | As the owner, I can maintain account holder, bank name, IBAN, BIC/SWIFT, currency, and optional bank address/instructions for an identity. | High | Approved |
 | FR-004 | Remittance validation and redaction | As the owner, I receive field-specific completeness/format errors while sensitive values remain absent from logs, summaries, and unrelated responses. | High | Approved |
-| FR-005 | Logo asset management | As the owner, I can upload, validate, select, replace-by-new-version, deactivate, and inspect approved PNG/PDF logo assets. | High | Approved |
+| FR-005 | Logo asset management | As the owner, I can upload, validate, select, replace-by-new-version, deactivate, and inspect approved PNG logo assets. | High | Approved |
 | FR-006 | Client drafts and readiness | As the owner, I can save incomplete Client drafts and see the exact blockers before activation. | High | Approved |
 | FR-007 | Client defaults | As the owner, I must select an Active default Billing Identity, enabled currency, payment terms, billing address, primary contact, and explicit Billing Market for every Active Client. | High | Approved |
 | FR-008 | Explicit remittance policy | As the owner, Domestic always hides remittance, Europe always requires it, and Other requires an explicit Show/Hide decision. | High | Approved |

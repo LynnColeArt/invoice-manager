@@ -1,0 +1,21 @@
+{
+  "manifest_version": "1",
+  "mission": "p1-parties-projects-01KXYZD3",
+  "owner": "p1",
+  "contract_version": "0.1.0-draft.1",
+  "lifecycle_state": "Draft",
+  "implementation_authorized": false,
+  "consumes": [
+    {
+      "owner": "p0",
+      "version": "0.1.0-draft.1",
+      "source_branch": "feat/p0-contract-spine",
+      "required_state_for_implementation": "Frozen"
+    }
+  ],
+  "artifacts": [
+    "resolved-invoice-configuration-v1.schema.json"
+  ],
+  "consumers": ["p2", "p5", "p6"],
+  "notes": "Planning-only. Exact artifact digests are added at freeze."
+}

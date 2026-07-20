@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://invoice-manager.invalid/contracts/p1/resolved-invoice-configuration/v1",
+  "title": "P1 Resolved Invoice Configuration v1 Draft",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "project", "client", "issuer", "identity_source",
+    "billing_market", "remittance_decision", "logo_decision", "currency",
+    "payment_terms_days", "source_revisions", "resolved_at"
+  ],
+  "properties": {
+    "schema_version": { "const": "0.1.0-draft.1" },
+    "project": { "$ref": "#/$defs/Project" },
+    "client": { "$ref": "#/$defs/Client" },
+    "issuer": { "$ref": "#/$defs/Party" },
+    "identity_source": { "enum": ["client_default", "project_override"] },
+    "billing_market": { "enum": ["domestic", "europe", "other"] },
+    "remittance_decision": { "enum": ["omitted", "included"] },
+    "remittance": { "$ref": "#/$defs/Remittance" },
+    "logo_decision": { "enum": ["off", "identity_default", "project_asset"] },
+    "logo_asset": { "$ref": "#/$defs/LogoAsset" },
+    "currency": { "enum": ["USD", "EUR"] },
+    "payment_terms_days": { "type": "integer", "minimum": 0, "maximum": 365 },
+    "source_revisions": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/CanonicalInt64" },
+      "minProperties": 3
+    },
+    "resolved_at": { "$ref": "#/$defs/UtcInstant" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "remittance_decision": { "const": "omitted" } }, "required": ["remittance_decision"] },
+      "then": { "not": { "required": ["remittance"] } },
+      "else": { "required": ["remittance"] }
+    },
+    {
+      "if": { "properties": { "logo_decision": { "const": "off" } }, "required": ["logo_decision"] },
+      "then": { "not": { "required": ["logo_asset"] } },
+      "else": { "required": ["logo_asset"] }
+    }
+  ],
+  "$defs": {
+    "EntityId": { "type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" },
+    "CanonicalInt64": { "type": "string", "pattern": "^(0|-?[1-9][0-9]*)$" },
+    "UtcInstant": { "type": "string", "format": "date-time" },
+    "LocalDate": { "type": "string", "format": "date" },
+    "Money": {
+      "type": "object", "additionalProperties": false,
+      "required": ["currency", "minor_units"],
+      "properties": {
+        "currency": { "enum": ["USD", "EUR"] },
+        "minor_units": { "$ref": "#/$defs/CanonicalInt64" }
+      }
+    },
+    "Address": {
+      "type": "object", "additionalProperties": false,
+      "required": ["line1", "city", "postal_code", "country_code"],
+      "properties": {
+        "line1": { "type": "string", "minLength": 1 },
+        "line2": { "type": "string" },
+        "city": { "type": "string", "minLength": 1 },
+        "region": { "type": "string" },
+        "postal_code": { "type": "string", "minLength": 1 },
+        "country_code": { "type": "string", "pattern": "^[A-Z]{2}$" }
+      }
+    },
+    "Party": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "display_name", "legal_name", "address"],
+      "properties": {
+        "id": { "$ref": "#/$defs/EntityId" },
+        "display_name": { "type": "string", "minLength": 1 },
+        "legal_name": { "type": "string", "minLength": 1 },
+        "address": { "$ref": "#/$defs/Address" }
+      }
+    },
+    "Client": {
+      "allOf": [
+        { "$ref": "#/$defs/Party" },
+        { "type": "object", "properties": { "primary_billing_contact": { "type": "object" } } }
+      ]
+    },
+    "Project": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "client_id", "name", "status", "cadence", "schedule_anchor_date", "next_billing_date", "default_amount", "default_description"],
+      "properties": {
+        "id": { "$ref": "#/$defs/EntityId" },
+        "client_id": { "$ref": "#/$defs/EntityId" },
+        "name": { "type": "string", "minLength": 1 },
+        "status": { "enum": ["active", "paused", "completed"] },
+        "cadence": { "enum": ["monthly", "quarterly"] },
+        "schedule_anchor_date": { "$ref": "#/$defs/LocalDate" },
+        "next_billing_date": { "$ref": "#/$defs/LocalDate" },
+        "end_date": { "$ref": "#/$defs/LocalDate" },
+        "default_amount": { "$ref": "#/$defs/Money" },
+        "default_description": { "type": "string", "minLength": 1 }
+      }
+    },
+    "Remittance": {
+      "type": "object", "additionalProperties": false,
+      "required": ["account_holder", "bank_name", "iban", "bic", "currency"],
+      "properties": {
+        "account_holder": { "type": "string", "minLength": 1 },
+        "bank_name": { "type": "string", "minLength": 1 },
+        "iban": { "type": "string", "pattern": "^[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}$" },
+        "bic": { "type": "string", "pattern": "^[A-Z0-9]{8}([A-Z0-9]{3})?$" },
+        "currency": { "enum": ["USD", "EUR"] },
+        "bank_address": { "$ref": "#/$defs/Address" },
+        "instructions": { "type": "string" }
+      }
+    },
+    "LogoAsset": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "media_type", "byte_length", "sha256_digest"],
+      "properties": {
+        "id": { "$ref": "#/$defs/EntityId" },
+        "media_type": { "const": "image/png" },
+        "byte_length": { "type": "integer", "minimum": 1, "maximum": 2097152 },
+        "sha256_digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+      }
+    }
+  }
+}

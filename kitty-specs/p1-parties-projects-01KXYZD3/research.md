@@ -93,14 +93,14 @@ advances the schedule or creates a draft; P6 owns that behavior.
 
 ## Decision 7: Logo assets
 
-**Decision:** MVP accepts PNG and PDF logo assets up to 2 MiB. The Zig service
-validates declared and decoded type, size, dimensions/page constraints, computes
+**Decision:** MVP accepts PNG logo assets up to 2 MiB. The Zig service
+validates declared and decoded type, size, and dimensions, computes
 SHA-256, assigns an application-owned opaque path, and records active state.
 Original filenames are never used as storage paths. P2 owns sandboxed rendering
 and may impose stricter render compatibility.
 
-**Rationale:** PNG provides a safe raster baseline; PDF preserves approved
-vector artwork without introducing an SVG conversion toolchain in P1.
+**Rationale:** PNG provides a bounded raster baseline and avoids the active
+content, parser, and external-reference risks of PDF and SVG inputs.
 
 ## Decision 8: Resolved configuration contract
 
