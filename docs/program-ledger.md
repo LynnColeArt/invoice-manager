@@ -126,9 +126,10 @@ mission plans.
 2. **Wave A1:** after P0 is Frozen and merged, implement P1, P3, and P4 in
    parallel. P4 uses its normalized synthetic input seam; P7 owns later producer
    adapters.
-3. **Wave A2:** begin P2 implementation as soon as the P1 Resolved Invoice
-   Configuration is Frozen; it may overlap the remainder of P1, P3, and P4 but
-   cannot pass acceptance until its real dependencies are Implemented/Verified.
+3. **Wave A2:** begin P2 implementation after the P1 Resolved Invoice
+   Configuration is Frozen and P1 is merged; P2 may overlap the remainder of P3
+   and P4 but cannot pass acceptance until its real dependencies are
+   Implemented/Verified.
 4. **Wave B:** run P5 and P6 concurrently once their consumed contracts are
    implemented.
 5. **Wave C:** run P7 against real producer events, then run P8 cross-domain
