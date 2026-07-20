@@ -12,5 +12,7 @@
   "purpose_tldr": "Establish the runnable repository and stable shared contracts that unblock parallel Invoice Manager missions.",
   "slug": "p0-contract-spine-01KXYY0J",
   "target_branch": "feat/p0-contract-spine",
-  "topology": "coord"
+  "topology": "coord",
+  "vcs": "git",
+  "vcs_locked_at": "2026-07-20T17:51:13.422896+00:00"
 }
