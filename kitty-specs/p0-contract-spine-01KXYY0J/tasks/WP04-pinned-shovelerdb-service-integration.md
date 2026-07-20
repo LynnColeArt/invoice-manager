@@ -25,7 +25,7 @@ subtasks:
 - T019
 phase: Phase 2 - Service Dependency Integration
 assignee: ''
-agent: "codex-wp04-review"
+agent: "codex"
 history: []
 agent_profile: implementer-ivan
 authoritative_surface: deps/shovelerdb/
@@ -519,3 +519,5 @@ Review `THIRD_PARTY_NOTICES.md` and the complete upstream license as acceptance-
 - 2026-07-20T23:29:28Z – codex – shell_pid=1807838 – GREEN canonical-lock replay: after merging WP01 commit 2fc13e7, exact Node 24.18.0/npm 11.16.0 offline ci installed the canonical 610-entry lock, verify:substrate and full/production audits passed with 0 vulnerabilities, Zig format passed, adapter tests passed 4/4, real ABI integration passed 3/3 in Debug and ReleaseSafe, and build-discovery passed 8/8. A transient audit DNS failure was retried successfully; npm/Zig generated outputs were removed and lane-d is clean.
 - 2026-07-20T23:45:47Z – codex:gpt-5:implementer-ivan:implementer – shell_pid=1807838 – Implementation 31408bc plus canonical-lock integration replay complete: exact ShovelerDB pin/provenance, adapter, real ABI Debug/ReleaseSafe, discovery, clean-source and tamper gates green; ready for independent review.
 - 2026-07-20T23:46:26Z – codex-wp04-review – shell_pid=1807838 – Started review via action command
+- 2026-07-20T23:53:45Z – user – shell_pid=1807838 – Moved to planned
+- 2026-07-20T23:56:01Z – codex – shell_pid=1807838 – Started implementation via action command
