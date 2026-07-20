@@ -1,15 +1,74 @@
 {
-  "manifest_version": "1",
+  "manifest_version": 1,
+  "contract_id": "invoice-manager.invoice-document",
+  "owner_mission": "p2",
   "mission": "p2-invoice-document-engine-01KXZ0ET",
-  "owner": "p2",
-  "contract_version": "0.1.0-draft.1",
-  "lifecycle_state": "Draft",
-  "implementation_authorized": false,
-  "consumes": [
-    { "owner": "p0", "version": "0.1.0-draft.1", "required_state_for_implementation": "Frozen" },
-    { "owner": "p1", "version": "0.1.0-draft.1", "required_state_for_implementation": "Frozen" }
+  "version": "0.1.0-draft.1",
+  "state": "Draft",
+  "baseline_commit": "78a7aaac2a02829ccb5358eae565a7f1620814da",
+  "content_digest": "pending",
+  "dependencies": ["p0", "p1"],
+  "inputs": [
+    {
+      "contract_id": "invoice-manager.foundation",
+      "owner_mission": "p0",
+      "version": "0.1.0-draft.1",
+      "required_state": "Frozen",
+      "content_digest": "pending"
+    },
+    {
+      "contract_id": "invoice-manager.parties-projects",
+      "owner_mission": "p1",
+      "version": "0.1.0-draft.1",
+      "required_state": "Frozen",
+      "content_digest": "pending"
+    }
   ],
-  "artifacts": ["invoice-document-v1.schema.json"],
-  "consumers": ["p5", "p6"],
-  "notes": "Planning-only. Snapshot, render-recipe, staged-receipt, and fixture digests are added before freeze."
+  "outputs": [
+    {
+      "path": "kitty-specs/p2-invoice-document-engine-01KXZ0ET/contracts/invoice-document-v1.schema.json",
+      "kind": "document_contract",
+      "digest": "pending"
+    }
+  ],
+  "owned_paths": [
+    "contracts/api/v1/fragments/p2/**",
+    "contracts/documents/v1/p2/**",
+    "contracts/events/v1/catalogs/p2/**",
+    "contracts/events/v1/payloads/p2/**",
+    "contracts/modules/p2/**",
+    "contracts/fixtures/p2/v1/**",
+    "contracts/manifests/p2.json",
+    "services/api/src/domains/invoice_document/**",
+    "services/api/src/platform/render_process/**",
+    "services/api/tests/invoice_document/**",
+    "apps/web/src/features/invoice-document-review/**",
+    "renderer/templates/invoice-v1/**",
+    "renderer/runtime/**"
+  ],
+  "shared_touchpoints": [
+    {
+      "path": "services/api/build.zig",
+      "steward": "program-integration-steward",
+      "reason": "Renderer module integration belongs to the shared service build"
+    },
+    {
+      "path": "apps/web/src/app/layout.tsx",
+      "steward": "program-integration-steward",
+      "reason": "Invoice review navigation is integrated after the feature route is stable"
+    }
+  ],
+  "migration_strategy": { "mode": "none" },
+  "integration_fixtures": [
+    {
+      "path": "contracts/fixtures/p2/v1/valid/domestic-fixed-no-logo.json",
+      "expectation": "valid",
+      "digest": "pending"
+    },
+    {
+      "path": "contracts/fixtures/p2/v1/invalid/currency-mismatch.json",
+      "expectation": "invalid",
+      "digest": "pending"
+    }
+  ]
 }
