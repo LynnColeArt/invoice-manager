@@ -1,0 +1,206 @@
+work_packages:
+  - id: WP01
+    title: "P1 Contract and Decision-Fixture Spine"
+    dependencies: []
+    owned_files:
+      - "contracts/api/v1/fragments/p1/**"
+      - "contracts/events/v1/catalogs/p1/**"
+      - "contracts/events/v1/payloads/p1/**"
+      - "contracts/modules/p1/**"
+      - "contracts/manifests/drafts/p1.json"
+      - "contracts/fixtures/p1/v1/decisions/**"
+    requirement_refs: [FR-008, FR-011, FR-012, FR-013, FR-014, FR-016, NFR-002, NFR-008, NFR-010, C-001, C-008, C-009]
+    plan_concern_refs: [IC-01]
+    subtasks: [T001, T002, T003, T004, T005, T006]
+    prompt_file: "tasks/WP01-p1-contract-and-decision-fixture-spine.md"
+    phase: "Phase 1 - Frozen Contract Spine"
+    agent_profile: "node-norris"
+    role: "implementer"
+    agent: "codex"
+
+  - id: WP02
+    title: "Shared Domain Values, Readiness, and Policy Tables"
+    dependencies: [WP01]
+    owned_files:
+      - "services/api/src/domains/parties_projects/root.zig"
+      - "services/api/src/domains/parties_projects/shared/**"
+      - "services/api/tests/parties_projects/shared/**"
+    requirement_refs: [FR-004, FR-006, FR-007, FR-008, FR-010, FR-011, FR-012, FR-013, FR-014, NFR-005, NFR-008, NFR-009, C-002, C-003, C-004]
+    plan_concern_refs: [IC-02]
+    subtasks: [T007, T008, T009, T010, T011]
+    prompt_file: "tasks/WP02-shared-domain-values-readiness-and-policy-tables.md"
+    phase: "Phase 2 - Domain Foundation"
+    agent_profile: "implementer-ivan"
+    role: "implementer"
+    agent: "codex"
+
+  - id: WP03
+    title: "Billing Identity, Remittance, and Logo Asset Domain"
+    dependencies: [WP02]
+    owned_files:
+      - "services/api/src/domains/parties_projects/billing_identity/**"
+      - "services/api/src/domains/parties_projects/remittance/**"
+      - "services/api/src/domains/parties_projects/logo_asset/**"
+      - "services/api/tests/parties_projects/billing_identity/**"
+      - "services/api/tests/parties_projects/remittance/**"
+      - "services/api/tests/parties_projects/logo_asset/**"
+    requirement_refs: [FR-001, FR-002, FR-003, FR-004, FR-005, FR-015, NFR-003, NFR-005, NFR-007, NFR-009, C-002, C-005, C-009]
+    plan_concern_refs: [IC-03]
+    subtasks: [T012, T013, T014, T015, T016]
+    prompt_file: "tasks/WP03-billing-identity-remittance-and-logo-asset-domain.md"
+    phase: "Phase 3 - Parallel Domain Lanes"
+    agent_profile: "implementer-ivan"
+    role: "implementer"
+    agent: "codex"
+
+  - id: WP04
+    title: "Client and Billing Contact Domain"
+    dependencies: [WP02]
+    owned_files:
+      - "services/api/src/domains/parties_projects/client/**"
+      - "services/api/src/domains/parties_projects/billing_contact/**"
+      - "services/api/tests/parties_projects/client/**"
+      - "services/api/tests/parties_projects/billing_contact/**"
+    requirement_refs: [FR-006, FR-007, FR-008, FR-009, FR-015, NFR-001, NFR-003, NFR-005, NFR-009, C-002, C-004, C-005, C-009]
+    plan_concern_refs: [IC-04]
+    subtasks: [T017, T018, T019, T020, T021]
+    prompt_file: "tasks/WP04-client-and-billing-contact-domain.md"
+    phase: "Phase 3 - Parallel Domain Lanes"
+    agent_profile: "implementer-ivan"
+    role: "implementer"
+    agent: "codex"
+
+  - id: WP05
+    title: "Project Domain and Current Configuration Resolver"
+    dependencies: [WP02]
+    owned_files:
+      - "services/api/src/domains/parties_projects/project/**"
+      - "services/api/src/domains/parties_projects/resolution/**"
+      - "services/api/tests/parties_projects/project/**"
+      - "services/api/tests/parties_projects/resolution/**"
+    requirement_refs: [FR-010, FR-011, FR-012, FR-013, FR-014, FR-015, NFR-005, NFR-008, NFR-009, C-002, C-003, C-004, C-005, C-007]
+    plan_concern_refs: [IC-05]
+    subtasks: [T022, T023, T024, T025, T026]
+    prompt_file: "tasks/WP05-project-domain-and-current-configuration-resolver.md"
+    phase: "Phase 3 - Parallel Domain Lanes"
+    agent_profile: "implementer-ivan"
+    role: "implementer"
+    agent: "codex"
+
+  - id: WP06
+    title: "Owner-Scoped Migrations and Repositories"
+    dependencies: [WP01]
+    owned_files:
+      - "services/api/migrations/p1/**"
+      - "services/api/src/domains/parties_projects/persistence/**"
+      - "services/api/tests/parties_projects/persistence/**"
+    requirement_refs: [FR-015, FR-017, FR-018, NFR-004, NFR-005, NFR-009, C-001, C-002, C-008, C-009]
+    plan_concern_refs: [IC-06]
+    subtasks: [T027, T028, T029, T030, T031, T032]
+    prompt_file: "tasks/WP06-owner-scoped-migrations-and-repositories.md"
+    phase: "Phase 3 - Parallel Persistence Lane"
+    agent_profile: "implementer-ivan"
+    role: "implementer"
+    agent: "codex"
+
+  - id: WP07
+    title: "Durable Services, Idempotency, and Configuration Events"
+    dependencies: [WP03, WP04, WP05, WP06]
+    owned_files:
+      - "services/api/src/domains/parties_projects/application/**"
+      - "services/api/src/domains/parties_projects/events/**"
+      - "services/api/tests/parties_projects/application/**"
+      - "services/api/tests/parties_projects/events/**"
+    requirement_refs: [FR-001, FR-005, FR-006, FR-009, FR-010, FR-015, FR-016, FR-017, FR-018, NFR-003, NFR-004, NFR-009, C-002, C-005, C-006, C-007, C-008]
+    plan_concern_refs: [IC-07]
+    subtasks: [T033, T034, T035, T036, T037, T038]
+    prompt_file: "tasks/WP07-durable-services-idempotency-and-configuration-events.md"
+    phase: "Phase 4 - Application Convergence"
+    agent_profile: "implementer-ivan"
+    role: "implementer"
+    agent: "codex"
+
+  - id: WP08
+    title: "Resolved Configuration and Negative Security Fixtures"
+    dependencies: [WP03, WP04, WP05, WP07]
+    owned_files:
+      - "contracts/fixtures/p1/v1/valid/**"
+      - "contracts/fixtures/p1/v1/invalid/**"
+      - "contracts/fixtures/p1/v1/security/**"
+      - "services/api/tests/parties_projects/resolved_configuration/**"
+      - "services/api/tests/parties_projects/security/**"
+    requirement_refs: [FR-004, FR-008, FR-013, FR-014, FR-016, NFR-002, NFR-003, NFR-005, NFR-007, NFR-008, C-004, C-009]
+    plan_concern_refs: [IC-08]
+    subtasks: [T039, T040, T041, T042, T043]
+    prompt_file: "tasks/WP08-resolved-configuration-and-negative-security-fixtures.md"
+    phase: "Phase 5 - Security and Consumer Fixtures"
+    agent_profile: "implementer-ivan"
+    role: "implementer"
+    agent: "codex"
+
+  - id: WP09
+    title: "HTTP Queries, Mutations, and Black-Box Contracts"
+    dependencies: [WP01, WP07, WP08]
+    owned_files:
+      - "services/api/src/domains/parties_projects/http/**"
+      - "services/api/tests/parties_projects/http/**"
+    requirement_refs: [FR-001, FR-005, FR-006, FR-007, FR-008, FR-009, FR-010, FR-011, FR-012, FR-013, FR-014, FR-015, FR-017, FR-018, NFR-001, NFR-003, NFR-004, NFR-009, NFR-010, C-002, C-008]
+    plan_concern_refs: [IC-09]
+    subtasks: [T044, T045, T046, T047, T048, T049]
+    prompt_file: "tasks/WP09-http-queries-mutations-and-black-box-contracts.md"
+    phase: "Phase 6 - HTTP Boundary"
+    agent_profile: "node-norris"
+    role: "implementer"
+    agent: "codex"
+
+  - id: WP10
+    title: "Billing Identity and Client Manager UI"
+    dependencies: [WP09]
+    owned_files:
+      - "apps/web/src/features/billing-identities/**"
+      - "apps/web/src/features/clients/**"
+      - "apps/web/src/app/billing-identities/**"
+      - "apps/web/src/app/clients/**"
+      - "apps/web/tests/parties-projects/identities-clients/**"
+    requirement_refs: [FR-001, FR-002, FR-003, FR-004, FR-005, FR-006, FR-007, FR-008, FR-009, NFR-001, NFR-003, NFR-006, C-002, C-009]
+    plan_concern_refs: [IC-10]
+    subtasks: [T050, T051, T052, T053, T054]
+    prompt_file: "tasks/WP10-billing-identity-and-client-manager-ui.md"
+    phase: "Phase 7 - Parallel Web Lanes"
+    agent_profile: "frontend-freddy"
+    role: "implementer"
+    agent: "codex"
+
+  - id: WP11
+    title: "Project Manager and Resolved Configuration UI"
+    dependencies: [WP09]
+    owned_files:
+      - "apps/web/src/features/projects/**"
+      - "apps/web/src/app/projects/**"
+      - "apps/web/tests/parties-projects/projects/**"
+    requirement_refs: [FR-010, FR-011, FR-012, FR-013, FR-014, NFR-001, NFR-006, C-002, C-007, C-009]
+    plan_concern_refs: [IC-11]
+    subtasks: [T055, T056, T057, T058, T059]
+    prompt_file: "tasks/WP11-project-manager-and-resolved-configuration-ui.md"
+    phase: "Phase 7 - Parallel Web Lanes"
+    agent_profile: "frontend-freddy"
+    role: "implementer"
+    agent: "codex"
+
+  - id: WP12
+    title: "P1 Compatibility, Accessibility, Durability, and Consumer Handoff"
+    dependencies: [WP08, WP09, WP10, WP11]
+    owned_files:
+      - "services/api/tests/parties_projects/acceptance/**"
+      - "apps/web/tests/parties-projects/acceptance/**"
+      - "contracts/manifests/p1.json"
+      - "docs/integration-requests/p1/**"
+      - "docs/program-handoffs/p1/**"
+    requirement_refs: [FR-001, FR-002, FR-003, FR-004, FR-005, FR-006, FR-007, FR-008, FR-009, FR-010, FR-011, FR-012, FR-013, FR-014, FR-015, FR-016, FR-017, FR-018, NFR-001, NFR-002, NFR-003, NFR-004, NFR-005, NFR-006, NFR-007, NFR-008, NFR-009, NFR-010, C-001, C-002, C-003, C-004, C-005, C-006, C-007, C-008, C-009]
+    plan_concern_refs: [IC-12]
+    subtasks: [T060, T061, T062, T063, T064, T065, T066]
+    prompt_file: "tasks/WP12-p1-compatibility-accessibility-durability-and-consumer-handoff.md"
+    phase: "Phase 8 - Acceptance and Handoff"
+    agent_profile: "implementer-ivan"
+    role: "implementer"
+    agent: "codex"
