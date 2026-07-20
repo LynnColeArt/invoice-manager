@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://invoice-manager.invalid/contracts/common/v1/schema.json",
+  "title": "Invoice Manager Common Values v1",
+  "$comment": "Resolve this stable identifier through the repository contract registry; validation must not fetch it from the network.",
+  "$defs": {
+    "EntityId": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+      "description": "Canonical lowercase, hyphenated UUIDv7 with an RFC-compatible variant. The value is opaque; timestamp ordering is not a business guarantee."
+    },
+    "CurrencyCode": {
+      "type": "string",
+      "pattern": "^[A-Z]{3}$",
+      "description": "Exactly three uppercase ASCII letters. P0 defines structure only; domain contracts own any currency policy."
+    },
+    "CanonicalInt64": {
+      "type": "string",
+      "pattern": "^(0|-?[1-9][0-9]*)$",
+      "description": "Canonical signed decimal spelling. Regex-valid values still require checked runtime parsing within -9223372036854775808 through 9223372036854775807."
+    },
+    "NonNegativeInt64": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)$",
+      "description": "Canonical nonnegative decimal spelling. Regex-valid values still require checked runtime parsing no greater than 9223372036854775807."
+    },
+    "Money": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["currency", "minor_units"],
+      "properties": {
+        "currency": {
+          "$ref": "#/$defs/CurrencyCode"
+        },
+        "minor_units": {
+          "$ref": "#/$defs/CanonicalInt64"
+        }
+      },
+      "description": "Exact money at the shared wire layer. Signed minor units are intentional; contextual domains may narrow them without changing this contract."
+    },
+    "LocalDate": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+      "description": "Canonical Gregorian civil date with no timezone or time-of-day meaning. Pattern and format checks do not replace authoritative runtime Gregorian and supported-year validation."
+    },
+    "UtcInstant": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$",
+      "description": "Canonical UTC instant with uppercase T and Z and exactly three fractional-second digits. Runtime validation rechecks the Gregorian date and clock ranges without normalization."
+    },
+    "Sha256Digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "description": "Canonical SHA-256 digest with an algorithm prefix and 64 lowercase hexadecimal characters."
+    },
+    "RequestId": {
+      "$ref": "#/$defs/EntityId",
+      "description": "Request correlation identifier using the exact EntityId wire representation."
+    }
+  }
+}
