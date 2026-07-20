@@ -1,0 +1,14 @@
+{
+  "manifest_version": "1",
+  "mission": "p4-reporting-dashboard-01KXZ1AJ",
+  "owner": "p4",
+  "contract_version": "0.1.0-draft.1",
+  "lifecycle_state": "Draft",
+  "implementation_authorized": false,
+  "consumes": [
+    { "owner": "p0", "version": "0.1.0-draft.1", "required_state_for_implementation": "Frozen" }
+  ],
+  "artifacts": ["normalized-reporting-snapshot-v1.schema.json"],
+  "consumers": ["p7"],
+  "notes": "Planning-only. P7 maps real P1/P5/P6 producer events into this frozen seam."
+}

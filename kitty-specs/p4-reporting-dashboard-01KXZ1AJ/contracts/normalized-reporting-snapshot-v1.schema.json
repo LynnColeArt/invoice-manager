@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://invoice-manager.invalid/contracts/p4/normalized-reporting-snapshot/v1",
+  "title": "P4 Normalized Reporting Snapshot v1 Draft",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "source_kind", "source_id", "source_revision", "payload"],
+  "properties": {
+    "schema_version": { "const": "0.1.0-draft.1" },
+    "source_kind": { "enum": ["client", "project", "invoice", "payment_allocation", "due_work"] },
+    "source_id": { "$ref": "#/$defs/EntityId" },
+    "source_revision": { "$ref": "#/$defs/NonNegativeInt64" },
+    "payload": {
+      "oneOf": [
+        { "$ref": "#/$defs/Client" },
+        { "$ref": "#/$defs/Project" },
+        { "$ref": "#/$defs/Invoice" },
+        { "$ref": "#/$defs/PaymentAllocation" },
+        { "$ref": "#/$defs/DueWork" }
+      ]
+    }
+  },
+  "$defs": {
+    "EntityId": { "type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" },
+    "NonNegativeInt64": { "type": "string", "pattern": "^(0|[1-9][0-9]*)$" },
+    "CanonicalInt64": { "type": "string", "pattern": "^(0|-?[1-9][0-9]*)$" },
+    "LocalDate": { "type": "string", "format": "date" },
+    "Money": {
+      "type": "object", "additionalProperties": false, "required": ["currency", "minor_units"],
+      "properties": { "currency": { "enum": ["USD", "EUR"] }, "minor_units": { "$ref": "#/$defs/CanonicalInt64" } }
+    },
+    "Client": {
+      "type": "object", "additionalProperties": false, "required": ["kind", "display_name", "status"],
+      "properties": { "kind": { "const": "client" }, "display_name": { "type": "string", "minLength": 1, "maxLength": 256 }, "status": { "enum": ["active", "archived"] } }
+    },
+    "Project": {
+      "type": "object", "additionalProperties": false, "required": ["kind", "client_id", "display_name", "currency", "cadence", "status"],
+      "properties": {
+        "kind": { "const": "project" }, "client_id": { "$ref": "#/$defs/EntityId" },
+        "display_name": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "currency": { "enum": ["USD", "EUR"] }, "cadence": { "enum": ["monthly", "quarterly"] },
+        "status": { "enum": ["active", "paused", "completed", "archived"] }
+      }
+    },
+    "Invoice": {
+      "type": "object", "additionalProperties": false, "required": ["kind", "client_id", "project_id", "issue_date", "due_date", "total", "status"],
+      "properties": {
+        "kind": { "const": "invoice" }, "client_id": { "$ref": "#/$defs/EntityId" }, "project_id": { "$ref": "#/$defs/EntityId" },
+        "issue_date": { "$ref": "#/$defs/LocalDate" }, "due_date": { "$ref": "#/$defs/LocalDate" },
+        "total": { "$ref": "#/$defs/Money" }, "status": { "enum": ["issued", "voided"] }
+      }
+    },
+    "PaymentAllocation": {
+      "type": "object", "additionalProperties": false, "required": ["kind", "payment_id", "invoice_id", "receipt_date", "amount", "status"],
+      "properties": {
+        "kind": { "const": "payment_allocation" }, "payment_id": { "$ref": "#/$defs/EntityId" }, "invoice_id": { "$ref": "#/$defs/EntityId" },
+        "receipt_date": { "$ref": "#/$defs/LocalDate" }, "amount": { "$ref": "#/$defs/Money" },
+        "status": { "enum": ["applied", "reversed"] }
+      }
+    },
+    "DueWork": {
+      "type": "object", "additionalProperties": false, "required": ["kind", "project_id", "due_date", "status"],
+      "properties": {
+        "kind": { "const": "due_work" }, "project_id": { "$ref": "#/$defs/EntityId" }, "due_date": { "$ref": "#/$defs/LocalDate" },
+        "expected_amount": { "$ref": "#/$defs/Money" }, "status": { "enum": ["open", "billed", "cancelled"] }
+      }
+    }
+  }
+}
