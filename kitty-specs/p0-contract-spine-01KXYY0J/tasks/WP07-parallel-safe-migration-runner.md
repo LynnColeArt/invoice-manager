@@ -2,6 +2,7 @@
 work_package_id: WP07
 title: Parallel-Safe Migration Runner
 dependencies:
+- WP03
 - WP04
 - WP05
 - WP06
@@ -36,6 +37,7 @@ create_intent:
 - services/api/src/platform/persistence/migrations.zig
 - services/api/tests/persistence/migrations_test.zig
 - services/api/tests/persistence/migrations_integration_test.zig
+- services/api/tests/persistence/migrations_negative_test.zig
 - services/api/tests/persistence/migrations_digest_vector.json
 execution_mode: code_change
 model: ''
@@ -78,8 +80,8 @@ path has reached `DirectorySynchronized`; every other state is explicitly non-re
 
 ## Context
 
-- WP04 supplies reproducible ShovelerDB consumption and the stable convention-scanned
-  `migration-negative` build hook; this package does not edit build wiring.
+- WP04 supplies reproducible ShovelerDB consumption and literal `test-migration`,
+  `test-migration-integration`, `migration-negative`, `coverage-migration`, and aggregate `coverage` hooks; this package does not edit build wiring.
 - WP05 supplies canonical shared value implementations used by migration records.
 - WP06 supplies the public serialized durable-store operation, readiness, dirty-handle
   discard, and reopen seam. This package consumes that facade and never the raw adapter.
@@ -87,7 +89,7 @@ path has reached `DirectorySynchronized`; every other state is explicitly non-re
 - Read `kitty-specs/p0-contract-spine-01KXYY0J/plan.md`, especially IC-04.
 - Read the `MigrationDescriptor` and `AppliedMigration` records in `data-model.md`.
 - Read Decisions 7 and 8 in `research.md` before implementing recovery semantics.
-- Consume the canonical migration schema from `contracts/migrations/v1/manifest.schema.json`.
+- WP03 solely owns and exports `contracts/migrations/v1/manifest.schema.json`; consume it without redefining or editing its generator/workspace surface.
 - Use UUIDv7 identities; the UUID is not a global sequence and conveys no dependency order.
 - Discover descriptors recursively beneath owner-scoped migration roots.
 - Dependencies, not timestamps or directory enumeration, determine execution order.
@@ -112,7 +114,7 @@ spec-kitty agent action implement WP07 --agent codex
 ```
 
 - Stay inside the exact `owned_files` patterns from frontmatter.
-- Do not edit WP04/WP05/WP06 files to make their APIs more convenient.
+- Do not edit WP03/WP04/WP05/WP06 files to make their APIs more convenient.
 - Do not edit root build scripts, package scripts, CI, mission state, or task metadata.
 
 ## Normative Migration Layout
@@ -363,19 +365,18 @@ covering every documented collision, graph, mutation, and durability failure bra
 15. Assert every error branch releases owned allocations and handles.
 16. Keep all fixtures synthetic and deterministic.
 17. Exercise each documented error branch regardless of aggregate coverage percentage.
-18. Maintain at least 90% automated coverage over migration logic.
+18. Maintain at least 90% automated coverage through literal WP04 `coverage-migration`, then aggregate `coverage`; put a nonempty, never-empty-pass negative matrix in exact root `services/api/tests/persistence/migrations_negative_test.zig`.
 
 **Files**
 
-- `services/api/tests/persistence/migrations_test.zig`
-- `services/api/tests/persistence/migrations_integration_test.zig`
+- `services/api/tests/persistence/migrations_test.zig`, `migrations_integration_test.zig`, and `migrations_negative_test.zig`
 - `services/api/tests/persistence/migrations_digest_vector.json`
 
 **Validation**
 
 - Compare the vector with an independent RFC 8785 implementation during review.
-- Run unit and real-adapter integration suites separately.
-- Run the mandatory root `npm run migration:negative` gate supplied through WP04.
+- Run positive unit and real-adapter suites separately through WP04's literal `test-migration` and `test-migration-integration` hooks.
+- Run the mandatory root `npm run migration:negative` gate supplied through WP04 and require a nonzero discovered case count from `migrations_negative_test.zig`.
 - Confirm all negative cases produce zero destructive replacement attempts.
 
 ## Chronological Red-First Evidence and Test Strategy
@@ -396,8 +397,10 @@ Run the owned verification surface from the repository root:
 test "$(cat .zig-version)" = "0.16.0"
 zig fmt --check services/api/src/platform/persistence/migrations*.zig \
   services/api/tests/persistence/migrations*.zig
-(cd services/api && zig build test-persistence)
+(cd services/api && zig build test-migration)
+(cd services/api && zig build test-migration-integration)
 npm run migration:negative
+(cd services/api && zig build coverage-migration)
 (cd services/api && zig build coverage)
 git diff --check -- services/api/migrations/p0 \
   services/api/src/platform/persistence/migrations* \
@@ -442,7 +445,7 @@ root scripts, or WP06 internals; missing stable wiring is an upstream WP04 failu
 - [ ] No shared sequence, migration registry, or domain registry exists.
 - [ ] `npm run migration:negative` reports nonzero cases and every expected category.
 - [ ] Chronological public-boundary red-first and green evidence is recorded.
-- [ ] All focused tests and commands pass.
+- [ ] Literal `test-migration`, `test-migration-integration`, `migration-negative`, `coverage-migration`, and aggregate `coverage` hooks pass.
 - [ ] Only frontmatter-owned files changed.
 
 ## Risks & Mitigations

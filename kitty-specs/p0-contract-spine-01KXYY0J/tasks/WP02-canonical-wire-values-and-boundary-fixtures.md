@@ -77,7 +77,8 @@ proves signed Money and unrestricted structural currency codes remain intact.
 - WP02 depends on WP01's reproducible root toolchain and command substrate.
 - WP03 will own `tools/contracts/**` and schema composition; do not implement its tooling here.
 - WP05 will own Zig parsers and semantic validators; do not create Zig source here.
-- WP09 will own generated TypeScript types and browser consumption; do not create web source here.
+- WP03 is the sole generated-TypeScript generator and workspace exporter; do not implement its tooling here.
+- WP10 is the only web consumer of those exports; WP09 remains config-only and consumes no fixtures.
 - The planning Draft is `kitty-specs/p0-contract-spine-01KXYY0J/contracts/common-v1.schema.json`.
 - The implementation destination is `contracts/common/v1/schema.json`.
 - The stable schema ID is `https://invoice-manager.invalid/contracts/common/v1/schema.json`.
@@ -114,7 +115,7 @@ Create exactly these primary deliverables:
 3. `contracts/fixtures/p0/v1/invalid/common-boundaries.json`
 
 No test runner belongs to WP02. The fixture files themselves are executable
-contract inputs for WP03, WP05, and WP09, and their format must be explicit
+contract inputs for WP03, WP05, and WP10, and their format must be explicit
 enough that those packages do not need private assumptions.
 
 ## Subtasks and Detailed Guidance
@@ -315,7 +316,7 @@ validators cannot pass by testing regexes alone or by silently coercing values.
 2. Record schema-valid/runtime-invalid cases explicitly rather than mislabeling the schema as sufficient.
 3. State that WP03 must enable JSON Schema format assertion and resolve IDs locally without network fetch.
 4. State that WP05 must execute all runtime range and Gregorian semantic cases.
-5. State that WP09 must retain integer strings or BigInt-safe conversion and never use authoritative `number` arithmetic.
+5. State that WP03 must generate and export integer-string or BigInt-safe types, WP10 must consume them without authoritative `number` arithmetic, and WP09 is config-only.
 6. State that domain missions may narrow Money or currencies only in their own schemas and validators.
 7. Provide counts by definition and validation layer so reviewers can detect an accidentally empty category.
 8. Do not implement or edit `tools/contracts/**` to produce this evidence.
@@ -400,7 +401,7 @@ Confirm specifically:
 - digest and RequestId aliases are exercised;
 - valid and invalid corpora are non-vacuous and independently understandable;
 - every runtime-only invalid case first satisfies the structural schema;
-- the handoff names WP03, WP05, and WP09 responsibilities without editing their surfaces;
+- the handoff names WP03 generation/workspace-export, WP05 Zig, and WP10 web-consumer responsibilities, and records WP09 as config-only, without editing their surfaces;
 - the diff contains only the three declared deliverables.
 
 Reject the WP if a tool can pass by ignoring format assertions, runtime-only

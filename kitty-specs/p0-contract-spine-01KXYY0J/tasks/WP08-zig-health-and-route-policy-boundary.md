@@ -94,14 +94,16 @@ no feature APIs, and black-box evidence that the backend contract is real.
 
 ## Context and Constraints
 
-- WP03 owns composed OpenAPI, module route policy, and deterministic route inventory evidence.
+- WP03's literal `npm run contracts:generate` solely writes the canonical runtime inventory at `tools/contracts/.generated/runtime/v1/route-inventory.json`.
+- WP04's `test-http` hook must run that exact materializer before compiling any WP08 Zig source or test.
+- WP08 reads, parses, and embeds only that artifact through its public route-inventory boundary; it never writes generated output or maintains a second registry.
 - WP05 owns RequestId and other canonical Zig shared values.
 - WP06 owns the migration-agnostic durable store and its typed readiness result.
 - WP07 owns migration discovery/application and its separate typed readiness result.
 - Consume those implementations; do not copy, weaken, or edit their authoritative files.
 - The API major prefix is `/api/v1`.
 - The only P0 operation is `GET /api/v1/health`, operation ID `P0Health`.
-- Health is public only because both OpenAPI metadata and module policy declare it public.
+- Health is public only because the generated effective access metadata records WP03's validated OpenAPI/module-policy agreement.
 - Missing, invalid, or mismatched access metadata is protected for enforcement.
 - Protected-by-default is a route-policy classification rule, not authentication implementation.
 - Do not create credentials, sessions, tokens, users, middleware, or authorization behavior.
@@ -121,6 +123,7 @@ Modify only `services/api/src/main.zig`, `services/api/src/http/**`, and
 `services/api/tests/http/**`. Do not edit contracts, composition tooling,
 shared values, persistence/migration source, service build files, root scripts,
 web code, CI, task metadata, or status logs.
+Do not create, rewrite, delete, normalize, or copy generated contract artifacts.
 
 P0 must not add billing identity, client, project, invoice, payment, remittance,
 logo, recurrence, reporting, PDF, authentication, or other domain routes.
@@ -231,23 +234,23 @@ inventory and ensure no route becomes public by omission or typo.
 
 **Steps**:
 
-1. Create `services/api/src/http/route_inventory.zig` for immutable runtime route records.
-2. Include method, normalized path, operation ID, access classification, and handler key.
-3. Consume WP03's composed route inventory/build evidence; do not create a second source registry.
-4. Require exact agreement between the composed inventory and registered handlers at startup.
-5. Reject duplicate method/path, operation ID, or handler bindings before listening.
-6. Reject an inventory operation with no handler and a handler with no contract operation.
+1. Create `services/api/src/http/route_inventory.zig` as the sole public load/parse/query boundary for immutable runtime route records.
+2. Embed exactly `../../../../tools/contracts/.generated/runtime/v1/route-inventory.json` once with `@embedFile`; no other WP08 module may read or embed generated files.
+3. Parse only WP03's closed version-one shape: `format_version: 1` plus routes containing exactly `path`, lowercase `method`, `operation_id`, `owner`, `mount_key`, and `access`.
+4. Reject missing input at compile time and invalid JSON, wrong version/type, missing/unknown fields, invalid normalization/access, or duplicate method/path and operation IDs at the boundary.
+5. Treat an inventory as stale when its operation IDs do not agree one-for-one with the compiled handler bindings; reject stale, missing, or extra bindings before listening.
+6. Bind code to inventory operations only by `operation_id`; derive method, path, owner, mount, and access solely from the parsed artifact, never a handwritten mirror.
 7. Create `services/api/src/http/route_policy.zig` for access classification only.
 8. Treat missing, unknown, malformed, or mismatched access metadata as protected.
-9. Permit public dispatch only when composed metadata and module policy explicitly agree.
+9. Permit public dispatch only when the canonical artifact's validated effective access is explicitly `public`; do not recreate module policy in Zig.
 10. Assert `P0Health` is the sole public P0 operation and maps to GET `/api/v1/health`.
 11. Do not implement login, token verification, session lookup, principals, roles, or permissions.
 12. For protected synthetic mutation cases, prove the target handler is never invoked.
 13. Fail startup on route-inventory contract drift rather than guessing or silently dropping routes.
-14. Keep generated inventories ignored; never commit a generated aggregate from tests.
+14. Keep generated inventories ignored and read-only; tests may mutate owned in-memory/temporary copies only, never the canonical artifact.
 15. Before route-policy/dispatch production changes, add a failing public-boundary test driven by WP03 composed metadata and the actual dispatch entry point.
 16. Use stable cases for public health, missing/invalid metadata becoming protected, manifest/OpenAPI disagreement, and protected-handler non-invocation.
-17. Record the case ID, exact `zig build test-http` command, expected failure, and observed red result in the Activity Log before the production change.
+17. Record the case ID, exact repository-root `zig build test-http --build-file services/api/build.zig` command, expected failure, and observed red result in the Activity Log before the production change.
 18. After implementation, append the matching green command/result chronologically; do not rewrite or reorder the red entry.
 19. Direct tests of a private classifier, mocked composed metadata, or tests first observed green do not satisfy red-first evidence.
 
@@ -260,8 +263,8 @@ inventory and ensure no route becomes public by omission or typo.
 **Validation**:
 
 - Accept the exact composed P0 health inventory.
-- Reject duplicates, missing handlers, extra handlers, and public-policy disagreement.
-- Mutate health metadata to missing/invalid and prove it becomes protected, never public.
+- Reject missing, stale, invalid, duplicate, missing-handler, extra-handler, and public-policy disagreement cases through the public boundary.
+- Starting from freshly materialized bytes, mutate method/path/operation/access in isolated copies and prove actual dispatch/policy changes or startup fails; no private-only parser assertion counts.
 - Add an undeclared synthetic route and prove default-protected behavior without authentication code.
 - Prove red-first cases traverse composed metadata, route resolution, and dispatch far enough to observe handler invocation or non-invocation.
 - Reviewer-visible Activity Log evidence must show red before production behavior and green afterward for each critical case.
@@ -352,6 +355,7 @@ Run from the repository root with the dependency-resolved worktree:
 
 ```bash
 zig version
+npm run contracts:generate
 zig fmt --check services/api/src/main.zig services/api/src/http services/api/tests/http
 zig build test-http --build-file services/api/build.zig
 zig build test --build-file services/api/build.zig
@@ -361,7 +365,8 @@ npm run http:smoke
 
 The first command must report `0.16.0`. The service build/test commands must
 consume WP03/WP05/WP06/WP07 through their public seams rather than copying their
-files. WP04's `test-http` build step is a required stable hook; if it is missing,
+files. Every Zig HTTP compilation must follow literal materialization; WP04's
+`test-http` must enforce that dependency itself. If the stable hook is missing,
 report that dependency integration defect to its owner and do not edit
 `services/api/build.zig` from WP08.
 
@@ -369,6 +374,8 @@ Mandatory test classes:
 
 - handler-level health and error-envelope tests;
 - red-first composed-route dispatch cases and protected-default mutations;
+- freshly materialized inventory mutation cases proving runtime dispatch/policy observes changed metadata;
+- missing/stale/invalid/duplicate inventory and one-to-one handler-binding rejection;
 - black-box TCP success and failure requests;
 - 100-request ready-path performance evidence;
 - WP06 durable-store and WP07 migration readiness success/no-op results;
@@ -387,6 +394,8 @@ Before handoff, run `git diff --check`, `git status --short`, and
 - [ ] Every success and failure uses the canonical envelope and RequestId.
 - [ ] Error mapping exposes stable safe codes/messages and no internal details.
 - [ ] Composed routes and actual handlers agree exactly before startup.
+- [ ] One public boundary embeds/parses only the canonical generated inventory after materialization.
+- [ ] Missing, stale, invalid, duplicate, or independently mirrored route metadata fails closed.
 - [ ] Duplicate, missing, extra, or mismatched route bindings fail closed.
 - [ ] Only explicitly agreed `P0Health` metadata is public.
 - [ ] Missing or invalid access metadata is protected by default.
@@ -412,6 +421,7 @@ Before handoff, run `git diff --check`, `git status --short`, and
 - **Vacuous route-policy test**: drive WP03 composed metadata through route resolution and actual dispatch with chronological red-first evidence.
 - **Accidental authentication scope**: classify protected routes without building auth machinery.
 - **Contract/runtime drift**: compare composed inventory and handler bindings at startup.
+- **Generated-registry fork**: allow only WP03's materializer to write the canonical artifact; WP08 embeds it once and binds handlers by operation ID.
 - **Diagnostic leak**: centralize safe error mapping and test hostile internal strings.
 - **Request ID reuse**: create one owned canonical ID per request and test concurrent lifetimes.
 - **Performance flakiness**: use loopback, monotonic time, bounded warmup, and the explicit 99/100 rule.
@@ -432,6 +442,8 @@ Confirm specifically:
 - injected WP06 and WP07 failures exit nonzero with the configured address unbound;
 - startup failures emit no readiness and cause no destructive replacement or fallback;
 - health is the sole public operation and exactly matches `P0Health` metadata;
+- literal materialization precedes compilation, and the canonical artifact is embedded only through the public route-inventory boundary;
+- malformed, duplicate, or stale inventory fails before listening, while isolated metadata mutations change real dispatch/policy behavior;
 - omitted, invalid, or mismatched access policy fails protected;
 - red-first evidence exercises composed metadata, route resolution, and actual dispatch before matching green evidence;
 - no authentication/session/token/principal implementation appears;
@@ -443,7 +455,7 @@ Confirm specifically:
 - no domain API or out-of-scope file was added.
 
 Reject implementations that hardcode a permissive public route table independent
-of WP03, test only a private policy classifier, bind before both readiness
+of WP03, write generated files, maintain a second registry, test only a private policy classifier, bind before both readiness
 results, fake performance at handler level, or treat a storage/migration failure
 as healthy degraded operation.
 

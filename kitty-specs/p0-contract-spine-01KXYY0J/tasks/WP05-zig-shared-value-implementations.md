@@ -354,15 +354,15 @@ Use the exact focused build steps exposed by WP04; do not modify its build files
 ```bash
 zig version
 zig fmt --check services/api/src/shared services/api/tests/shared
-cd services/api && zig build test-shared
-cd services/api && zig build coverage-shared
-cd services/api && zig build test
+cd services/api
+zig build test-shared
+zig build coverage-shared
+zig build test
 ```
 
-If WP04 names its focused steps differently, use the dependency's documented
-equivalents and record the exact commands. A missing shared-test or coverage
-entry point is a dependency defect to coordinate, not permission to edit
-`build.zig` in this package.
+`test-shared`, `coverage-shared`, and `test` are literal WP04 hook names. Do not
+substitute aliases or documented equivalents. A missing hook is a WP04 dependency
+defect to route to its owner, not permission to edit `build.zig` in this package.
 
 Required test classes include parser/formatter round trips; all WP02 fixtures;
 signed i64 endpoints, unsafe-JavaScript values, and overflow; signed Money and

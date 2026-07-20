@@ -63,11 +63,13 @@ If no profile is specified, run `spec-kitty agent profile list` and select the b
 
 ---
 
-## ⚠️ IMPORTANT: Review Feedback
+## ⚠️ IMPORTANT: Mandatory Red-First and Review Evidence
 
 Before implementation, check `spec-kitty agent status` and the Activity Log for a review reference.
-Address every recorded review item before declaring this package complete.
-Append responses and verification evidence to the Activity Log in chronological order.
+Before each production change, run a failing public-adapter case for persistence, serialization, commit, checkpoint, close/reopen, or literal-encoding security as applicable.
+Append chronological `RED:` evidence with case ID, exact command, expected failure, and observed failure; only then change production and append the matching `GREEN:` result.
+Private-helper-only, test-after-production, reconstructed, or first-seen-green evidence does not count.
+Address every review item and keep remediation evidence chronological before declaring completion.
 
 ## Objectives & Success Criteria
 
@@ -227,11 +229,11 @@ If upstream later publishes package metadata, replacing this shim is a separate 
     - WP04 adapter/integration: `tests/persistence/shovelerdb*`;
     - WP05 shared: `tests/shared/**`;
     - WP06 persistence unit/integration/crash: `tests/persistence/store*`, `durability*`, and `directory_sync*`;
-    - WP07 migration negative: `tests/persistence/migrations*` plus `migrations/p0/**` producer sentinels;
+    - WP07 migration: exact positive unit/integration basenames, `*negative*` cases, all migration coverage inputs, and `migrations/p0/**` producer sentinels;
     - WP08 HTTP: `tests/http/**` plus `src/main.zig` and `src/http/**` producer sentinels.
 16. Within WP06, classify `*_crash*` before `*_integration*`, then all remaining owned roots as unit tests; ambiguity is an error.
-17. Classify WP07 `*negative*` roots into `migration-negative`; migration producer presence with zero negative roots is a hard failure.
-18. Classify all WP05 and WP08 test roots into their single named groups while rejecting files outside their owned prefixes.
+17. Classify exact `migrations_test.zig` as `test-migration`, exact `migrations_integration_test.zig` as `test-migration-integration`, and `*negative*` as `migration-negative`; producer presence makes every group and `coverage-migration` nonempty, with ambiguity/unclassified roots failing.
+18. Classify WP05/WP08 roots strictly; make `test-http` depend on exact repository-root `npm run contracts:generate` materialization from WP03 before compiling WP08 source or tests.
 19. A producer is present when any owned source/test sentinel for that WP exists; once present, its required root groups may not be empty.
 20. Before a producer is present, invoking its hook fails with a precise diagnostic naming the missing path class and owning WP, not success or skip.
 21. After a producer is present, missing, empty, duplicate, or unclassified roots fail with the same owner-specific diagnostic discipline.
@@ -250,9 +252,9 @@ Expose these exact names in `zig build --help`:
 - `test-shared` and `coverage-shared` — WP05 shared values and coverage;
 - `test-persistence`, `test-persistence-integration`, and `test-persistence-crash` — WP06 persistence groups;
 - `coverage-persistence` — WP06 persistence coverage;
-- `migration-negative` — mandatory WP07 negative migration matrix;
-- `test-http` — WP08 HTTP/route-policy tests;
-- `coverage` — aggregate shared/persistence coverage gate;
+- `test-migration`, `test-migration-integration`, `migration-negative`, and `coverage-migration` — distinct WP07 positive, negative, and coverage gates;
+- `test-http` — WP08 HTTP/route-policy tests, after exact `npm run contracts:generate` materialization;
+- `coverage` — aggregate shared/persistence/migration coverage, requiring at least 90% migration logic and every enumerated critical branch;
 - `test` — aggregate service test gate in deterministic group order.
 
 WP01's root `migration:negative` command delegates to `zig build
@@ -290,11 +292,11 @@ A missing vendored source must fail the build with a dependency-specific message
 
 In `shovelerdb_build_discovery.zig`, construct synthetic directory layouts and
 prove canonical ordering is unchanged by creation order. Cover every exact step
-name, each valid group, a missing producer root, producer-present/zero-tests,
-duplicate normalized roots, overlapping classifications, an unclassified Zig
-root, symlink escape, and absolute-path redaction. Assert `migration-negative`
-fails when WP07 sentinels exist without negative cases. Assert the aggregate
-`test` step enumerates groups in one documented order and propagates failures.
+name, exact WP07 positive basenames, all valid groups, missing producer roots,
+producer-present/zero-tests, duplicate/overlapping/unclassified roots, symlink
+escape, and absolute-path redaction. Assert every WP07 positive/negative/coverage
+group becomes nonempty, `test-http` materializes via exact `npm run contracts:generate`
+before compilation, and aggregate `test`/`coverage` order and failures propagate.
 
 ### Subtask T017 – Implement the Narrow Borrow-Safe Adapter and Literal Encoder
 
@@ -316,14 +318,14 @@ fails when WP07 sentinels exist without negative cases. Assert the aggregate
 
 Result materialization must copy column names and every selected value before releasing the result.
 Copy text bytes, blob bytes, and vector elements into caller-owned allocations.
-Copy the detailed diagnostic message before a later call can invalidate its borrowed view.
+Copy detailed engine diagnostics only into a non-production test assertion seam using synthetic sentinels.
 Represent null, integer, float, boolean, text, blob, and `vector_f32` distinctly.
 Provide deterministic deinitialization for every owned aggregate.
 Use `errdefer` or equivalent structured cleanup so allocation failure cannot leak results or partial copies.
 
 Map upstream statuses into a small stable dependency-error category.
-Retain detailed diagnostics for internal logs or tests, but do not expose database paths or raw engine prose as an HTTP contract.
-Never translate an engine failure into success or an empty result.
+Production logs/diagnostics may contain only that stable category plus correlation metadata; forbid raw engine prose, SQL, paths, values, and sensitive/user data.
+Inject distinctive SQL/path/value sentinels and prove none reaches production logs or public diagnostics; never translate engine failure into success.
 
 #### Literal encoder rules
 
@@ -365,7 +367,7 @@ The real-ABI suite must:
 8. release the underlying ABI result before asserting copied column and value bytes;
 9. checkpoint, close, reopen, and verify the committed synthetic rows persist;
 10. begin a second transaction, insert a sentinel, roll back, and prove it is absent;
-11. trigger a typed parser, object, or type error and verify stable adapter categorization;
+11. trigger typed errors and prove stable categorization while SQL/path/value sentinels never reach production logs or public diagnostics;
 12. exercise text, blob, and vector borrowed views when supported by the probe schema;
 13. run under an allocation-checking test allocator and report zero leaks;
 14. prove cleanup after an intermediate allocation or execution failure;
@@ -433,7 +435,7 @@ Negative checks must prove:
 - an ABI version mismatch fails before storage use;
 - embedded NUL is rejected;
 - borrowed values are not exposed after result release;
-- a parser/object diagnostic is not silently replaced or retried;
+- diagnostic SQL/path/value sentinels are neither leaked nor silently replaced or retried;
 - no alternate in-memory store activates when ShovelerDB fails;
 - notice validation fails when required attribution is absent.
 
@@ -457,7 +459,7 @@ Negative checks must prove:
 - [ ] The service build uses Zig `0.16.0` and links the real ShovelerDB C ABI.
 - [ ] `build.zig` exposes every exact stable adapter/shared/persistence/migration/HTTP/coverage/service step named in T016.
 - [ ] Discovery is canonically ordered and rejects duplicate, overlapping, escaping, or unclassified roots with owning-WP diagnostics.
-- [ ] `migration-negative` fails for missing or empty WP07 negative coverage once WP07 producer sentinels exist.
+- [ ] Distinct WP07 positive/negative/coverage gates are nonempty, and aggregate coverage includes migration at 90% plus every critical branch.
 - [ ] Later service WPs can add owned tests and consume hooks without editing `build.zig`.
 - [ ] Header and runtime ABI versions are checked as `0.1.0`.
 - [ ] The adapter is the only invoice-manager import of ShovelerDB ABI details.
@@ -470,11 +472,11 @@ Negative checks must prove:
 - [ ] The full upstream license is preserved and digest-checked against the pin.
 - [ ] No domain record, general store, migration runner, application API, or feature behavior was added.
 - [ ] Only paths matched by WP04 ownership changed.
-- [ ] The Activity Log contains exact commands and outcomes.
+- [ ] The Activity Log proves chronological public-adapter RED-before-production-before-GREEN commands and outcomes.
 
 ## Review Guidance
 
-Review the dependency pin before reviewing adapter ergonomics.
+Review chronological public-adapter red-first evidence before dependency pin and adapter ergonomics.
 Independently resolve the full commit from the public GitHub repository.
 Confirm the committed source and preserved license match that revision.
 Compare `zig build --help` with T016 and run the synthetic discovery diagnostic matrix.
@@ -485,7 +487,7 @@ Confirm service code uses the C embedding ABI rather than upstream internal Zig 
 Trace every C result through success, error, and allocation-failure cleanup.
 Verify copied text/blob/vector data remains valid after result release.
 Exercise literal encoding with hostile-looking but valid text and embedded NUL.
-Confirm raw diagnostics and database paths do not become application or HTTP contracts.
+Confirm production logs/public diagnostics contain only stable category/correlation metadata and reject raw engine prose, SQL, paths, values, or sensitive data.
 Confirm checkpoint/reopen proof does not claim the later directory-sync durability guarantee.
 Reject domain tables, repository abstractions, migration orchestration, or application routes in this package.
 Run the real integration with the sibling ShovelerDB checkout unavailable.

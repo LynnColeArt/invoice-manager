@@ -6,6 +6,30 @@
   "target_branch": "feat/p0-contract-spine",
   "lanes": [
     {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        ".node-version",
+        ".npmrc",
+        ".zig-version",
+        "apps/web/package.json",
+        "package-lock.json",
+        "package.json",
+        "tools/contracts/package.json"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup",
+        "tracker-integration",
+        "workspace"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
       "lane_id": "lane-b",
       "wp_ids": [
         "WP02"
@@ -17,7 +41,8 @@
       ],
       "predicted_surfaces": [
         "api",
-        "artifact-rendering"
+        "artifact-rendering",
+        "workspace"
       ],
       "depends_on_lanes": [
         "lane-a"
@@ -48,6 +73,39 @@
         "lane-a"
       ],
       "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-c",
+      "wp_ids": [
+        "WP03"
+      ],
+      "write_scope": [
+        "contracts/api/**",
+        "contracts/conformance/**",
+        "contracts/events/**",
+        "contracts/fixtures/p0/v1/invalid/lifecycle-*",
+        "contracts/fixtures/p0/v1/invalid/module-*",
+        "contracts/fixtures/p0/v1/valid/lifecycle-*",
+        "contracts/fixtures/p0/v1/valid/module-*",
+        "contracts/manifests/drafts/p0.json",
+        "contracts/manifests/v1/**",
+        "contracts/migrations/**",
+        "contracts/modules/**",
+        "tools/contracts/.generated/**",
+        "tools/contracts/.gitignore",
+        "tools/contracts/src/**",
+        "tools/contracts/tests/**"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "workspace"
+      ],
+      "depends_on_lanes": [
+        "lane-a",
+        "lane-b"
+      ],
+      "parallel_group": 2
     },
     {
       "lane_id": "lane-e",
@@ -95,28 +153,6 @@
       "parallel_group": 2
     },
     {
-      "lane_id": "lane-i",
-      "wp_ids": [
-        "WP09"
-      ],
-      "write_scope": [
-        "apps/web/*config*",
-        "apps/web/package.json"
-      ],
-      "predicted_surfaces": [
-        "api",
-        "app-shell",
-        "artifact-rendering",
-        "workspace"
-      ],
-      "depends_on_lanes": [
-        "lane-a",
-        "lane-b",
-        "lane-c"
-      ],
-      "parallel_group": 2
-    },
-    {
       "lane_id": "lane-g",
       "wp_ids": [
         "WP07"
@@ -131,9 +167,11 @@
         "app-shell",
         "legacy-cleanup",
         "tests",
-        "tracker-integration"
+        "tracker-integration",
+        "workspace"
       ],
       "depends_on_lanes": [
+        "lane-c",
         "lane-d",
         "lane-e",
         "lane-f"
@@ -141,47 +179,24 @@
       "parallel_group": 3
     },
     {
-      "lane_id": "lane-c",
+      "lane_id": "lane-i",
       "wp_ids": [
-        "WP03",
-        "WP11"
+        "WP09"
       ],
       "write_scope": [
-        ".github/workflows/foundation*",
-        "README*",
-        "contracts/api/**",
-        "contracts/conformance/**",
-        "contracts/events/**",
-        "contracts/fixtures/p0/v1/invalid/lifecycle-*",
-        "contracts/fixtures/p0/v1/invalid/module-*",
-        "contracts/fixtures/p0/v1/valid/lifecycle-*",
-        "contracts/fixtures/p0/v1/valid/module-*",
-        "contracts/manifests/**",
-        "contracts/manifests/p0.json",
-        "contracts/migrations/**",
-        "contracts/modules/**",
-        "docs/program-ledger.md",
-        "tools/contracts/**",
-        "tools/licenses/**"
+        "apps/web/*config*"
       ],
       "predicted_surfaces": [
         "api",
         "artifact-rendering",
-        "tests",
-        "tracker-integration",
         "workspace"
       ],
       "depends_on_lanes": [
         "lane-a",
         "lane-b",
-        "lane-d",
-        "lane-e",
-        "lane-f",
-        "lane-g",
-        "lane-h",
-        "lane-i"
+        "lane-c"
       ],
-      "parallel_group": 4
+      "parallel_group": 3
     },
     {
       "lane_id": "lane-h",
@@ -205,66 +220,94 @@
         "lane-f",
         "lane-g"
       ],
-      "parallel_group": 5
+      "parallel_group": 4
     },
     {
-      "lane_id": "lane-a",
+      "lane_id": "lane-j",
       "wp_ids": [
-        "WP01",
         "WP10"
       ],
       "write_scope": [
-        ".*-version",
-        ".npm*",
         "apps/web/src/app/globals.css",
         "apps/web/src/app/layout.tsx",
         "apps/web/src/app/page.tsx",
         "apps/web/src/lib/api/**",
         "apps/web/src/lib/contracts/**",
-        "apps/web/tests/foundation/**",
-        "package*.json",
-        "package-lock.json"
+        "apps/web/tests/foundation/**"
       ],
       "predicted_surfaces": [
         "api",
         "app-shell",
         "artifact-rendering",
         "dashboard",
-        "legacy-cleanup",
-        "tracker-integration",
         "workspace"
       ],
       "depends_on_lanes": [
+        "lane-a",
         "lane-b",
         "lane-c",
         "lane-h",
         "lane-i"
       ],
+      "parallel_group": 5
+    },
+    {
+      "lane_id": "lane-planning",
+      "wp_ids": [
+        "WP11"
+      ],
+      "write_scope": [
+        "docs/governance/p0-governed-doc-sync.json"
+      ],
+      "predicted_surfaces": [
+        "planning"
+      ],
+      "depends_on_lanes": [
+        "lane-c",
+        "lane-d",
+        "lane-e",
+        "lane-f",
+        "lane-g",
+        "lane-h",
+        "lane-i",
+        "lane-j"
+      ],
       "parallel_group": 6
+    },
+    {
+      "lane_id": "lane-k",
+      "wp_ids": [
+        "WP12"
+      ],
+      "write_scope": [
+        ".github/workflows/foundation*",
+        "README*",
+        "contracts/manifests/p0.json",
+        "docs/program-ledger.md",
+        "tools/licenses/**"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [
+        "lane-c",
+        "lane-d",
+        "lane-e",
+        "lane-f",
+        "lane-g",
+        "lane-h",
+        "lane-i",
+        "lane-j",
+        "lane-planning"
+      ],
+      "parallel_group": 7
     }
   ],
-  "computed_at": "2026-07-20T16:20:04.726170+00:00",
+  "computed_at": "2026-07-20T17:36:37.739195+00:00",
   "computed_from": "dependency_graph+ownership",
-  "planning_artifact_wps": [],
-  "collapse_report": {
-    "events": [
-      {
-        "wp_a": "WP01",
-        "wp_b": "WP10",
-        "rule": "write_scope_overlap",
-        "evidence": "overlapping globs: 'package*.json' vs 'package-lock.json'; WP10 depends on WP01"
-      },
-      {
-        "wp_a": "WP03",
-        "wp_b": "WP11",
-        "rule": "write_scope_overlap",
-        "evidence": "overlapping globs: 'contracts/manifests/**' vs 'contracts/manifests/p0.json'; WP11 depends on WP03"
-      }
-    ],
-    "total_merges": 2,
-    "independent_wps_collapsed": 0,
-    "by_rule": {
-      "write_scope_overlap": 2
-    }
-  }
+  "planning_artifact_wps": [
+    "WP11"
+  ]
 }
