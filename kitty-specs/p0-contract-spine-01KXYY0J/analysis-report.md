@@ -4,7 +4,7 @@ artifact_type: spec-kitty.analysis-report
 command: /spec-kitty.analyze
 mission_slug: p0-contract-spine-01KXYY0J
 mission_id: 01KXYY0J76QBNSWXX0SHMZNXC4
-generated_at: '2026-07-20T17:50:22.571759+00:00'
+generated_at: '2026-07-20T18:24:13.141519+00:00'
 analyzer_agent: unknown
 input_artifacts:
   spec.md:
@@ -12,7 +12,7 @@ input_artifacts:
     sha256: eeb3f77b13a2d685b33e438b3487c52b4091734f5bb5701274521890b922ab74
   plan.md:
     path: /home/lynn/projects/invoice-manager/kitty-specs/p0-contract-spine-01KXYY0J/plan.md
-    sha256: edb077c569b94ce580ad140c74d47942ffa8cc19e24d9f578fda778ca9d96139
+    sha256: 141309881e018e92e94aebe9ad4f4317b4181158a6d123ab188f09ed90751015
   tasks.md:
     path: /home/lynn/projects/invoice-manager/kitty-specs/p0-contract-spine-01KXYY0J/tasks.md
     sha256: ec54954e0581027ebb11be3426421f4a5adb95af058e7d32ceb2d34e4e46eac5
@@ -21,9 +21,9 @@ input_artifacts:
     sha256: a1176517b273e322d3dc408e369ef836c40e3bb84c69ae140ad554cffbb53f0f
 verdict: ready
 issue_counts:
+  low: 0
   high: 0
   critical: 0
-  low: 0
   medium: 0
   info: 0
 findings: []
