@@ -84,7 +84,9 @@ sole closure and acceptance package.
 - If no mission artifact needs a change, no synchronization commit is created.
 - Keep all examples synthetic and free of client, bank, invoice, credential, token, private-key,
   production-path, or other sensitive material.
-- WP12 consumes the committed receipt read-only and independently verifies its commit and drift.
+- WP12 consumes only the full lowercase receipt commit returned through the accepted Spec Kitty
+  review handoff and independently verifies its parent, diff, message, receipt, and drift. It
+  must never rediscover trust from receipt contents, branch HEAD, or a latest-path Git query.
 
 ## Hard Ownership Rules
 
@@ -169,9 +171,11 @@ establish the exact baseline the attestation will cover.
    `synchronized_baseline_commit = producer_baseline_commit`.
 7. If one or more paths require changes, stop all WP11 writes and give the authorized external
    orchestrator the exact path-scoped edits, evidence, and command below.
-8. Resume only after the synchronization commit is present on the target branch, its full hash
-   is known, its parent is `producer_baseline_commit`, and its file list contains only required
-   changed paths.
+8. Resume only after the synchronization commit is present on the target branch and its full
+   lowercase 40-hex hash is known. Require exactly one synchronization commit directly after
+   `producer_baseline_commit`: its sole parent equals that baseline, its subject is exactly
+   `docs: synchronize governed P0 artifacts`, and its nonempty file list is a subset of the 17
+   writable mission paths enumerated by `commands.sync_safe_commit`, with no charter or other path.
 9. Set that full commit as `synchronized_baseline_commit` and re-run reconciliation read-only.
 10. The charter must remain unchanged; a charter correction routes to charter governance.
 
@@ -185,7 +189,8 @@ spec-kitty safe-commit kitty-specs/p0-contract-spine-01KXYY0J/contracts/README.m
 
 - The producer and synchronized baselines are full lowercase 40-hex commits.
 - All 18 paths remain read-only to WP11 and reconcile at the synchronized baseline.
-- Any external sync is separately authorized, exact-path committed, and verified before resume.
+- Any external sync is separately authorized and verified as the one exact-path, exact-message
+  commit directly after the producer baseline before WP11 resumes.
 
 ### Subtask T049 – Create and Validate the Governance Attestation
 
@@ -240,7 +245,7 @@ and nondeterministic output are forbidden.
 Store exact `commands.drift`:
 
 ```bash
-receipt_commit="$(git log -1 --format=%H -- docs/governance/p0-governed-doc-sync.json)" && git diff --exit-code "$receipt_commit" -- .kittify/charter/charter.md kitty-specs/p0-contract-spine-01KXYY0J/contracts/README.md kitty-specs/p0-contract-spine-01KXYY0J/contracts/api-v1.openapi.yaml kitty-specs/p0-contract-spine-01KXYY0J/contracts/common-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/contract-manifest-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/event-catalog-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/event-envelope-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/governed-doc-sync-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/migration-manifest-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/module-contribution-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/p0-contract-manifest.json kitty-specs/p0-contract-spine-01KXYY0J/data-model.md kitty-specs/p0-contract-spine-01KXYY0J/plan.md kitty-specs/p0-contract-spine-01KXYY0J/quickstart.md kitty-specs/p0-contract-spine-01KXYY0J/research.md kitty-specs/p0-contract-spine-01KXYY0J/research/evidence-log.csv kitty-specs/p0-contract-spine-01KXYY0J/research/source-register.csv kitty-specs/p0-contract-spine-01KXYY0J/spec.md docs/governance/p0-governed-doc-sync.json
+test -n "$accepted_wp11_receipt_commit" && test "$accepted_wp11_receipt_commit" = "$(git log -1 --format=%H -- docs/governance/p0-governed-doc-sync.json)" && git diff --exit-code "$accepted_wp11_receipt_commit" -- .kittify/charter/charter.md kitty-specs/p0-contract-spine-01KXYY0J/contracts/README.md kitty-specs/p0-contract-spine-01KXYY0J/contracts/api-v1.openapi.yaml kitty-specs/p0-contract-spine-01KXYY0J/contracts/common-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/contract-manifest-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/event-catalog-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/event-envelope-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/governed-doc-sync-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/migration-manifest-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/module-contribution-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/p0-contract-manifest.json kitty-specs/p0-contract-spine-01KXYY0J/data-model.md kitty-specs/p0-contract-spine-01KXYY0J/plan.md kitty-specs/p0-contract-spine-01KXYY0J/quickstart.md kitty-specs/p0-contract-spine-01KXYY0J/research.md kitty-specs/p0-contract-spine-01KXYY0J/research/evidence-log.csv kitty-specs/p0-contract-spine-01KXYY0J/research/source-register.csv kitty-specs/p0-contract-spine-01KXYY0J/spec.md docs/governance/p0-governed-doc-sync.json
 ```
 
 **Validation**
@@ -260,10 +265,13 @@ the immutable drift check handed to WP12.
 
 1. Recheck branch, clean baseline, receipt schema validation, and the one-path allowed diff.
 2. Run exact `commands.receipt_safe_commit` once.
-3. Locate the receipt commit and require its parent to equal `synchronized_baseline_commit`.
-4. Inspect the commit message and file list; only the receipt may be present.
+3. Locate the receipt commit, require one full lowercase 40-hex hash, and require its sole parent
+   to equal `synchronized_baseline_commit`.
+4. Require the commit subject to equal `docs: attest governed P0 artifacts` and its exact diff to
+   contain only `docs/governance/p0-governed-doc-sync.json`.
 5. Run exact `commands.drift` and require exit zero.
-6. Hand the full receipt commit to WP12 without claiming final acceptance.
+6. Return that full hash as the sole Spec Kitty review-handoff candidate. Once WP11 review accepts
+   it, the hash is the accepted handoff commit WP12 must consume without rediscovery.
 
 Run exactly:
 
@@ -277,7 +285,8 @@ ordinary `git commit`.
 ## Validation
 
 - The resolver returns exactly 18 tracked, regular, non-symlink read-only paths.
-- The synchronized baseline decision follows the required no-sync or external-sync branch.
+- The synchronized baseline decision follows the required no-sync or single exact external-sync
+  commit branch.
 - Receipt fields, arrays, digests, statuses, mappings, dispositions, and commands validate.
 - The WP11 diff and receipt commit contain only `docs/governance/p0-governed-doc-sync.json`.
 - Exact drift exits zero after the receipt commit.
@@ -292,8 +301,10 @@ ordinary `git commit`.
 - [ ] All 18 digests/statuses and eight mappings validate from the attested baselines.
 - [ ] Architecture and glossary use exact `not_applicable` dispositions.
 - [ ] All four command values equal the schema constants byte-for-byte.
-- [ ] T050 committed only the receipt and proved its parent and zero-drift state.
-- [ ] WP12 received the full receipt commit; WP11 made no acceptance claim.
+- [ ] T050 committed only the receipt and proved its exact parent, diff, message, and zero drift.
+- [ ] The full lowercase receipt commit was returned as the sole review-handoff candidate.
+- [ ] WP12 received the accepted handoff commit without Git/receipt rediscovery; WP11 made no
+      mission acceptance claim.
 
 ## Risks & Mitigations
 
@@ -313,6 +324,8 @@ ordinary `git commit`.
 - Audit the eight mappings, synthetic data, and both `not_applicable` dispositions.
 - Compare all four stored commands byte-for-byte with the formal schema.
 - Inspect the receipt commit parent, exact one-file list, message, and drift exit.
+- Confirm the full lowercase receipt commit is the sole review-handoff candidate and WP12 is
+  instructed to consume only its accepted value, never a rediscovered latest-path commit.
 - Confirm WP11 hands evidence to WP12 without making a final P0 acceptance claim.
 
 ## Activity Log

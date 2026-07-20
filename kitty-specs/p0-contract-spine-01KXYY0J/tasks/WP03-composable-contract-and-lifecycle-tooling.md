@@ -164,7 +164,7 @@ payment, reporting, authentication, PDF, or deployment behavior.
 
 - Create `contracts/manifests/v1/schema.json` with a stable canonical `$id`.
 - Create `contracts/manifests/drafts/p0.json` from the P0 Draft planning manifest.
-- Do not create canonical `contracts/manifests/p0.json`; WP11 alone promotes the accepted Draft.
+- Do not create canonical `contracts/manifests/p0.json`; WP12 alone promotes the accepted Draft.
 - Preserve `baseline_commit` as the exact planning base, never the manifest publication commit.
 - Model states exactly as Draft, Frozen, Implemented, Verified, and Superseded.
 - Enforce only these forward transitions:

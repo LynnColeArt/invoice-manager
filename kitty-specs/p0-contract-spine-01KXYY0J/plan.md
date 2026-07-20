@@ -796,12 +796,21 @@ WP11 then validates and commits only its attestation with the schema's literal
 spec-kitty safe-commit docs/governance/p0-governed-doc-sync.json --message "docs: attest governed P0 artifacts" --to-branch feat/p0-contract-spine
 ```
 
+WP11 records the returned full receipt commit in its accepted Spec Kitty review
+handoff. Before approval, the reviewer verifies that commit's parent equals
+`synchronized_baseline_commit`, its diff contains exactly the receipt, and its
+message is exact. When synchronization occurred, the reviewer also verifies the
+synchronized baseline is one exact `sync_safe_commit` child of
+`producer_baseline_commit`; when it did not, both baseline fields must be equal.
+
 WP12 validates the formal schema and exact inventory, recomputes every recorded digest,
-and runs the receipt's self-contained command beginning
-`receipt_commit="$(git log -1 --format=%H -- docs/governance/p0-governed-doc-sync.json)" && git diff --exit-code "$receipt_commit" --`
+loads that reviewed full commit as `accepted_wp11_receipt_commit` from the accepted
+WP11 handoff—not from receipt content or unqualified history—and independently repeats
+the topology, message, and exact-file checks. It then runs the receipt's command beginning
+`test -n "$accepted_wp11_receipt_commit" && test "$accepted_wp11_receipt_commit" = "$(git log -1 --format=%H -- docs/governance/p0-governed-doc-sync.json)" && git diff --exit-code "$accepted_wp11_receipt_commit" --`
 with all 18 required paths and the receipt path fully expanded to prove no later drift. Missing or
 additional artifacts, unsorted/duplicate paths, digest differences, an empty
-rationale, a command mismatch, or an unmapped example fail closure. WP12 has a
+rationale, a command mismatch, a topology/handoff mismatch, or an unmapped example fail closure. WP12 has a
 hard WP11 dependency, so the sync must finish before IC-11 begins final
 acceptance. Code WPs may cite a needed planning correction in their Activity
 Log, but they do not claim `quickstart.md` or other governed planning paths

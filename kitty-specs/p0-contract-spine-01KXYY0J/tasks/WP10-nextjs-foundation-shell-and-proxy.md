@@ -264,21 +264,21 @@ WP08+WP10 production E2E, a reusable proxy/performance harness, and diagnostic N
 8. Test narrow/mobile, desktop, 200% zoom, dark preference, and 320px overflow.
 9. Ensure `web:check` runs format, lint, strict types, component tests, and production build.
 10. Ensure `http:smoke` runs this same real production same-origin path.
-11. Supply a reusable production proxy/performance harness for WP11's final reference run.
+11. Supply only a reusable NFR-007 production proxy/performance harness and diagnostic evidence for WP12's final reference run.
 12. Record runner, tools, exact candidate commit, and monotonic timing boundaries.
 13. After Ready, issue 10 sequential warmups and discard them from measurement.
 14. Issue exactly 100 sequential diagnostic NFR-007 requests with no concurrency or discarded samples.
 15. Time each request through complete same-origin response-body read and count every invalid response as failure.
 16. Sort durations, report min/median/max and nearest-rank p99 as one-based sample 99, including slow/invalid counts; diagnose whether p99 is at most 1,000 ms.
 17. Keep component tests deterministic and reserve live-boundary assertions for E2E.
-18. Do not claim final NFR-001 or NFR-008 acceptance; WP11 owns the clean reference bootstrap/runtime acceptance run.
+18. Do not claim final NFR-001 or NFR-008 acceptance; WP12 owns the clean reference bootstrap/runtime acceptance run.
 
 **Validation**
 
 - Run component tests without Zig, then real E2E against production Next.js plus WP08 Zig.
 - Repeat the same-origin smoke after the production build and inspect browser traffic.
 - Reject undersized, concurrent, mocked, direct-Zig, non-monotonic, or cherry-picked diagnostic evidence.
-- Prove the harness exposes the controls and measurements WP11 needs for final NFR-001/NFR-008 acceptance.
+- Prove the NFR-007 harness exposes the diagnostic controls and measurements WP12 needs for final NFR-001/NFR-008 acceptance.
 - Require screenshots/logs to contain only synthetic foundation data.
 
 ## Test Strategy
@@ -327,7 +327,7 @@ build, or aggregate check; a stale prior output does not satisfy this ordering.
 - [ ] Charter security cases record chronological public-boundary red before production changes and matching green.
 - [ ] T047 passes component, accessibility, contract, production E2E, and focused gates.
 - [ ] WP10 supplies the real proxy/performance harness and records diagnostic NFR-007 sample-99 evidence.
-- [ ] WP11 remains the sole final NFR-001/NFR-008 reference acceptance owner.
+- [ ] WP12 remains the sole final NFR-001/NFR-008 reference acceptance owner.
 - [ ] Every write is inside the declared app-owned paths.
 - [ ] No business feature, generated copy, config edit, or out-of-scope path is present.
 
@@ -339,7 +339,7 @@ build, or aggregate check; a stale prior output does not satisfy this ordering.
 - **Next.js starts owning business rules**: keep adapters presentation/transport-only.
 - **Browser bypasses proxy or leaks origin**: inspect network and production assets.
 - **Proxy becomes SSRF/open redirect**: accept one server-only fixed origin, never request input.
-- **Performance passes vacuously**: enforce real processes and exact diagnostic sample protocol while reserving final acceptance for WP11.
+- **Performance passes vacuously**: enforce real processes and exact NFR-007 diagnostic sample protocol while reserving final acceptance for WP12.
 - **Quiet palette loses contrast**: test normal, dark, forced-color, keyboard, and zoom modes.
 
 ## Reviewer Guidance
@@ -353,7 +353,7 @@ build, or aggregate check; a stale prior output does not satisfy this ordering.
 - Use browser tools to confirm same-origin traffic and no internal origin disclosure.
 - Verify charter security cases are chronological public-boundary red-before-production-before-green.
 - Exercise exact WCAG 2.2 AA/responsive/error states and the real WP08+WP10 production E2E.
-- Recalculate diagnostic sample 99 and confirm WP10 does not claim WP11's final NFR-001/NFR-008 acceptance.
+- Recalculate diagnostic sample 99 and confirm WP10 supplies only NFR-007 harness/diagnostic evidence and does not claim WP12's final NFR-001/NFR-008 acceptance.
 - Reject approval if profile, immutable-graph ownership, package ownership, or evidence authority drifts.
 
 ## Activity Log
