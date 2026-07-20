@@ -4,7 +4,7 @@ artifact_type: spec-kitty.analysis-report
 command: /spec-kitty.analyze
 mission_slug: p0-contract-spine-01KXYY0J
 mission_id: 01KXYY0J76QBNSWXX0SHMZNXC4
-generated_at: '2026-07-20T20:45:30.312084+00:00'
+generated_at: '2026-07-20T21:37:16.347314+00:00'
 analyzer_agent: unknown
 input_artifacts:
   spec.md:
@@ -33,7 +33,7 @@ findings: []
 
 | ID | Category | Severity | Location(s) | Summary | Recommendation |
 |----|----------|----------|-------------|---------|----------------|
-| — | — | — | — | No cross-artifact finding. The tasks.md delta only marks T008-T014 complete; WP03's rejected review receipt governs its correction cycle without changing scope, ownership, dependencies, or requirement coverage. | Reclaim WP03 and address the five cycle-one blockers. |
+| — | — | — | — | No cross-artifact finding. The `tasks.md` delta records completed runtime subtasks only; WP03 review cycle 2 narrows the next implementation correction without changing mission scope, ownership, dependencies, or requirement coverage. | Reclaim WP03 and address the two cycle-2 blockers documented in `review-cycle-2.md`. |
 
 ## Coverage Summary
 
@@ -49,7 +49,7 @@ None. Required TDD, black-box boundaries, living-document sync, GPL-2.0-only, ex
 
 ## Unmapped Tasks
 
-None. T001-T057 remain contiguous and singly owned. Completion markers are runtime progress, not scope changes.
+None. T001–T057 remain contiguous and singly owned. Completion markers are runtime progress, not scope changes.
 
 ## Metrics
 
@@ -62,5 +62,5 @@ None. T001-T057 remain contiguous and singly owned. Completion markers are runti
 
 ## Next Actions
 
-- Reclaim WP03 for its structured correction cycle.
-- Keep WP04 isolated pending authorization to fix and repin ShovelerDB upstream.
+- Reclaim WP03 for correction cycle 3 and close the real P1–P4 evidence plus fail-loud filesystem blockers.
+- Keep WP04 isolated until the independently reviewed ShovelerDB fix is merged and repinned.
