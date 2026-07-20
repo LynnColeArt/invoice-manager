@@ -18,7 +18,7 @@ subtasks:
 - T042
 phase: Phase 3
 assignee: ''
-agent: "codex"
+agent: "codex-wp09-lock-review"
 history: []
 agent_profile: frontend-freddy
 authoritative_surface: apps/web/
@@ -35,7 +35,7 @@ owned_files:
 role: implementer
 tags: []
 task_type: implement
-shell_pid: "827787"
+shell_pid: "1807838"
 ---
 
 # Work Package Prompt: WP09 – Next.js Configuration Substrate
@@ -247,3 +247,6 @@ Run validation without installing packages or importing config modules through d
 - 2026-07-20T23:37:29Z – codex – shell_pid=1807838 – Reopen approved WP09 solely for static dependency-lock re-attestation after WP01 advisory correction.
 - 2026-07-20T23:37:48Z – codex – shell_pid=827787 – Started implementation via action command
 - 2026-07-20T23:37:58Z – codex – shell_pid=827787 – GREEN static dependency revalidation: all five WP09 config files remain byte-identical to c396d18. Exact Node 24 syntax checks passed without importing package code; all 20 app declarations still map to exact public-registry lock versions and SHA-512 integrity or the WP03 workspace link; web/workspace maps and the stable ./v1 export match; canonical lock has 610 entries and one hoisted js-yaml@4.3.0; strict TypeScript and server-only policy checks pass. No npm install, package execution, generated output, node_modules, or config/source change occurred. New metadata hashes: package 262d99dd, web f31c4513, lock 6ea2ffb8.
+- 2026-07-20T23:38:14Z – codex – shell_pid=827787 – No config/source change: canonical WP01 lock passed WP09-authorized static declaration, integrity, workspace, strictness, and server-only policy checks without package execution; ready for independent re-attestation.
+- 2026-07-20T23:38:43Z – codex-wp09-lock-review – shell_pid=1807838 – Started review via action command
+- 2026-07-20T23:44:31Z – user – shell_pid=1807838 – Review passed: five unchanged configs pass static Node24, exact 20-declaration canonical-lock, workspace-export, strictness, and server-only policy re-attestation without package execution
