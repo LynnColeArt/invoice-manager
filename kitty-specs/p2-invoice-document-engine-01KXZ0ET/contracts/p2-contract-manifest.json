@@ -1,0 +1,15 @@
+{
+  "manifest_version": "1",
+  "mission": "p2-invoice-document-engine-01KXZ0ET",
+  "owner": "p2",
+  "contract_version": "0.1.0-draft.1",
+  "lifecycle_state": "Draft",
+  "implementation_authorized": false,
+  "consumes": [
+    { "owner": "p0", "version": "0.1.0-draft.1", "required_state_for_implementation": "Frozen" },
+    { "owner": "p1", "version": "0.1.0-draft.1", "required_state_for_implementation": "Frozen" }
+  ],
+  "artifacts": ["invoice-document-v1.schema.json"],
+  "consumers": ["p5", "p6"],
+  "notes": "Planning-only. Snapshot, render-recipe, staged-receipt, and fixture digests are added before freeze."
+}
