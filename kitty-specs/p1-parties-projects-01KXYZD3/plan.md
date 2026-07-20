@@ -19,9 +19,10 @@ schedules, authenticate users, or calculate dashboard metrics.
 ## Technical Context
 
 **Language/Version**: Zig 0.16.0; TypeScript 6.0.3; Node.js 24.18.0 LTS  
-**Primary Dependencies**: Next.js 16.2.10; React/React DOM 19.2.7;
-ShovelerDB commit `fc7539a3874293540a4de6d228b3ea670a8ca2e8`; P0
-`0.1.0-draft.1`; OpenAPI 3.1; JSON Schema 2020-12  
+**Primary Dependencies**: Next.js 16.2.10; React/React DOM 19.2.7; P0
+`0.1.0-draft.1`, including its exact-commit-pinned ShovelerDB persistence seam;
+OpenAPI 3.1; JSON Schema 2020-12
+
 **Storage**: One P0-serialized ShovelerDB handle plus content-addressed PNG
 assets in an application-owned private artifact root  
 **Testing**: Zig unit/property/coverage tests, schema and fixture composition,
