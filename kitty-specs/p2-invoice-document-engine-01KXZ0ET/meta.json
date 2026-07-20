@@ -7,6 +7,7 @@
   "mission_number": null,
   "mission_slug": "p2-invoice-document-engine-01KXZ0ET",
   "mission_type": "software-dev",
+  "pr_bound": true,
   "purpose_context": "This Wave A mission owns structured invoice drafts, exact line and tax calculation, immutable document snapshots, versioned typography, secure LuaLaTeX rendering, PDF preview, and the staged-artifact handoff to issuance. It consumes P0 and P1 Draft contracts for planning only and does not allocate invoice numbers, issue invoices, retain issued artifacts, advance schedules, authenticate users, or calculate analytics.",
   "purpose_tldr": "Calculate exact invoice documents and render typographically beautiful PDF previews through a secure Zig-orchestrated LuaLaTeX sandbox.",
   "slug": "p2-invoice-document-engine-01KXZ0ET",

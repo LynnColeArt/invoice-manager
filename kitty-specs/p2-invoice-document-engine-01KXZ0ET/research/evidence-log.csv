@@ -1,0 +1,7 @@
+evidence_id,claim,source_id,decision,confidence
+EV-001,TeX reads and writes files and requires external isolation,SRC-001,OS sandbox is mandatory,high
+EV-002,TeX Live 2026 no longer relies on openin_any read restrictions,SRC-001,No ambient filesystem and fail closed,high
+EV-003,RFC 8785 defines canonical JSON bytes,SRC-002,Use for snapshot and recipe digests,high
+EV-004,RFC 9530 defines current HTTP digest fields,SRC-003,Use Content-Digest for PDF response,high
+EV-005,P0 represents Money as currency plus canonical decimal-string i64,SRC-004,No floating point or wire-value redefinition,high
+EV-006,P1 structurally omits hidden remittance and selects PNG by digest,SRC-005,Defensively validate omission/completeness and digest,high

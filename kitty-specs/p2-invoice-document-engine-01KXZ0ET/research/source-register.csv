@@ -1,0 +1,6 @@
+source_id,title,url,source_type,accessed_at,notes
+SRC-001,TeX Live 2026 Guide,https://www.tug.org/texlive/doc/texlive-en/texlive-en.html,primary,2026-07-19,Security and reproducibility behavior
+SRC-002,RFC 8785 JSON Canonicalization Scheme,https://www.rfc-editor.org/rfc/rfc8785.html,standard,2026-07-19,Snapshot and recipe canonicalization
+SRC-003,RFC 9530 Digest Fields,https://www.rfc-editor.org/rfc/rfc9530.html,standard,2026-07-19,HTTP Content-Digest
+SRC-004,P0 Draft contract spine,git:feat/p0-contract-spine:kitty-specs/p0-contract-spine-01KXYY0J/contracts/,project,2026-07-19,Planning-only common contracts
+SRC-005,P1 Draft resolved configuration,git:feat/p1-parties-projects:kitty-specs/p1-parties-projects-01KXYZD3/contracts/,project,2026-07-19,Planning-only party/remittance/logo seam
