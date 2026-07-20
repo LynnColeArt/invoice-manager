@@ -44,7 +44,7 @@ Draft state.
 
 **Language/Version**: Zig 0.16.0; TypeScript 6.0.3; Node.js 24.18.0 LTS
 **Primary Dependencies**: Next.js 16.2.10; React/React DOM 19.2.7; ESLint
-10.7.0; npm 11.16.0; ShovelerDB commit
+9.39.5; npm 11.16.0; ShovelerDB commit
 `fc7539a3874293540a4de6d228b3ea670a8ca2e8`; OpenAPI 3.1; JSON Schema
 2020-12
 **Storage**: One serialized ShovelerDB handle per database path; binary
