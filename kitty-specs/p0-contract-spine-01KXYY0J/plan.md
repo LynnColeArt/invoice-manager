@@ -468,10 +468,11 @@ shutdown during an active operation, and close/reopen through this public seam.
   foundation validation, service/web startup, and one valid same-origin health
   response, and stops only after all complete successfully. Installation of the
   documented prerequisite toolchains is outside the clock.
-- The validation-duration clock runs the canonical full foundation command from
-  an already bootstrapped checkout with clean build/test caches and stops after
-  every independently required gate completes. It must finish within 15 minutes
-  on the same reference runner.
+- The validation-duration 15-minute clock uses a monotonic wall clock and starts
+  immediately before the canonical full foundation command from a clean checkout
+  with empty dependency and build caches. It includes dependency resolution,
+  builds, tests, audits, and every independently required gate, and stops only
+  after the final gate reports a result on the same reference runner.
 - Health responsiveness is measured through the real same-origin proxy with a
   ready ReleaseSafe Zig service and production Next.js build. After ten
   unmeasured warm-up requests, issue exactly 100 sequential requests. Measure
@@ -657,7 +658,7 @@ two narrow work packages claiming the same file:
 | --- | --- |
 | Repository substrate | Root `package.json`, initial bootstrap lock, npm policy, and tool-version files; declares all focused commands up front and does not absorb app dependencies |
 | Shared values | `contracts/common/v1/`, Zig shared values, and their tests |
-| Contract composition | API/event/module/manifest/fixture trees, `contracts/conformance/p0-p4-inputs.json`, `tools/contracts/.gitignore`, contract-tool workspace, and sole writer of `tools/contracts/.generated/typescript/v1/` |
+| Contract composition | API/event/module/manifest/fixture trees, creation and validation of the Draft `contracts/manifests/p0.json`, `contracts/conformance/p0-p4-inputs.json`, `tools/contracts/.gitignore`, contract-tool workspace, and sole writer of `tools/contracts/.generated/typescript/v1/` |
 | Migration runner | P0 descriptors, migration application/readiness, and migration tests through the public durable seam; excludes adapter/store/directory-sync implementation |
 | ShovelerDB consumption | Dependency source, service build files, dependency adapter, dependency notice, and convention-scanned stable Zig test/coverage hooks |
 | Durable storage | Migration-agnostic persistence state machine, serialized store, directory sync, diagnostics, and store tests; excludes every `migrations*` file |
@@ -665,13 +666,17 @@ two narrow work packages claiming the same file:
 | Web package/config substrate | `apps/web/package.json` and app-local configuration only; no root lock, shell, proxy, or E2E source |
 | Application integration | One `scope: codebase-wide` package after Zig HTTP: the sole post-metadata `package-lock.json` updater plus real shell/style, proxy/client adapters, accessibility tests, and Playwright E2E |
 | Pre-acceptance planning sync | Orchestrator-owned governed-artifact operation, not a code WP: synchronizes mission spec/plan/data model/quickstart, canonical examples, architecture notes, and glossary |
-| Program closure | One `scope: codebase-wide` package owning foundation CI, full-gate execution, license tooling, `README.md`, `docs/program-ledger.md`, and `contracts/manifests/p0.json` after all producers and planning sync |
+| Program closure | One `scope: codebase-wide` package owning foundation CI, full-gate execution, license tooling, `README.md`, `docs/program-ledger.md`, and sole post-producer promotion of `contracts/manifests/p0.json` after all producers and planning sync |
 
 The closure package rejects or routes unfinished producer work back to its
 owner. It does not become the routine author of another package's tests,
 notices, fixtures, source, or governed mission planning documents. The
-application-integration package's root lock update is the sole declared
-phase-scoped exception to the substrate's initial lock ownership.
+two declared serialized, phase-scoped ownership handoffs are: the
+application-integration package's root lock reconciliation after the substrate's
+initial lock, and WP11's exact `contracts/manifests/p0.json` promotion after WP03
+creates and validates the Draft manifest and every producer finishes. At that
+second handoff, codebase-wide WP11 alone may edit the exact manifest to promote
+closure evidence.
 
 P1-P4 may begin specification and planning as soon as this draft contract set is
 committed. Their implementation remains blocked until their consumed contracts
