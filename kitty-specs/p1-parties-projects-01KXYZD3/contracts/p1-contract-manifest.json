@@ -1,21 +1,67 @@
 {
-  "manifest_version": "1",
+  "manifest_version": 1,
+  "contract_id": "invoice-manager.parties-projects",
+  "owner_mission": "p1",
   "mission": "p1-parties-projects-01KXYZD3",
-  "owner": "p1",
-  "contract_version": "0.1.0-draft.1",
-  "lifecycle_state": "Draft",
-  "implementation_authorized": false,
-  "consumes": [
+  "version": "0.1.0-draft.1",
+  "state": "Draft",
+  "baseline_commit": "ee5ac9e87da9c9a38f31563e089a8fd9fed56810",
+  "content_digest": "pending",
+  "dependencies": ["p0"],
+  "inputs": [
     {
-      "owner": "p0",
+      "contract_id": "invoice-manager.foundation",
+      "owner_mission": "p0",
       "version": "0.1.0-draft.1",
-      "source_branch": "feat/p0-contract-spine",
-      "required_state_for_implementation": "Frozen"
+      "required_state": "Frozen",
+      "content_digest": "pending"
     }
   ],
-  "artifacts": [
-    "resolved-invoice-configuration-v1.schema.json"
+  "outputs": [
+    {
+      "path": "kitty-specs/p1-parties-projects-01KXYZD3/contracts/resolved-invoice-configuration-v1.schema.json",
+      "kind": "domain_schema",
+      "digest": "pending"
+    }
   ],
-  "consumers": ["p2", "p5", "p6"],
-  "notes": "Planning-only. Exact artifact digests are added at freeze."
+  "owned_paths": [
+    "contracts/api/v1/fragments/p1/**",
+    "contracts/events/v1/catalogs/p1/**",
+    "contracts/events/v1/payloads/p1/**",
+    "contracts/modules/p1/**",
+    "contracts/fixtures/p1/v1/**",
+    "contracts/manifests/p1.json",
+    "services/api/migrations/p1/**",
+    "services/api/src/domains/parties_projects/**",
+    "services/api/tests/parties_projects/**",
+    "apps/web/src/features/billing-identities/**",
+    "apps/web/src/features/clients/**",
+    "apps/web/src/features/projects/**",
+    "apps/web/src/app/billing-identities/**",
+    "apps/web/src/app/clients/**",
+    "apps/web/src/app/projects/**"
+  ],
+  "shared_touchpoints": [
+    {
+      "path": "apps/web/src/app/layout.tsx",
+      "steward": "program-integration-steward",
+      "reason": "Global navigation is integrated after domain routes are stable"
+    }
+  ],
+  "migration_strategy": {
+    "mode": "owner_scoped_forward_only",
+    "root": "services/api/migrations/p1"
+  },
+  "integration_fixtures": [
+    {
+      "path": "contracts/fixtures/p1/v1/valid/domestic-client-default.json",
+      "expectation": "valid",
+      "digest": "pending"
+    },
+    {
+      "path": "contracts/fixtures/p1/v1/invalid/europe-remittance-incomplete.json",
+      "expectation": "invalid",
+      "digest": "pending"
+    }
+  ]
 }

@@ -42,18 +42,11 @@
     }
   ],
   "$defs": {
-    "EntityId": { "type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" },
-    "CanonicalInt64": { "type": "string", "pattern": "^(0|-?[1-9][0-9]*)$" },
-    "UtcInstant": { "type": "string", "format": "date-time" },
-    "LocalDate": { "type": "string", "format": "date" },
-    "Money": {
-      "type": "object", "additionalProperties": false,
-      "required": ["currency", "minor_units"],
-      "properties": {
-        "currency": { "enum": ["USD", "EUR"] },
-        "minor_units": { "$ref": "#/$defs/CanonicalInt64" }
-      }
-    },
+    "EntityId": { "$ref": "https://invoice-manager.invalid/contracts/common/v1/schema.json#/$defs/EntityId" },
+    "CanonicalInt64": { "$ref": "https://invoice-manager.invalid/contracts/common/v1/schema.json#/$defs/CanonicalInt64" },
+    "UtcInstant": { "$ref": "https://invoice-manager.invalid/contracts/common/v1/schema.json#/$defs/UtcInstant" },
+    "LocalDate": { "$ref": "https://invoice-manager.invalid/contracts/common/v1/schema.json#/$defs/LocalDate" },
+    "Money": { "$ref": "https://invoice-manager.invalid/contracts/common/v1/schema.json#/$defs/Money" },
     "Address": {
       "type": "object", "additionalProperties": false,
       "required": ["line1", "city", "postal_code", "country_code"],
@@ -118,7 +111,7 @@
         "id": { "$ref": "#/$defs/EntityId" },
         "media_type": { "const": "image/png" },
         "byte_length": { "type": "integer", "minimum": 1, "maximum": 2097152 },
-        "sha256_digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+        "sha256_digest": { "$ref": "https://invoice-manager.invalid/contracts/common/v1/schema.json#/$defs/Sha256Digest" }
       }
     }
   }
