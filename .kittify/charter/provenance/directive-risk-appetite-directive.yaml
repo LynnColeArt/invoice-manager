@@ -1,0 +1,21 @@
+adapter_id: generated
+adapter_notes: 
+  generated-artifact:.kittify/charter/generated/directives/002-risk-appetite-directive.directive.yaml
+adapter_version: 1.0.0
+artifact_content_hash: 
+  cfe5cf0e69a1973bfa4ae381ec13cd4e591cf45faf7c6dfd0d45df0175f87455
+artifact_kind: directive
+artifact_slug: risk-appetite-directive
+artifact_urn: directive:PROJECT_002
+corpus_snapshot_id: generic-v1.0.0
+evidence_bundle_hash: 
+  466634b3759651f87ff25f2897214097aa2988300e988758189c865a0bfccd45
+generated_at: '2026-07-16T12:59:12.471377+00:00'
+inputs_hash: 024294868042d20b6a083586496d879f791abc9156a185e0e9346c722dc0b09f
+produced_at: '2026-07-16T12:59:26.209966+00:00'
+schema_version: '2'
+source_input_ids: []
+source_section: risk_appetite
+source_urns: []
+synthesis_run_id: 0D494AFECA5541148D0F2D1263
+synthesizer_version: 3.2.6

@@ -1,0 +1,48 @@
+schema_version: "1.0"
+id: typescript-style-guide
+title: Invoice Manager TypeScript and Next.js Style
+scope: code
+applies_to_languages:
+  - typescript
+  - tsx
+principles:
+  - Use TypeScript strict mode and parse Zig API payloads at one checked boundary.
+  - Keep business validation, authorization, money arithmetic, lifecycle transitions, and persistence in Zig.
+  - Send 64-bit minor-unit money through JSON as decimal strings with explicit currency and format it without recomputing authoritative totals.
+  - Prefer Server Components for non-interactive presentation and add Client Components only for browser-dependent interaction.
+  - Preserve server validation errors, provide accessible client feedback, and make consequential confirmations keyboard-operable.
+  - Label every financial chart with currency, date basis, and invoiced, collected, outstanding, or forecast semantics.
+patterns:
+  - name: Checked API client
+    description: Centralize request, response parsing, idempotency headers, and error normalization in a typed client.
+    good_example: "invoiceApi.issue(invoiceId, idempotencyKey) returns an IssuedInvoice contract."
+  - name: Consequential review screen
+    description: Display resolved issuer, recipient, remittance, logo, dates, currency, totals, and server errors before issuance.
+    good_example: "InvoiceReview renders the frozen preview fields before enabling Issue."
+  - name: Currency-specific series
+    description: Give each chart series one currency and accounting basis.
+    good_example: "RevenueSeries currency=USD basis=collected dateBasis=payment-date"
+anti_patterns:
+  - name: JavaScript money arithmetic
+    description: Number arithmetic can lose precision and duplicates authoritative Zig rules.
+    bad_example: "lines.reduce((sum, line) => sum + line.quantity * line.rate, 0)"
+    good_example: "formatMoney(invoice.totalMinor, invoice.currency)"
+  - name: Hidden Node backend
+    description: A Route Handler or Server Action that changes business state creates a second backend.
+    bad_example: "A Server Action writes invoice status directly."
+    good_example: "The action delegates to the Zig API without owning the rule."
+  - name: Client validation treated as authority
+    description: Browser checks improve feedback but do not authorize or establish correctness.
+    bad_example: "Hide the Issue button and omit server-side state validation."
+    good_example: "Validate in the UI and require Zig to validate again."
+tooling:
+  formatter: Prettier
+  linter: ESLint with zero warnings on changed code
+  type_checker: tsc --noEmit with strict mode
+  component_tests: Vitest
+  workflow_tests: Playwright
+quality_test: >-
+  Can a user understand every consequential billing choice while a reviewer can
+  prove the UI neither invents financial rules nor obscures currency or basis?
+references:
+  - docs/planning-brief.md

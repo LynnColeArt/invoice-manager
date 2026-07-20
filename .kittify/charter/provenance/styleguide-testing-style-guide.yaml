@@ -1,0 +1,21 @@
+adapter_id: generated
+adapter_notes: 
+  generated-artifact:.kittify/charter/generated/styleguides/testing-style-guide.styleguide.yaml
+adapter_version: 1.0.0
+artifact_content_hash: 
+  d761d1fc74f459e7e47d7d9065c959498a1b0b94e56fc63ce433677e22a5277f
+artifact_kind: styleguide
+artifact_slug: testing-style-guide
+artifact_urn: styleguide:testing-style-guide
+corpus_snapshot_id: generic-v1.0.0
+evidence_bundle_hash: 
+  466634b3759651f87ff25f2897214097aa2988300e988758189c865a0bfccd45
+generated_at: '2026-07-16T12:59:12.472377+00:00'
+inputs_hash: 031da39588063c0bee74b459d9eef059032050c083882797b253d7688e3ed6a4
+produced_at: '2026-07-16T12:59:26.234691+00:00'
+schema_version: '2'
+source_input_ids: []
+source_section: testing_philosophy
+source_urns: []
+synthesis_run_id: 0D494AFECA5541148D0F2D1263
+synthesizer_version: 3.2.6

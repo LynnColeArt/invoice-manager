@@ -1,0 +1,61 @@
+anti_patterns:
+- bad_example: lines.reduce((sum, line) => sum + line.quantity * line.rate, 0)
+  description: Number arithmetic can lose precision and duplicates authoritative
+    Zig rules.
+  good_example: formatMoney(invoice.totalMinor, invoice.currency)
+  name: JavaScript money arithmetic
+- bad_example: A Server Action writes invoice status directly.
+  description: A Route Handler or Server Action that changes business state 
+    creates a second backend.
+  good_example: The action delegates to the Zig API without owning the rule.
+  name: Hidden Node backend
+- bad_example: Hide the Issue button and omit server-side state validation.
+  description: Browser checks improve feedback but do not authorize or establish
+    correctness.
+  good_example: Validate in the UI and require Zig to validate again.
+  name: Client validation treated as authority
+applies_to_languages:
+- typescript
+- tsx
+id: typescript-style-guide
+patterns:
+- description: Centralize request, response parsing, idempotency headers, and 
+    error normalization in a typed client.
+  good_example: invoiceApi.issue(invoiceId, idempotencyKey) returns an 
+    IssuedInvoice contract.
+  name: Checked API client
+- description: Display resolved issuer, recipient, remittance, logo, dates, 
+    currency, totals, and server errors before issuance.
+  good_example: InvoiceReview renders the frozen preview fields before enabling 
+    Issue.
+  name: Consequential review screen
+- description: Give each chart series one currency and accounting basis.
+  good_example: RevenueSeries currency=USD basis=collected 
+    dateBasis=payment-date
+  name: Currency-specific series
+principles:
+- Use TypeScript strict mode and parse Zig API payloads at one checked boundary.
+- Keep business validation, authorization, money arithmetic, lifecycle 
+  transitions, and persistence in Zig.
+- Send 64-bit minor-unit money through JSON as decimal strings with explicit 
+  currency and format it without recomputing authoritative totals.
+- Prefer Server Components for non-interactive presentation and add Client 
+  Components only for browser-dependent interaction.
+- Preserve server validation errors, provide accessible client feedback, and 
+  make consequential confirmations keyboard-operable.
+- Label every financial chart with currency, date basis, and invoiced, 
+  collected, outstanding, or forecast semantics.
+quality_test: Can a user understand every consequential billing choice while a 
+  reviewer can prove the UI neither invents financial rules nor obscures 
+  currency or basis?
+references:
+- docs/planning-brief.md
+schema_version: '1.0'
+scope: code
+title: Invoice Manager TypeScript and Next.js Style
+tooling:
+  component_tests: Vitest
+  formatter: Prettier
+  linter: ESLint with zero warnings on changed code
+  type_checker: tsc --noEmit with strict mode
+  workflow_tests: Playwright

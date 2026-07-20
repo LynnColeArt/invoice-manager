@@ -1,0 +1,46 @@
+failure_modes:
+- Beginning with formatting while a financial invariant is unclear.
+- Approving mocked persistence evidence for a durability change.
+- Expanding review into unrelated redesign.
+- Treating owner self-merge as permission to bypass gates.
+id: review-policy-tactic
+name: Invoice Manager Risk-First Review
+purpose: Review small changes by establishing intent, checking high-consequence 
+  invariants, and verifying evidence before discussing lower-risk style 
+  concerns.
+schema_version: '1.0'
+steps:
+- description: Read the mission requirement, work-package scope, decisions, and 
+    business examples before interpreting the diff.
+  examples:
+  - Identify whether a change is allowed to alter invoice snapshot data before 
+    reviewing its schema edits.
+  title: Read intent and acceptance boundary
+- description: Prioritize money, currency, numbering, lifecycle, checkpointing, 
+    authentication, bank details, TeX execution, and migration safety.
+  examples:
+  - Confirm the API cannot return success before checkpoint completion.
+  title: Inspect the highest-risk behavior first
+- description: Check that Zig remains the business authority, storage and 
+    rendering remain adapters, and canonical domain terms have not drifted.
+  examples:
+  - Reject a Next.js Server Action that directly changes invoice state.
+  title: Verify architecture and language
+- description: Confirm red-first proof where required, 90% Zig domain coverage, 
+    relevant black-box boundaries, PDF fixtures, accessibility, builds, and 
+    documentation sync.
+  examples:
+  - Require real close-reopen evidence for a changed ShovelerDB unit of work.
+  title: Verify evidence against the change
+- description: Block correctness, security, durability, scope, or required-gate 
+    defects; record optional improvements without expanding the work package.
+  examples:
+  - Block invoice-number reuse but defer a chart color preference.
+  title: Separate blockers from observations
+- description: External contributions require one maintainer approval and green 
+    required CI; the owner may self-merge after the same gates and acceptance 
+    evidence pass. Verify that commits use the Conventional Commits convention 
+    before merge.
+  examples:
+  - Do not waive a failing PDF security fixture for an owner-authored change.
+  title: Apply the approval policy

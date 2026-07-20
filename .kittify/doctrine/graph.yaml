@@ -1,0 +1,50 @@
+schema_version: '1.0'
+generated_at: '2026-07-16T12:59:26+00:00'
+generated_by: spec-kitty charter synthesize 3.2.6
+nodes:
+- kind: directive
+  urn: directive:PROJECT_001
+  label: Mission Type Directive
+- kind: directive
+  urn: directive:PROJECT_002
+  label: Risk Appetite Directive
+- kind: tactic
+  urn: tactic:how-we-apply-directive-030
+  label: How We Apply DIRECTIVE_030
+- kind: tactic
+  urn: tactic:how-we-apply-directive-036
+  label: How We Apply DIRECTIVE_036
+- kind: tactic
+  urn: tactic:how-we-apply-directive-037
+  label: How We Apply DIRECTIVE_037
+- kind: tactic
+  urn: tactic:review-policy-tactic
+  label: Review Policy Tactic
+- kind: tactic
+  urn: tactic:testing-philosophy-tactic
+  label: Testing Philosophy Tactic
+- kind: styleguide
+  urn: styleguide:documentation-policy-style-guide
+  label: Documentation Policy Styleguide
+- kind: styleguide
+  urn: styleguide:quality-gates-style-guide
+  label: Quality Gates Styleguide
+- kind: styleguide
+  urn: styleguide:testing-style-guide
+  label: Testing Philosophy Styleguide
+- kind: styleguide
+  urn: styleguide:typescript-style-guide
+  label: Typescript Style Guide
+edges:
+- relation: applies
+  source: tactic:how-we-apply-directive-030
+  target: directive:DIRECTIVE_030
+  reason: Derived from synthesis target 'how-we-apply-directive-030'
+- relation: applies
+  source: tactic:how-we-apply-directive-036
+  target: directive:DIRECTIVE_036
+  reason: Derived from synthesis target 'how-we-apply-directive-036'
+- relation: applies
+  source: tactic:how-we-apply-directive-037
+  target: directive:DIRECTIVE_037
+  reason: Derived from synthesis target 'how-we-apply-directive-037'

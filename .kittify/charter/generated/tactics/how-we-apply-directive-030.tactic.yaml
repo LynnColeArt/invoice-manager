@@ -1,0 +1,46 @@
+schema_version: "1.0"
+id: how-we-apply-directive-030
+name: Apply the Test and Typecheck Gate
+purpose: >-
+  Translate DIRECTIVE_030 into one risk-proportionate, reproducible validation
+  record for every behavior-changing invoice-manager change.
+steps:
+  - title: Classify the changed responsibility
+    description: Identify affected Zig domain, persistence, HTTP, rendering, Next.js, deployment, documentation, or cross-boundary behavior and select its required checks.
+    examples:
+      - An invoice-issuance change requires domain, ShovelerDB reopen, API, concurrency, and PDF checks; a spacing-only change requires focused UI and visual evidence.
+  - title: Prove the critical test went red
+    description: For critical financial, scheduling, persistence, security, and escaping behavior, record a failing test against the pre-change boundary before production edits.
+    examples:
+      - Demonstrate that a retry allocates two invoice numbers before implementing idempotency.
+  - title: Run fast static gates
+    description: Run Zig formatting and compilation, TypeScript formatting, ESLint, strict type checks, and focused unit or component tests before slower suites.
+    examples:
+      - Stop before Playwright and PDF rendering when a Zig domain test is red.
+  - title: Run changed-boundary integration gates
+    description: Exercise the real ShovelerDB repository, HTTP contract, browser workflow, or LuaLaTeX boundary implicated by the change.
+    examples:
+      - Checkpoint, close, reopen, and query the issued invoice through the public API.
+  - title: Apply coverage and regression gates
+    description: Enforce 90% coverage for the Zig domain layer and run applicable PDF visual, accessibility, dependency, license, and production-build checks.
+    examples:
+      - Include long-content and domestic-bank-absence PDF fixtures after changing the template.
+  - title: Record the validation result
+    description: Report commands, results, focused omissions, and unrelated pre-existing failures without representing partial validation as complete.
+    examples:
+      - State that PDF regression was not applicable to a documentation-only change and why.
+failure_modes:
+  - Running only mocked unit tests for a changed persistence or renderer boundary.
+  - Meeting aggregate coverage while leaving a critical error branch untested.
+  - Silently skipping a red gate because the failure appears unrelated.
+  - Demanding unit-level TDD for a purely presentational adjustment with better visual evidence.
+references:
+  - name: Governing quality directive
+    type: directive
+    id: DIRECTIVE_030
+    when: Selecting and reporting pre-review validation.
+  - name: Project risk directive
+    type: directive
+    id: PROJECT_002
+    when: Determining which checks are critical and fail-closed.
+

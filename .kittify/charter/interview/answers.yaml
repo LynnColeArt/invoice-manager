@@ -1,0 +1,127 @@
+schema_version: "1.0.0"
+mission: software-dev
+profile: comprehensive
+
+answers:
+  project_intent: >-
+    Build a dependable, deliberately boring invoice manager for a small
+    technical consulting business. The product must manage billing identities,
+    clients, recurring projects, invoices, payments, and revenue analytics while
+    producing typographically excellent, reproducible PDF invoices through
+    LaTeX. Issued invoices are immutable business records. Next.js owns the user
+    interface; Zig owns business behavior, persistence, scheduling, security,
+    and document-generation orchestration. The project is open source under
+    GPL-2.0-only.
+
+  languages_frameworks: >-
+    TypeScript and React with the Next.js App Router for the web application;
+    Zig for the HTTP API, domain model, scheduling, authentication,
+    ShovelerDB integration, and LaTeX orchestration; ShovelerDB as the embedded
+    transactional store; LuaLaTeX with repository-owned versioned templates for
+    PDF generation; Docker Compose for the reference deployment. Dependency
+    versions must be pinned and upgraded intentionally.
+
+  testing_requirements: >-
+    TDD required for money arithmetic, invoice numbering,
+    billing cadence and scheduling, invoice lifecycle state, billing-identity
+    resolution, remittance policy, persistence and checkpoint behavior,
+    authentication and security boundaries, and LaTeX escaping. These areas
+    require a failing behavior test before production changes. The Zig domain
+    layer must maintain 90%+ coverage, with every critical business
+    invariant and error branch covered regardless of the aggregate percentage.
+    Repository tests must include ShovelerDB checkpoint-close-reopen integration,
+    black-box API contracts, concurrency and idempotency cases, frontend
+    component and accessibility tests, Playwright user workflows, PDF text
+    assertions, and rasterized visual-regression fixtures. Presentational-only
+    changes require proportionate regression evidence but are not forced into a
+    unit-level TDD ritual.
+
+  quality_gates: >-
+    Every behavior-changing change must pass Zig formatting and tests, the Zig
+    domain coverage gate, TypeScript formatting and linting, strict type checks,
+    frontend tests, production builds, applicable Playwright workflows, and PDF
+    regression checks. Changes must preserve exact integer money arithmetic,
+    multi-currency separation, durable checkpoint semantics, issued-invoice
+    immutability, and the prohibition on raw user-authored TeX. Dependency and
+    license checks must remain clean for a GPL-2.0-only distribution. A failing
+    required gate blocks merge; unrelated pre-existing failures must be reported
+    explicitly rather than hidden.
+
+  review_policy: >-
+    Use short-lived branches and small, reviewable pull requests targeting main.
+    External contributions require at least one maintainer approval and green
+    required CI. The owner may self-merge after all required CI and acceptance
+    evidence pass. Reviews prioritize financial correctness, data durability,
+    document safety, security, specification fidelity, and user-visible behavior
+    before style preferences. Conventional Commits are required. Spec Kitty work
+    package review and acceptance gates remain authoritative for mission work.
+
+  performance_targets: >-
+    Correctness, durability, and document fidelity take priority over raw speed.
+    Establish representative datasets and render fixtures before declaring hard
+    latency gates. Interactive client, project, invoice, and dashboard operations
+    should feel immediate for a single consulting business, and a normal invoice
+    preview should complete within ten seconds on the reference deployment.
+    Measured regressions above 20% in established database, dashboard, or render
+    benchmarks require explanation or remediation before release.
+
+  deployment_constraints: >-
+    The reference deployment is a single-organization, single-administrator
+    Docker Compose installation on Linux. Next.js and the Zig API run as separate
+    services behind one same-origin reverse proxy. The Zig service is the sole
+    business backend. ShovelerDB data, invoice PDFs, and approved logo assets live
+    on a persistent volume with restrictive permissions and checkpointed backups.
+    The system must not assume public-internet exposure, but authentication,
+    authorization, CSRF protection, secret management, and safe restore behavior
+    are required in every supported deployment.
+
+  documentation_policy: >-
+    The planning brief, mission specs, acceptance examples, API contract,
+    architecture decisions, data and migration notes, user documentation,
+    deployment and restore instructions, security guidance, domain glossary, and
+    invoice-template fixture catalog are living documentation. Observable
+    behavior or canonical terminology changes must update affected documentation
+    in the same change. Public examples and fixtures must contain only synthetic,
+    non-sensitive data.
+
+  risk_boundaries: >-
+    Financial amounts must never use binary floating point. Issued invoices,
+    allocated invoice numbers, and stored PDF artifacts must never be silently
+    mutated or reused. A successful consequential mutation must be committed and
+    checkpointed before the API confirms success. Schedule retries must not
+    duplicate invoices. Domestic invoice payloads must omit bank information;
+    European invoices must include complete configured remittance information.
+    Different currencies must not be aggregated without an explicit conversion
+    model. Raw user-provided LaTeX, shell command construction from user data,
+    TeX shell escape, unvalidated assets, and sensitive-data logging are
+    prohibited. ShovelerDB's lack of foreign keys must be countered by explicit
+    Zig domain invariants, deletion guards, migrations, and integration tests.
+
+  amendment_process: >-
+    Charter amendments require an explicit proposal describing the rule changed,
+    motivation, affected missions and artifacts, migration or compatibility
+    impact, and validation evidence. The owner must approve the proposal. The
+    charter, derived governance bundle, and affected public documentation must be
+    updated together in a versioned change before the new rule governs work.
+
+  exception_policy: >-
+    Exceptions to a required charter rule require the owner's explicit approval
+    and a written record naming the rule, scope, rationale, risk, compensating
+    controls, responsible person, and expiration or removal condition. Exceptions
+    may not authorize inaccurate money calculations, silent mutation of issued
+    invoices, invoice-number reuse, loss of committed financial data, exposure of
+    bank or authentication secrets, raw user-authored TeX, or silent bypass of a
+    required validation gate.
+
+selected_paradigms:
+  - domain-driven-design
+  - trunk-based
+
+selected_directives:
+  - DIRECTIVE_030
+  - DIRECTIVE_036
+  - DIRECTIVE_037
+
+available_tools:
+  - spec-kitty
+  - git

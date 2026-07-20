@@ -1,0 +1,39 @@
+schema_version: "1.0"
+id: documentation-policy-style-guide
+title: Invoice Manager Documentation Policy
+scope: docs
+principles:
+  - Document observable behavior and operational decisions in the same change that alters them.
+  - Use Billing Identity, Client, Project, Billing Period, Invoice Snapshot, Payment, Remittance Block, and Due Project consistently.
+  - Keep one named authority for each rule and link to it instead of copying divergent prose.
+  - Use synthetic identities, addresses, bank values, and invoices in all public examples and fixtures.
+  - Explain recovery, migration, backup, and security behavior as carefully as the happy path.
+patterns:
+  - name: Requirement-to-example trace
+    description: Link a business-readable example to its requirement and executable acceptance evidence.
+    good_example: "FR-REM-002 -> EU LLC invoice example -> PDF remittance presence test"
+  - name: Decision record
+    description: Record context, options, decision, consequences, and supersession for material architecture or governance choices.
+    good_example: "ADR: Zig owns sessions; Next.js remains a presentation client."
+  - name: Safe fixture
+    description: Make synthetic values obvious and impossible to mistake for production credentials.
+    good_example: "IBAN: GB00 TEST 0000 0000 0000 00"
+anti_patterns:
+  - name: Stale behavior prose
+    description: Documentation promises behavior that fixtures or APIs no longer provide.
+    bad_example: "README says bank details are always shown after domestic policy begins hiding them."
+    good_example: "README, API contract, and domestic/EU fixtures change together."
+  - name: Real business data in examples
+    description: Public documentation must not disclose real clients, invoices, addresses, or bank details.
+    bad_example: "Copy a production invoice into tests."
+    good_example: "Construct an obviously synthetic fixture covering the same layout."
+  - name: Ambiguous financial language
+    description: The word revenue alone can conceal whether a value is invoiced, collected, outstanding, or forecast.
+    bad_example: "Revenue increased to $10,000."
+    good_example: "USD collected revenue by payment date increased to $10,000."
+quality_test: >-
+  Can a new contributor find the authority, example, test, migration, and user
+  consequence for a behavior change without seeing private business data?
+references:
+  - docs/planning-brief.md
+

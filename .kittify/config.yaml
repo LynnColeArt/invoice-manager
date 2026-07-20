@@ -1,0 +1,12 @@
+project:
+  uuid: 341b061c-ecef-4308-b3cb-f18d30c9c964
+  slug: invoice-manager
+  node_id: 752e6076aa27
+  build_id: 92aeecf1-5cf6-511d-8ca6-2f84188bc180
+vcs:
+  type: git
+agents:
+  available:
+  - codex
+  auto_commit: true
+  lint_on_edit: false

@@ -1,0 +1,56 @@
+failure_modes:
+- Writing a test that is red only because the proposed new API does not exist.
+- Mocking the collaborator responsible for the behavior under test.
+- Treating 90% aggregate coverage as a substitute for critical branch coverage.
+- Forcing presentational markup into brittle implementation-detail unit tests.
+id: testing-philosophy-tactic
+name: Risk-Scoped Test-First Delivery
+purpose: Use short red-green-refactor loops for high-consequence behavior and 
+  the most direct regression evidence for lower-risk presentation changes.
+schema_version: '1.0'
+steps:
+- description: Express one observable outcome in the language of Billing 
+    Identities, clients, projects, invoices, payments, schedules, or artifacts.
+  examples:
+  - Given a domestic client, issuing an invoice produces a PDF with no bank 
+    label or account value.
+  title: Start from a business example
+- description: Use a domain unit test for pure invariants and a black-box 
+    integration test when persistence, HTTP, rendering, or browser behavior 
+    shares responsibility.
+  examples:
+  - Test money addition as a unit and checkpoint durability through the public 
+    repository or API boundary.
+  title: Choose the responsible test boundary
+- description: For money, numbering, scheduling, lifecycle, identity and 
+    remittance resolution, persistence, authentication, and escaping, run the 
+    smallest test and confirm it fails for the intended behavior.
+  examples:
+  - Confirm an adversarial percent-sign client name breaks or leaks before 
+    implementing context escaping.
+  title: Prove red before production edits
+- description: Implement only what the example requires while preserving domain 
+    and architecture boundaries.
+  examples:
+  - Add one typed remittance validation rule rather than a general policy 
+    engine.
+  title: Make the smallest behavior pass
+- description: Improve names, ownership, and duplication without weakening the 
+    example or changing assertions merely to accommodate implementation.
+  examples:
+  - Extract a Money value object after the first checked-arithmetic cases pass.
+  title: Refactor while green
+- description: Cover overflow, currency mismatch, invalid state, retry, 
+    concurrency, checkpoint failure, long content, missing assets, and 
+    prohibited data where applicable.
+  examples:
+  - Retry an issuance after a simulated checkpoint failure and prove no second 
+    number is allocated.
+  title: Add boundary and failure cases
+- description: For presentation-only changes, use focused component, 
+    accessibility, or PDF visual regression evidence without manufacturing 
+    low-value unit tests.
+  examples:
+  - Update a golden raster for an intentional spacing change and inspect the 
+    diff.
+  title: Use proportionate visual evidence

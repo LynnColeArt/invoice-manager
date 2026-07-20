@@ -1,0 +1,21 @@
+adapter_id: generated
+adapter_notes: 
+  generated-artifact:.kittify/charter/generated/tactics/review-policy-tactic.tactic.yaml
+adapter_version: 1.0.0
+artifact_content_hash: 
+  73f1c25c8ad741c0d9a541e86fb1e35622cbfe0ed3eb0850c1b452011a175bba
+artifact_kind: tactic
+artifact_slug: review-policy-tactic
+artifact_urn: tactic:review-policy-tactic
+corpus_snapshot_id: generic-v1.0.0
+evidence_bundle_hash: 
+  466634b3759651f87ff25f2897214097aa2988300e988758189c865a0bfccd45
+generated_at: '2026-07-16T13:01:09.313862+00:00'
+inputs_hash: 48326f739e9d1d32d2bfc06ecaccb42b4da357db31e768c14e62fe3d3039b869
+produced_at: '2026-07-16T13:01:16.543009+00:00'
+schema_version: '2'
+source_input_ids: []
+source_section: review_policy
+source_urns: []
+synthesis_run_id: 57BE631E92F4494CB570BE0FD0
+synthesizer_version: 3.2.6

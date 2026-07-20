@@ -1,0 +1,42 @@
+schema_version: "1.0"
+id: how-we-apply-directive-036
+name: Apply Black-Box Testing by Responsibility
+purpose: >-
+  Exercise invoice-manager responsibilities through stable public boundaries
+  while using real inside-boundary collaborators and observable outcomes.
+steps:
+  - title: Name the responsibility boundary
+    description: State whether the system under test is a Zig domain command, repository, HTTP API, render process, browser workflow, or composed deployment.
+    examples:
+      - Treat the Zig issuance service plus ShovelerDB and artifact store as inside the boundary, driven through its public issue command.
+  - title: Derive cases from a requirement
+    description: Select normal, boundary, invalid, retry, and state-transition examples from the approved spec rather than implementation branches.
+    examples:
+      - Use the rule that domestic PDFs omit bank details to define both expected text and prohibited text.
+  - title: Use the published entry point
+    description: Drive only the public domain API, HTTP endpoint, command, browser surface, or renderer interface for the selected boundary.
+    examples:
+      - Issue through the HTTP contract rather than importing an internal SQL helper.
+  - title: Keep responsible collaborators real
+    description: Use real ShovelerDB checkpointing and real LuaLaTeX for integration checks when those systems share responsibility for the behavior.
+    examples:
+      - Substitute the wall clock but not ShovelerDB in a checkpoint-reopen test.
+  - title: Assert observable results
+    description: Assert responses, persisted records after reopen, PDF bytes or text, audit entries, and user-visible state rather than internal calls.
+    examples:
+      - Verify the same invoice number is returned after an idempotent retry and no second record exists.
+failure_modes:
+  - Mocking the database while claiming persistence coverage.
+  - Reading private fields to assert behavior available at a public boundary.
+  - Choosing cases after reading implementation branches instead of the requirement.
+  - Calling a new fix-only API that cannot demonstrate the original defect.
+references:
+  - name: Governing black-box directive
+    type: directive
+    id: DIRECTIVE_036
+    when: Designing integration tests.
+  - name: Project mission scope
+    type: directive
+    id: PROJECT_001
+    when: Selecting the system boundary and canonical domain terms.
+

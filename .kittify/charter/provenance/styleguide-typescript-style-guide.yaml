@@ -1,0 +1,21 @@
+adapter_id: generated
+adapter_notes: 
+  generated-artifact:.kittify/charter/generated/styleguides/typescript-style-guide.styleguide.yaml
+adapter_version: 1.0.0
+artifact_content_hash: 
+  63ea44763e2feee828e78900dfbad4b64725db596fb12092931fb0f4231a6777
+artifact_kind: styleguide
+artifact_slug: typescript-style-guide
+artifact_urn: styleguide:typescript-style-guide
+corpus_snapshot_id: generic-v1.0.0
+evidence_bundle_hash: 
+  466634b3759651f87ff25f2897214097aa2988300e988758189c865a0bfccd45
+generated_at: '2026-07-16T12:59:12.472377+00:00'
+inputs_hash: 13eea9d5f9d8a11e49995dcc60929e7b9f5af81571f3d7e1438bfb5de448cf4e
+produced_at: '2026-07-16T12:59:26.238051+00:00'
+schema_version: '2'
+source_input_ids: []
+source_section: language_scope
+source_urns: []
+synthesis_run_id: 0D494AFECA5541148D0F2D1263
+synthesizer_version: 3.2.6

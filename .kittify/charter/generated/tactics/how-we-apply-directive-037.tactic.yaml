@@ -1,0 +1,38 @@
+schema_version: "1.0"
+id: how-we-apply-directive-037
+name: Keep Invoice Documentation Alive
+purpose: >-
+  Keep mission artifacts, domain language, API behavior, invoice fixtures, and
+  operator guidance aligned with shipped behavior.
+steps:
+  - title: Identify affected authorities
+    description: Map the behavior or term to its spec, acceptance example, API contract, architecture decision, glossary entry, user guide, deployment guide, and fixture catalog.
+    examples:
+      - A remittance-policy change affects the spec, Billing Market glossary entry, API schema, European and domestic fixtures, and user documentation.
+  - title: Update the business-readable example
+    description: Amend or add a synthetic example that states the changed behavior without implementation detail.
+    examples:
+      - Describe an EU client billed by the LLC and the exact remittance block expected on its invoice.
+  - title: Promote the example into evidence
+    description: Update the executable acceptance check or record an approved reason why automation is not yet feasible.
+    examples:
+      - Assert both the presence of the IBAN in the European PDF and its absence in the domestic PDF.
+  - title: Synchronize downstream documentation
+    description: Update affected public docs, code docs, architecture notes, migration instructions, and glossary entries in the same change.
+    examples:
+      - Document a new invoice-snapshot field beside its migration and API contract.
+  - title: Remove stale language
+    description: Search for replaced terms and behavior descriptions, classify each occurrence, and remove or explicitly mark obsolete material.
+    examples:
+      - Replace ambiguous invoice head wording with Billing Identity while preserving the UI phrase Invoice header / billed from.
+failure_modes:
+  - Updating code and tests while leaving the invoice fixture catalog stale.
+  - Publishing real client, bank, or invoice data as an example.
+  - Changing a canonical term without updating the glossary and API contract.
+  - Copying a rule into multiple docs without naming one authority.
+references:
+  - name: Governing documentation directive
+    type: directive
+    id: DIRECTIVE_037
+    when: Behavior or terminology changes.
+

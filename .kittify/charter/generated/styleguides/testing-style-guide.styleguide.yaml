@@ -1,0 +1,45 @@
+schema_version: "1.0"
+id: testing-style-guide
+title: Invoice Manager Testing Style
+scope: testing
+principles:
+  - Name tests in business language and assert observable behavior rather than internal calls.
+  - Use Arrange, Assumption check, Act, and Assert so a bad fixture cannot pass accidentally.
+  - Keep unit tests fast and deterministic; inject time, identifiers, filesystem roots, and process runners where needed.
+  - Use real ShovelerDB and LuaLaTeX when they share responsibility for the tested contract.
+  - Cover normal, boundary, invalid, retry, concurrency, failure, recovery, and absence-of-prohibited-data cases proportionately.
+  - Make PDF fixtures readable, synthetic, minimal, and stable across environments.
+patterns:
+  - name: Assumption-check before action
+    description: Assert the precondition that makes the behavior meaningful before invoking the system.
+    good_example: "Assert no invoice exists for the billing-period key before running the scheduler."
+  - name: Reopen durability assertion
+    description: Close and reopen ShovelerDB before asserting a mutation advertised as durable.
+    good_example: "Record payment, checkpoint, close, reopen, then assert open balance."
+  - name: Positive and negative PDF assertion
+    description: Assert required text appears and prohibited sensitive text does not.
+    good_example: "EU fixture contains IBAN; domestic fixture contains neither IBAN label nor value."
+anti_patterns:
+  - name: Test passes for the wrong setup
+    description: The intended state was never established, so the assertion proves nothing.
+    bad_example: "Duplicate prevention test starts with an inactive project."
+    good_example: "Assert the active due project and existing period key before rerunning."
+  - name: Mocking the responsibility away
+    description: Replacing the system that owns the behavior turns an integration claim into a unit claim.
+    bad_example: "Mock LuaLaTeX in a test claiming shell escape is disabled."
+    good_example: "Run an adversarial fixture in the constrained renderer."
+  - name: Snapshot-only assertion
+    description: A large opaque snapshot can conceal wrong money, currency, or sensitive content.
+    bad_example: "Approve a whole JSON or PDF snapshot without semantic assertions."
+    good_example: "Assert totals, currency, identity, remittance presence/absence, then compare the visual artifact."
+tooling:
+  zig: zig build test with domain coverage reporting
+  component: Vitest and accessibility assertions
+  workflow: Playwright
+  documents: PDF text extraction plus rasterized page comparison
+quality_test: >-
+  If a test fails, does its name, precondition, boundary, and assertion make the
+  broken business promise obvious without reading production code?
+references:
+  - docs/planning-brief.md
+

@@ -1,0 +1,66 @@
+anti_patterns:
+- bad_example: A Server Action sets invoice.status = issued.
+  description: HTTP or Next.js code mutates financial state instead of invoking 
+    a Zig domain command.
+  good_example: The UI submits an idempotent issue command to Zig.
+  name: Handler-owned business rule
+- bad_example: Build a SELECT or lualatex shell command with string formatting.
+  description: User content is concatenated into SQL, TeX, paths, or shell 
+    strings outside a centralized encoder.
+  good_example: Use the repository encoder and direct process argument array.
+  name: Ad hoc language interpolation
+- bad_example: Mock checkpoint() in a durability change.
+  description: Mocks hide the ShovelerDB, HTTP, browser, or LuaLaTeX behavior 
+    actually changed.
+  good_example: Exercise checkpoint-close-reopen with the real embedded 
+    database.
+  name: Green unit tests with an untested boundary
+applies_to_languages:
+- zig
+- typescript
+- tsx
+- latex
+id: quality-gates-style-guide
+patterns:
+- description: A consequential domain command validates, applies one 
+    transaction, checkpoints, and returns a typed result or typed failure.
+  good_example: issue(command) -> validate -> transact -> checkpoint -> 
+    IssuedInvoice
+  name: Durable Zig command
+- description: Decimal-string minor units and explicit currency cross JSON 
+    through generated or checked types.
+  good_example: '{"total_minor":"125000","currency":"USD"}'
+  name: Typed API contract
+- description: Use the actual inside-boundary system responsible for the 
+    behavior.
+  good_example: Issue, checkpoint, close, reopen, and fetch through the 
+    published Zig API.
+  name: Boundary-real integration test
+principles:
+- Required checks are selected by changed responsibility and risk, then reported
+  explicitly.
+- Zig domain code maintains 90% coverage while every critical invariant and 
+  error branch remains directly tested.
+- Zig owns business rules; HTTP, ShovelerDB, Next.js, and LuaLaTeX integrations 
+  are replaceable boundary adapters.
+- Money uses checked integer minor units and explicit currency in storage, APIs,
+  UI formatting, and analytics.
+- Allocator, file, process, transaction, temporary workspace, and artifact 
+  lifetimes are explicit and cleaned on every exit path.
+- Strict typing, formatting, linting, production builds, accessibility, 
+  dependency licensing, and applicable visual regressions block merge when red.
+quality_test: Does the validation record prove the changed behavior at its real 
+  boundary, with all critical invariants and required static gates green?
+references:
+- docs/planning-brief.md
+schema_version: '1.0'
+scope: code
+title: Invoice Manager Quality Gates
+tooling:
+  document_test: PDF text assertions and rasterized visual regression
+  frontend_test: Vitest and Playwright
+  typescript_format: Prettier
+  typescript_lint: ESLint
+  typescript_typecheck: tsc --noEmit in strict mode
+  zig_build_and_test: zig build test
+  zig_format: zig fmt --check

@@ -1,0 +1,48 @@
+enforcement: required
+id: PROJECT_002
+integrity_rules:
+- A failed render leaves the invoice unissued, and a failed checkpoint never 
+  produces a successful API response.
+- Domestic render payloads contain no bank data; European invoices cannot issue 
+  with an incomplete remittance block.
+- Raw TeX, user-selected template paths, shell command construction from user 
+  data, unvalidated assets, and sensitive-data logging are prohibited.
+- Cross-currency totals are prohibited until an explicit conversion model is 
+  specified.
+- Issued snapshots, invoice numbers, audit records, and stored PDFs are never 
+  silently edited or deleted.
+intent: Permit experimentation in reversible presentation details while 
+  requiring conservative, fail-closed behavior anywhere a defect could misstate 
+  money, duplicate billing, lose a record, disclose a secret, or execute 
+  untrusted input.
+procedures:
+- Store money as checked signed 64-bit minor units paired with an ISO currency 
+  and never use binary floating point for authoritative amounts.
+- Give consequential commands an idempotency key, validate preconditions, 
+  serialize contested invariants, transact all related records, checkpoint, and 
+  only then return success.
+- Allocate invoice numbers within the selected Billing Identity sequence and 
+  never reuse a number, including after voiding.
+- Stage and digest a verified PDF before referencing it from an issued snapshot;
+  reconcile unreferenced artifacts after failed durable mutations.
+- Escape every user field for its exact LaTeX context and run LuaLaTeX directly 
+  with shell escape disabled, fixed arguments, an isolated workspace, a timeout,
+  and bounded resources.
+- Enforce references, uniqueness, and deletion guards in Zig because ShovelerDB 
+  does not provide foreign keys.
+schema_version: '1.0'
+scope: Applies to money, currencies, invoice numbering and lifecycle, recurring 
+  schedules, payments, persistence, backups, authentication, bank details, 
+  assets, LaTeX generation, external processes, analytics, and audit events.
+title: Conservative Financial and Document Risk
+validation_criteria:
+- Critical paths have red-first tests for failure, retry, concurrency, 
+  checkpoint-close-reopen, recovery, and adversarial input.
+- Stored snapshots and PDF bytes remain stable after master-data and template 
+  edits.
+- Schedule retries and concurrent issuance attempts cannot duplicate a billing 
+  period or number.
+- Backup restoration reproduces committed financial records and artifact 
+  references.
+- Security fixtures prove TeX and asset inputs cannot access the shell or 
+  arbitrary files.

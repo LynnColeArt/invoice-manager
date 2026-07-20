@@ -1,0 +1,64 @@
+enforcement: required
+id: PROJECT_001
+integrity_rules:
+- Issued invoices are immutable business records rather than views over current 
+  client or project data.
+- Billing identity, remittance policy, and project logo choice must be visible 
+  before issuance.
+- Forecast, invoiced, collected, and outstanding money must remain distinct and 
+  currency-specific.
+- The public repository contains only synthetic example data and 
+  GPL-2.0-only-compatible distributed code.
+intent: Keep the project focused on a dependable internal consulting invoice 
+  manager whose beautiful PDF output is backed by explicit, testable financial 
+  rules.
+procedures:
+- Model Billing Identity, Client, Project, Invoice, Invoice Snapshot, Payment, 
+  Remittance Block, and artifact concepts in the Zig domain language before 
+  adapting them to storage or UI concerns.
+- Keep Next.js responsible for presentation and interaction while Zig remains 
+  authoritative for authorization, validation, scheduling, money, lifecycle, 
+  persistence, and rendering orchestration.
+- Use ShovelerDB through a narrow Zig repository and unit-of-work boundary with 
+  explicit migrations, transactions, checkpoints, and domain-enforced 
+  references.
+- Render invoice PDFs only from frozen structured data through repository-owned 
+  versioned LuaLaTeX templates.
+- Deliver vertical, reviewable missions and resist expansion into general 
+  accounting, tax filing, time tracking, payment processing, or multi-tenant 
+  SaaS without a separately approved spec.
+- "Treat delivery as a dependency graph of concurrent Spec Kitty missions: declare
+  each mission's consumed and produced contracts, owned paths, shared touchpoints,
+  implementation dependencies, and merge wave in the program ledger before implementation
+  begins."
+- Specify and plan missions concurrently when safe, but begin implementation 
+  only after each consumed contract reaches its required state; revalidate 
+  against the latest program baseline before mission acceptance.
+- Assign a named integration owner for shared registries, root build files, 
+  generated aggregate contracts, global navigation, and deployment composition 
+  instead of allowing parallel missions to edit them implicitly.
+references:
+- id: quality-gates-style-guide
+  type: styleguide
+- id: typescript-style-guide
+  type: styleguide
+- id: testing-philosophy-tactic
+  type: tactic
+schema_version: '1.0'
+scope: Applies to specification, planning, implementation, review, 
+  documentation, deployment, and release work in this repository.
+title: Invoice Manager Mission Scope
+validation_criteria:
+- Each mission requirement maps to a product goal or an explicitly approved 
+  enabling constraint.
+- Architecture tests or review evidence preserve the Next.js-to-Zig and 
+  Zig-to-ShovelerDB boundaries.
+- Acceptance examples demonstrate personal and LLC identities, domestic and 
+  European invoices, project logo on/off, monthly and quarterly billing, and 
+  immutable issued artifacts.
+- New scope outside the documented non-goals has a separately approved decision 
+  and mission boundary.
+- Every active mission has current dependency, contract-version, path-ownership,
+  review, and merge-readiness entries in docs/program-ledger.md.
+- Concurrent missions have disjoint primary ownership or an explicit integration
+  owner, and every merge wave passes a cross-mission integration checkpoint.
