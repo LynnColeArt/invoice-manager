@@ -493,7 +493,7 @@ shutdown during an active operation, and close/reopen through this public seam.
 - **Relevant requirements**: FR-001, FR-002, FR-015; NFR-001, NFR-008, NFR-012.
 - **Affected surfaces**: root `package.json`, initial `package-lock.json` seed,
   tool-version files, and root bootstrap documentation only. Application
-  builds/source and CI are owned by later concerns; IC-07C performs the sole
+  builds/source and CI are owned by later concerns; IC-09 performs the sole
   later lock reconciliation after web dependency metadata exists.
 - **Sequencing/depends-on**: none.
 - **Risks**: Root files are high-contention; only P0/integration steward edits
@@ -567,7 +567,7 @@ shutdown during an active operation, and close/reopen through this public seam.
   corrupt assumptions. Red-first state, competing-handle, crash, and reopen
   cases are required before production behavior.
 
-### IC-07A — Zig HTTP readiness boundary
+### IC-07 — Zig HTTP readiness boundary
 
 - **Purpose**: Prove the real Zig health/error boundary and refuse readiness
   until both durable-store and migration readiness are successful.
@@ -582,7 +582,7 @@ shutdown during an active operation, and close/reopen through this public seam.
   red-first route-policy mutations and real socket tests must prove the route
   path and protected-default policy are real.
 
-### IC-07B — Web package and configuration substrate
+### IC-08 — Web package and configuration substrate
 
 - **Purpose**: Pin the Next.js/React/testing dependency declarations and static
   configuration without claiming the real application integration is ready.
@@ -593,10 +593,10 @@ shutdown during an active operation, and close/reopen through this public seam.
 - **Sequencing/depends-on**: IC-01, IC-02, and IC-03. It may proceed in parallel
   with service work and does not update the root lockfile or create the real
   shell/proxy/E2E implementation.
-- **Risks**: App metadata may drift from the root lock. IC-07C performs the sole
+- **Risks**: App metadata may drift from the root lock. IC-09 performs the sole
   authorized lock reconciliation after both package metadata and backend are ready.
 
-### IC-07C — Codebase-wide shell, proxy, and E2E integration
+### IC-09 — Codebase-wide shell, proxy, and E2E integration
 
 - **Purpose**: Integrate the real Next.js shell with the ready Zig boundary and
   prove the same-origin public workflow through production-shaped processes.
@@ -605,7 +605,7 @@ shutdown during an active operation, and close/reopen through this public seam.
 - **Affected surfaces**: root `package-lock.json`, real `apps/web/src/app/`
   shell/style files, `apps/web/src/lib/api/`, handwritten generated-contract
   adapters, foundation component/accessibility tests, and Playwright E2E.
-- **Sequencing/depends-on**: IC-07A and IC-07B, plus IC-03's generated workspace
+- **Sequencing/depends-on**: IC-07 and IC-08, plus IC-03's generated workspace
   export. This is an explicit `scope: codebase-wide` package because it performs
   the one post-metadata root lockfile update. It begins only after WP08's Zig
   HTTP/readiness package is accepted.
@@ -613,7 +613,7 @@ shutdown during an active operation, and close/reopen through this public seam.
   high-contention boundary. It must be one small reviewed package, may not edit
   root `package.json`, and must prove the real proxy rather than a mocked API.
 
-### IC-08 — Program gates and ownership handoff
+### IC-10 — Program gates and ownership handoff
 
 - **Purpose**: Make validation, GPL compatibility, shared-file ownership, and
   P1-P4 readiness auditable.
@@ -623,7 +623,7 @@ shutdown during an active operation, and close/reopen through this public seam.
   orchestration, runtime/license tooling, `README.md`,
   `docs/program-ledger.md`, and explicit manifest promotion at
   `contracts/manifests/p0.json`.
-- **Sequencing/depends-on**: IC-01 through IC-06 and IC-07A through IC-07C, plus
+- **Sequencing/depends-on**: IC-01 through IC-09, plus
   successful orchestrator-owned pre-acceptance planning sync.
 - **Risks**: This is an explicit codebase-wide closure package and depends on
   every producing package. Tests, notices, fixtures, and focused commands stay
@@ -637,15 +637,15 @@ proceed in parallel. IC-02's Zig runtime portion then consumes both, while
 IC-06 follows IC-05 and delivers the migration-agnostic durable store. IC-03
 follows the contract portion of IC-02 and may run beside IC-05/IC-06; it pins
 all P0-P4 conformance inputs and exposes the sole generated TypeScript workspace
-output. IC-07B may start after IC-02/IC-03 while service work continues. IC-04
+output. IC-08 may start after IC-02/IC-03 while service work continues. IC-04
 consumes IC-02, IC-05, and IC-06 to apply migrations through the public durable
 seam.
 
-IC-07A waits for IC-02, IC-03, IC-04, and IC-06 so HTTP readiness cannot outrun
-durable/migration readiness. IC-07C waits for IC-07A and IC-07B, then performs
+IC-07 waits for IC-02, IC-03, IC-04, and IC-06 so HTTP readiness cannot outrun
+durable/migration readiness. IC-09 waits for IC-07 and IC-08, then performs
 the one codebase-wide root lock reconciliation and real shell/proxy/E2E
 integration. The orchestrator-owned governed-doc sync follows reviewed producer
-work. IC-08 is the final codebase-wide closure after that sync and every
+work. IC-10 is the final codebase-wide closure after that sync and every
 producer. Tasking keeps narrow-package paths disjoint and names the two
 intentional codebase-wide integration/closure packages explicitly.
 
@@ -693,7 +693,7 @@ architecture notes, and the project glossary; then it updates every affected
 governed artifact together or records an explicit no-change rationale.
 
 The sync records example-to-requirement and acceptance-check traceability and
-must finish before IC-08 begins final acceptance. Code WPs may cite a needed
+must finish before IC-10 begins final acceptance. Code WPs may cite a needed
 planning correction in their Activity Log, but they do not claim `quickstart.md`
 or other governed planning paths merely to close their own package.
 
@@ -705,14 +705,14 @@ or other governed planning paths merely to close their own package.
 | Commit succeeds but checkpoint or parent-directory sync fails | Durable state machine, Linux directory sync, and persistence-boundary-only recovery | P0 |
 | DDL failure leaves dirty in-memory schema | Migration application uses the durable store seam to discard uncheckpointed state and reopen; HTTP remains unready | P0 |
 | Durable storage imports migration policy and creates a dependency cycle | Keep durable storage migration-agnostic; migration depends on its public seam, never the inverse | P0 |
-| HTTP binds before durable/migration readiness | IC-07A depends on IC-04 and IC-06 and requires both explicit readiness results before listen/accept | P0 |
+| HTTP binds before durable/migration readiness | IC-07 depends on IC-04 and IC-06 and requires both explicit readiness results before listen/accept | P0 |
 | Later WPs edit `build.zig` for each test | WP04 publishes convention-scanned stable shared/persistence/migration-negative/HTTP/coverage hooks once | P0 |
 | Shared registries reintroduce merge conflicts | Convention scanning, collision checks, generated ignored aggregates | P0 |
 | Generated TypeScript gains multiple writers or copies | `tools/contracts/.generated/typescript/v1/` is the only output; contract tooling is the only writer and workspace exporter | P0 |
 | Conformance silently follows a moving mission head | Commit and validate full commits plus manifest/content digests in `contracts/conformance/p0-p4-inputs.json` | P0 / program orchestrator |
-| Web metadata and root lock race with backend work | Keep metadata/config narrow; perform one codebase-wide lock/shell/proxy/E2E integration only after IC-07A | P0 integration steward |
+| Web metadata and root lock race with backend work | Keep metadata/config narrow; perform one codebase-wide lock/shell/proxy/E2E integration only after IC-07 | P0 integration steward |
 | Timing gates vary by machine or discard slow samples | Enforce the reference runner, cache, dataset, monotonic timing, sample, and evidence protocol above | P0 closure |
-| Governed docs drift or closure absorbs quickstart | Run orchestrator planning sync before IC-08; closure owns only README, ledger, CI/license tooling, and P0 manifest | Program orchestrator |
+| Governed docs drift or closure absorbs quickstart | Run orchestrator planning sync before IC-10; closure owns only README, ledger, CI/license tooling, and P0 manifest | Program orchestrator |
 | P0 absorbs feature behavior | Explicit exclusions and requirement/path review | Program orchestrator |
 | GPLv2-only incompatibility enters runtime | Runtime dependency classifier, license allow/deny evidence, notices | P0 then integration steward |
 | ShovelerDB snapshot cap is reached | Store binary artifacts externally; monitoring and operational limits | P3 |
@@ -739,7 +739,7 @@ or other governed planning paths merely to close their own package.
   `tools/contracts/.gitignore` define the sole generated TypeScript path/writer
   and contract-workspace export.
 - Web metadata/config and the later codebase-wide lock/shell/proxy/E2E
-  integration are separate ownership packages, with the latter after IC-07A.
+  integration are separate ownership packages, with the latter after IC-07.
 - Route-policy, migration, and persistence work require chronological red-first
   evidence through their public responsibility boundaries.
 - The reference first-run, validation-duration, and health-p99 protocols define
