@@ -25,7 +25,7 @@ subtasks:
 - T019
 phase: Phase 2 - Service Dependency Integration
 assignee: ''
-agent: "codex:gpt-5:implementer-ivan:implementer"
+agent: "codex-wp04-review"
 history: []
 agent_profile: implementer-ivan
 authoritative_surface: deps/shovelerdb/
@@ -517,3 +517,6 @@ Review `THIRD_PARTY_NOTICES.md` and the complete upstream license as acceptance-
 - 2026-07-20T23:00:08Z – codex:gpt-5:implementer-ivan:implementer – shell_pid=1807838 – GREEN: WP04-NEGATIVE-001; isolated tamper checks each failed before storage use: changed provenance commit -> shovelerdb-provenance error; changed vendored source -> source digest error; omitted notice URL -> license error; missing c_api.zig -> dependency error; header ABI 0.2.0 -> compile error requiring 0.1.0. Exact Node 24.18.0/npm 11.16.0/Zig 0.16.0 prerequisites and WP01 verify:substrate passed after immutable npm ci.
 - 2026-07-20T23:13:39Z – codex:gpt-5:orchestrator:orchestrator – GREEN: WP04-POST-ADVISORY-001; merged the corrected WP01 dependency substrate (`js-yaml` 4.3.0 under the exact `@hey-api/openapi-ts` 0.99.0 parser path) into lane-d, then ran immutable offline install, `verify:substrate`, full and production npm audits, Zig format checks, adapter tests, Debug and ReleaseSafe real-ABI integration, and build-discovery tests. Observed 0 vulnerabilities, 4/4 adapter tests, 3/3 integration tests in both modes, and 8/8 discovery tests; generated npm/Zig outputs were removed and the lane remained clean.
 - 2026-07-20T23:29:28Z – codex – shell_pid=1807838 – GREEN canonical-lock replay: after merging WP01 commit 2fc13e7, exact Node 24.18.0/npm 11.16.0 offline ci installed the canonical 610-entry lock, verify:substrate and full/production audits passed with 0 vulnerabilities, Zig format passed, adapter tests passed 4/4, real ABI integration passed 3/3 in Debug and ReleaseSafe, and build-discovery passed 8/8. A transient audit DNS failure was retried successfully; npm/Zig generated outputs were removed and lane-d is clean.
+- 2026-07-20T23:45:47Z – codex:gpt-5:implementer-ivan:implementer – shell_pid=1807838 – Implementation 31408bc plus canonical-lock integration replay complete: exact ShovelerDB pin/provenance, adapter, real ABI Debug/ReleaseSafe, discovery, clean-source and tamper gates green; ready for independent review.
+- 2026-07-20T23:46:26Z – codex-wp04-review – shell_pid=1807838 – Started review via action command
+- 2026-07-20T23:53:45Z – user – shell_pid=1807838 – Moved to planned
