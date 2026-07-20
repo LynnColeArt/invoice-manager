@@ -1,14 +1,63 @@
 {
-  "manifest_version": "1",
+  "manifest_version": 1,
+  "contract_id": "invoice-manager.reporting-dashboard",
+  "owner_mission": "p4",
   "mission": "p4-reporting-dashboard-01KXZ1AJ",
-  "owner": "p4",
-  "contract_version": "0.1.0-draft.1",
-  "lifecycle_state": "Draft",
-  "implementation_authorized": false,
-  "consumes": [
-    { "owner": "p0", "version": "0.1.0-draft.1", "required_state_for_implementation": "Frozen" }
+  "version": "0.1.0-draft.1",
+  "state": "Draft",
+  "baseline_commit": "78a7aaac2a02829ccb5358eae565a7f1620814da",
+  "content_digest": "pending",
+  "dependencies": ["p0"],
+  "inputs": [
+    {
+      "contract_id": "invoice-manager.foundation",
+      "owner_mission": "p0",
+      "version": "0.1.0-draft.1",
+      "required_state": "Frozen",
+      "content_digest": "pending"
+    }
   ],
-  "artifacts": ["normalized-reporting-snapshot-v1.schema.json"],
-  "consumers": ["p7"],
-  "notes": "Planning-only. P7 maps real P1/P5/P6 producer events into this frozen seam."
+  "outputs": [
+    {
+      "path": "kitty-specs/p4-reporting-dashboard-01KXZ1AJ/contracts/normalized-reporting-snapshot-v1.schema.json",
+      "kind": "domain_schema",
+      "digest": "pending"
+    }
+  ],
+  "owned_paths": [
+    "contracts/api/v1/fragments/p4/**",
+    "contracts/events/v1/catalogs/p4/**",
+    "contracts/events/v1/payloads/p4/**",
+    "contracts/modules/p4/**",
+    "contracts/fixtures/p4/v1/**",
+    "contracts/manifests/p4.json",
+    "services/api/migrations/p4/**",
+    "services/api/src/domains/reporting/**",
+    "services/api/tests/reporting/**",
+    "apps/web/src/features/reporting/**",
+    "apps/web/src/app/reporting/**"
+  ],
+  "shared_touchpoints": [
+    {
+      "path": "apps/web/src/app/layout.tsx",
+      "steward": "program-integration-steward",
+      "reason": "Dashboard navigation is integrated after the reporting route is stable"
+    }
+  ],
+  "migration_strategy": {
+    "mode": "owner_scoped_forward_only",
+    "root": "services/api/migrations/p4"
+  },
+  "integration_fixtures": [
+    {
+      "path": "contracts/fixtures/p4/v1/valid/golden-stream.jsonl",
+      "expectation": "valid",
+      "digest": "pending"
+    },
+    {
+      "path": "contracts/fixtures/p4/v1/invalid/revision-gap.jsonl",
+      "expectation": "invalid",
+      "digest": "pending"
+    }
+  ]
 }

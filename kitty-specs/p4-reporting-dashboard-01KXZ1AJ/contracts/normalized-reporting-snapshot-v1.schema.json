@@ -21,14 +21,11 @@
     }
   },
   "$defs": {
-    "EntityId": { "type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" },
-    "NonNegativeInt64": { "type": "string", "pattern": "^(0|[1-9][0-9]*)$" },
-    "CanonicalInt64": { "type": "string", "pattern": "^(0|-?[1-9][0-9]*)$" },
-    "LocalDate": { "type": "string", "format": "date" },
-    "Money": {
-      "type": "object", "additionalProperties": false, "required": ["currency", "minor_units"],
-      "properties": { "currency": { "enum": ["USD", "EUR"] }, "minor_units": { "$ref": "#/$defs/CanonicalInt64" } }
-    },
+    "EntityId": { "$ref": "https://invoice-manager.invalid/contracts/common/v1/schema.json#/$defs/EntityId" },
+    "NonNegativeInt64": { "$ref": "https://invoice-manager.invalid/contracts/common/v1/schema.json#/$defs/NonNegativeInt64" },
+    "CanonicalInt64": { "$ref": "https://invoice-manager.invalid/contracts/common/v1/schema.json#/$defs/CanonicalInt64" },
+    "LocalDate": { "$ref": "https://invoice-manager.invalid/contracts/common/v1/schema.json#/$defs/LocalDate" },
+    "Money": { "$ref": "https://invoice-manager.invalid/contracts/common/v1/schema.json#/$defs/Money" },
     "Client": {
       "type": "object", "additionalProperties": false, "required": ["kind", "display_name", "status"],
       "properties": { "kind": { "const": "client" }, "display_name": { "type": "string", "minLength": 1, "maxLength": 256 }, "status": { "enum": ["active", "archived"] } }
