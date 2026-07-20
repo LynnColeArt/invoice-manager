@@ -1,53 +1,270 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://invoice-manager.invalid/contracts/manifests/v1",
+  "$id": "https://invoice-manager.invalid/contracts/manifests/v1/schema.json",
   "title": "Invoice Manager Contract Manifest v1",
   "type": "object",
   "additionalProperties": false,
   "required": [
+    "manifest_version",
     "contract_id",
     "owner_mission",
+    "mission",
     "version",
     "state",
     "baseline_commit",
-    "sources",
-    "fixtures"
+    "content_digest",
+    "dependencies",
+    "inputs",
+    "outputs",
+    "owned_paths",
+    "shared_touchpoints",
+    "migration_strategy",
+    "integration_fixtures"
   ],
   "properties": {
+    "manifest_version": { "const": 1 },
     "contract_id": {
       "type": "string",
       "pattern": "^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+$"
     },
-    "owner_mission": { "type": "string", "pattern": "^p[0-8]$" },
-    "version": {
+    "owner_mission": { "$ref": "#/$defs/MissionOwner" },
+    "mission": {
       "type": "string",
-      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?$"
+      "pattern": "^p[0-8]-[a-z0-9-]+-[0-9A-HJKMNP-TV-Z]{8}$"
     },
+    "version": { "$ref": "#/$defs/SemanticVersion" },
     "state": {
       "enum": ["Draft", "Frozen", "Implemented", "Verified", "Superseded"]
     },
     "baseline_commit": {
       "type": "string",
-      "pattern": "^(pending|[0-9a-f]{40})$"
+      "pattern": "^[0-9a-f]{40}$",
+      "description": "Exact program base consumed by planning; never the self-referential commit containing this manifest."
     },
-    "sources": { "$ref": "#/$defs/DigestedPaths" },
-    "fixtures": { "$ref": "#/$defs/DigestedPaths" }
-  },
-  "$defs": {
-    "DigestedPaths": {
+    "content_digest": {
+      "$ref": "#/$defs/Digest",
+      "description": "Stable digest of immutable contract content; excludes mutable lifecycle state and remains unchanged from Frozen through Verified."
+    },
+    "dependencies": {
       "type": "array",
-      "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["path", "digest"],
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/MissionOwner" }
+    },
+    "inputs": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/ContractInput" }
+    },
+    "outputs": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/DigestedOutput" }
+    },
+    "owned_paths": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/OwnedPath" }
+    },
+    "shared_touchpoints": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/SharedTouchpoint" }
+    },
+    "migration_strategy": { "$ref": "#/$defs/MigrationStrategy" },
+    "integration_fixtures": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/DigestedFixture" }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
         "properties": {
-          "path": { "type": "string", "minLength": 1 },
-          "digest": {
-            "type": "string",
-            "pattern": "^(pending|sha256:[0-9a-f]{64})$"
+          "state": {
+            "enum": ["Frozen", "Implemented", "Verified", "Superseded"]
+          }
+        },
+        "required": ["state"]
+      },
+      "then": {
+        "properties": {
+          "inputs": {
+            "type": "array",
+            "items": { "$ref": "#/$defs/FrozenContractInput" }
+          },
+          "outputs": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "$ref": "#/$defs/FrozenDigestedOutput" }
+          },
+          "content_digest": { "$ref": "#/$defs/FrozenDigest" },
+          "integration_fixtures": {
+            "type": "array",
+            "minItems": 2,
+            "items": { "$ref": "#/$defs/FrozenDigestedFixture" },
+            "allOf": [
+              {
+                "type": "array",
+                "contains": {
+                  "type": "object",
+                  "properties": { "expectation": { "const": "valid" } },
+                  "required": ["expectation"]
+                }
+              },
+              {
+                "type": "array",
+                "contains": {
+                  "type": "object",
+                  "properties": { "expectation": { "const": "invalid" } },
+                  "required": ["expectation"]
+                }
+              }
+            ]
           }
         }
       }
+    }
+  ],
+  "$defs": {
+    "MissionOwner": {
+      "type": "string",
+      "pattern": "^p[0-8]$"
+    },
+    "SemanticVersion": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?$"
+    },
+    "Digest": {
+      "type": "string",
+      "pattern": "^(pending|sha256:[0-9a-f]{64})$"
+    },
+    "FrozenDigest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "RepositoryPath": {
+      "type": "string",
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[A-Za-z0-9._/-]+$"
+    },
+    "OwnedPath": {
+      "type": "string",
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[A-Za-z0-9._/*?{}-]+$"
+    },
+    "ContractInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_id",
+        "owner_mission",
+        "version",
+        "required_state",
+        "content_digest"
+      ],
+      "properties": {
+        "contract_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+$"
+        },
+        "owner_mission": { "$ref": "#/$defs/MissionOwner" },
+        "version": { "$ref": "#/$defs/SemanticVersion" },
+        "required_state": {
+          "enum": ["Frozen", "Implemented", "Verified"]
+        },
+        "content_digest": { "$ref": "#/$defs/Digest" }
+      }
+    },
+    "FrozenContractInput": {
+      "allOf": [
+        { "$ref": "#/$defs/ContractInput" },
+        {
+          "type": "object",
+          "properties": {
+            "content_digest": { "$ref": "#/$defs/FrozenDigest" }
+          }
+        }
+      ]
+    },
+    "DigestedOutput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "kind", "digest"],
+      "properties": {
+        "path": { "$ref": "#/$defs/RepositoryPath" },
+        "kind": {
+          "enum": [
+            "common_schema",
+            "api_fragment",
+            "event_envelope",
+            "event_catalog",
+            "module_manifest",
+            "contract_manifest",
+            "migration_schema",
+            "domain_schema",
+            "document_contract",
+            "other"
+          ]
+        },
+        "digest": { "$ref": "#/$defs/Digest" }
+      }
+    },
+    "FrozenDigestedOutput": {
+      "allOf": [
+        { "$ref": "#/$defs/DigestedOutput" },
+        {
+          "type": "object",
+          "properties": { "digest": { "$ref": "#/$defs/FrozenDigest" } }
+        }
+      ]
+    },
+    "DigestedFixture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "expectation", "digest"],
+      "properties": {
+        "path": { "$ref": "#/$defs/RepositoryPath" },
+        "expectation": { "enum": ["valid", "invalid"] },
+        "digest": { "$ref": "#/$defs/Digest" }
+      }
+    },
+    "FrozenDigestedFixture": {
+      "allOf": [
+        { "$ref": "#/$defs/DigestedFixture" },
+        {
+          "type": "object",
+          "properties": { "digest": { "$ref": "#/$defs/FrozenDigest" } }
+        }
+      ]
+    },
+    "SharedTouchpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "steward", "reason"],
+      "properties": {
+        "path": { "$ref": "#/$defs/OwnedPath" },
+        "steward": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "reason": { "type": "string", "minLength": 1 }
+      }
+    },
+    "MigrationStrategy": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["mode"],
+          "properties": { "mode": { "const": "none" } }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["mode", "root"],
+          "properties": {
+            "mode": { "const": "owner_scoped_forward_only" },
+            "root": { "$ref": "#/$defs/RepositoryPath" }
+          }
+        }
+      ]
     }
   }
 }

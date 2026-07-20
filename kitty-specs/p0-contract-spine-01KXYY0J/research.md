@@ -121,9 +121,12 @@ recorded instants, correlation/causation IDs, and data. Ordering is promised
 only within one aggregate revision; no global order is implied.
 
 Fixture batches are UTF-8 JSONL with one LF-terminated envelope per line.
-Contract manifests record owner, semantic version, state, source files,
-baseline commit, and SHA-256 digests. Valid and invalid fixtures are immutable
-once frozen; invalid cases pair input with stable error code and JSON Pointer.
+Contract manifests use one canonical swarm shape for lifecycle, base, immutable
+content identity, dependencies, inputs, outputs, ownership, shared touchpoints,
+migrations, and valid/invalid fixtures. The content digest excludes mutable
+lifecycle state and stays stable from Frozen through Verified. Valid and invalid
+fixtures are immutable once frozen; invalid cases pair input with stable error
+code and JSON Pointer.
 
 **Rationale:** P4 can implement projection behavior against synthetic reporting
 inputs without claiming ownership of future P5/P6 events. P7 later maps the
@@ -132,12 +135,13 @@ real producer events into that reporting boundary.
 ## Decision 7: Parallel-safe migration protocol
 
 **Decision:** Discover migrations recursively beneath owner directories. Each
-migration uses a UUIDv7 ID, immutable manifest, optional dependency IDs,
-checksum, and forward-only script. The runner topologically sorts dependencies,
-uses the ID only as a deterministic tie-break, and rejects duplicates, missing
-dependencies, cycles, and checksum drift.
+migration uses a UUIDv7 ID, immutable manifest, lexicographically ordered
+dependency IDs, an exact script digest, an RFC 8785 JCS descriptor digest, and a
+forward-only script. The runner topologically sorts dependencies, uses the ID
+only as a deterministic tie-break, and rejects duplicates, missing dependencies,
+cycles, and either digest drifting.
 
-Applied migration ID, owner, checksum, and instant are recorded in
+Applied migration ID, owner, both digests, and instant are recorded in
 `app_schema_migrations`. Re-running is an observable no-op. P0 owns only the
 runner and bootstrap schema; feature tables belong to feature missions.
 
@@ -156,12 +160,17 @@ Consequential mutation follows this boundary:
 
 `BEGIN -> domain writes/event/idempotency record -> COMMIT -> CHECKPOINT -> acknowledge`
 
-If commit succeeds but checkpoint fails, retry checkpoint and report
-`durability_unconfirmed`; do not replay the mutation blindly. Always checkpoint
-before close. Startup migrations are forward-only, idempotent, and checkpointed
-before traffic is served. Since ShovelerDB DDL is not session-transactional, a
-failed migration discards the dirty handle without checkpointing and reopens
-the last durable snapshot.
+On the supported Linux baseline the application performs one additional step:
+
+`CHECKPOINT -> fsync(database parent directory) -> acknowledge`
+
+If commit succeeds but checkpoint or parent-directory sync fails, retry only the
+persistence-completion boundary and report `durability_unconfirmed`; do not
+replay the mutation blindly. Always checkpoint and directory-sync before close.
+Startup migrations are forward-only, idempotent, checkpointed, and
+directory-synchronized before traffic is served. Since ShovelerDB DDL is not
+session-transactional, a failed migration discards the dirty handle without
+checkpointing and reopens the last durable snapshot.
 
 **Rationale:** ShovelerDB commit publishes an in-memory generation while an
 explicit checkpoint persists it. Close does not checkpoint. The ABI requires
@@ -202,9 +211,11 @@ dependency attribution.
 3. Duplicate contract and invalid fixture rejection.
 4. Migration first-run, second-run no-op, duplicate, missing-dependency, cycle,
    and checksum-drift cases.
-5. Real ShovelerDB create/migrate, transaction, rollback, checkpoint, close,
-   reopen, and verification through the public storage seam.
-6. Corrupt-file refusal and checkpoint-failure behavior.
+5. Real ShovelerDB create/migrate, transaction, rollback, checkpoint,
+   parent-directory sync, close, reopen, and verification through the public
+   storage seam.
+6. Corrupt-file refusal, checkpoint failure, injected directory-sync failure,
+   and process termination at each persistence boundary.
 7. Black-box Zig health and Next.js same-origin proxy smoke tests.
 8. License audit with preserved dependency notices.
 
@@ -212,8 +223,10 @@ dependency attribution.
 
 - ShovelerDB packaging is the only P0 external blocker. Track it explicitly;
   do not replace the database silently.
-- ShovelerDB does not sync the containing directory after snapshot rename, so
-  strict power-loss durability remains a P3 operational-hardening concern.
+- ShovelerDB does not sync the containing directory after snapshot rename. P0's
+  Linux adapter therefore syncs the database parent directory before
+  acknowledgment; P3 later verifies the deployed filesystem and mount preserve
+  that supported behavior.
 - ShovelerDB snapshots are capped at 128 MiB. P3 must monitor the database and
   document backup/restore limits; binary artifacts remain external.
 - P1-P6 may occasionally need shared build changes after P0. Assign a persistent

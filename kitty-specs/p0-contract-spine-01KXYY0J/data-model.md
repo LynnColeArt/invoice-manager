@@ -35,14 +35,52 @@ Remittance Block, and Schedule belong to later missions.
 
 ### ContractManifest
 
+- `manifest_version`: canonical manifest schema version, initially `1`.
 - `contract_id`: stable namespaced identifier.
 - `owner_mission`: P0-P8 program identifier.
+- `mission`: immutable Spec Kitty mission slug.
 - `version`: semantic version.
 - `state`: Draft, Frozen, Implemented, Verified, or Superseded.
-- `baseline_commit`: git commit that supplied the manifest.
-- `sources`: ordered relative paths and SHA-256 digests.
-- `fixtures`: ordered relative paths and SHA-256 digests.
-- Invariant: a frozen version is immutable; changes create a new version.
+- `baseline_commit`: exact program base consumed by planning, not the
+  self-referential commit containing the manifest.
+- `content_digest`: stable SHA-256 of RFC 8785 JCS bytes for contract ID,
+  version, inputs, outputs, and integration fixtures after entries are sorted by
+  their documented identity. It excludes lifecycle state, base commit,
+  ownership, and itself, and remains unchanged from Frozen through Verified.
+- `dependencies`: owning mission identifiers.
+- `inputs`: exact consumed contract IDs, owners, versions, required states, and
+  manifest digests.
+- `outputs`: repository-relative paths, artifact kinds, and SHA-256 digests.
+- `owned_paths`: primary mission-owned paths or globs.
+- `shared_touchpoints`: paths, named steward, and coordination reason.
+- `migration_strategy`: none or one owner-scoped forward-only root.
+- `integration_fixtures`: valid/invalid paths and SHA-256 digests.
+- Invariants: a frozen version is immutable; changes create a new version;
+  non-Draft states contain no pending evidence; the runtime freeze gate proves
+  normalized unique paths, actual digests, both valid and invalid fixtures,
+  dependency states, and a legal lifecycle transition. Draft may advance to
+  Frozen or Superseded; Frozen to Implemented or Superseded; Implemented to
+  Verified or Superseded; Verified to Superseded; Superseded is terminal.
+  Every dependency owner has exactly one input, inputs name no undeclared owner,
+  and contract identities do not repeat or conflict.
+
+### ModuleContribution
+
+- `module_id`, `owner_mission`, and globally unique `mount_key`.
+- owner-scoped OpenAPI fragments, event catalogs, and migration root.
+- route policy with `default_access = protected` and explicit public operation
+  IDs.
+- Invariants: every referenced path remains within the owner's convention;
+  public operation declarations agree with OpenAPI access metadata; generated
+  mount and route inventories are deterministic ignored build outputs.
+
+### EventCatalog
+
+- owner mission and bounded-context `source`.
+- one or more entries binding event type, event version, aggregate type, and
+  payload schema ID.
+- Invariant: a full event validates the P0 envelope, resolves exactly one
+  catalog entry, and validates `data` against that payload schema.
 
 ### ApiEnvelope
 
@@ -83,20 +121,27 @@ Remittance Block, and Schedule belong to later missions.
 - `id`: UUIDv7.
 - `owner`: mission/domain key.
 - `name`: stable descriptive slug.
-- `depends_on`: zero or more migration IDs.
-- `checksum`: SHA-256 of immutable migration content.
-- `script_path`: owner-relative forward script.
+- `depends_on`: zero or more migration IDs stored in ascending canonical UUID
+  string order.
+- `script_path`: owner-relative forward script, initially `up.sql`.
+- `script_digest`: SHA-256 of exact script bytes.
+- `descriptor_digest`: SHA-256 of RFC 8785 JSON Canonicalization Scheme bytes
+  containing ID, owner, name, lexicographically ordered dependencies, script
+  path, and script digest; it excludes itself. A committed fixture publishes
+  both the canonical bytes and expected digest.
 - Invariants: no duplicate ID; dependency graph is acyclic and complete; an
   applied descriptor is never edited or deleted.
 
 ### AppliedMigration
 
-- `id`, `owner`, and `checksum` copied from MigrationDescriptor.
+- `id`, `owner`, `descriptor_digest`, and `script_digest` copied from
+  MigrationDescriptor.
 - `applied_at`: UtcInstant.
-- State transition: Discovered -> Applying -> Committed -> Checkpointed.
-- Only Checkpointed is reported as successfully applied.
-- Re-discovery with the same checksum is a no-op; a different checksum is a
-  hard failure.
+- State transition: Discovered -> Applying -> Committed -> Checkpointed ->
+  DirectorySynchronized.
+- Only DirectorySynchronized is reported as successfully applied on Linux.
+- Re-discovery with both identical digests is a no-op; a different descriptor
+  or script digest is a hard failure.
 
 ## Persistence boundary records
 
@@ -104,7 +149,7 @@ Remittance Block, and Schedule belong to later missions.
 
 - `database_path`: canonical application-owned path.
 - `state`: Closed, Opening, Ready, TransactionActive, DurabilityUnconfirmed,
-  or Closing.
+  Checkpointed, DirectorySynchronized, or Closing.
 - Invariant: at most one owned handle and one serialized operation per path.
 
 ### DurableMutationReceipt
@@ -112,14 +157,19 @@ Remittance Block, and Schedule belong to later missions.
 - `operation_id`: idempotency/deduplication key.
 - `commit_state`: Committed or RolledBack.
 - `checkpoint_state`: Confirmed or Unconfirmed.
+- `directory_sync_state`: Confirmed, Unconfirmed, or NotAttempted.
 - `checkpoint_error_code`: nullable stable application category.
-- Invariant: success is returned only for Committed + Confirmed. An
-  Unconfirmed receipt is retried at the checkpoint boundary, not by replaying
-  domain writes.
+- `directory_sync_error_code`: nullable stable application category.
+- Invariant: success is returned only for Committed + checkpoint Confirmed +
+  directory sync Confirmed on Linux. An Unconfirmed receipt is retried at the
+  persistence boundary, not by replaying domain writes.
 
 ## Relationships
 
-- ContractManifest owns many ContractFixtures.
+- ContractManifest owns immutable content identity plus output and
+  integration-fixture evidence and references exact consumed content digests.
+- ModuleContribution points to owner OpenAPI fragments, EventCatalog records,
+  and a migration root.
 - Domain fragments consume shared value objects and contribute to one composed
   API or event-contract build artifact.
 - MigrationDescriptor may depend on other descriptors and yields at most one

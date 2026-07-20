@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://invoice-manager.invalid/contracts/events/envelope/v1",
+  "$id": "https://invoice-manager.invalid/contracts/events/v1/envelope.schema.json",
   "title": "Invoice Manager Domain Event Envelope v1",
   "type": "object",
   "additionalProperties": true,
@@ -19,7 +19,7 @@
   ],
   "properties": {
     "envelope_version": { "const": 1 },
-    "event_id": { "$ref": "./common-v1.schema.json#/$defs/EntityId" },
+    "event_id": { "$ref": "https://invoice-manager.invalid/contracts/common/v1/schema.json#/$defs/EntityId" },
     "event_type": {
       "type": "string",
       "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+$"
@@ -32,21 +32,21 @@
       "required": ["type", "id", "revision"],
       "properties": {
         "type": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
-        "id": { "$ref": "./common-v1.schema.json#/$defs/EntityId" },
-        "revision": { "$ref": "./common-v1.schema.json#/$defs/NonNegativeInt64" }
+        "id": { "$ref": "https://invoice-manager.invalid/contracts/common/v1/schema.json#/$defs/EntityId" },
+        "revision": { "$ref": "https://invoice-manager.invalid/contracts/common/v1/schema.json#/$defs/NonNegativeInt64" }
       }
     },
-    "occurred_at": { "$ref": "./common-v1.schema.json#/$defs/UtcInstant" },
-    "recorded_at": { "$ref": "./common-v1.schema.json#/$defs/UtcInstant" },
+    "occurred_at": { "$ref": "https://invoice-manager.invalid/contracts/common/v1/schema.json#/$defs/UtcInstant" },
+    "recorded_at": { "$ref": "https://invoice-manager.invalid/contracts/common/v1/schema.json#/$defs/UtcInstant" },
     "correlation_id": {
       "oneOf": [
-        { "$ref": "./common-v1.schema.json#/$defs/EntityId" },
+        { "$ref": "https://invoice-manager.invalid/contracts/common/v1/schema.json#/$defs/EntityId" },
         { "type": "null" }
       ]
     },
     "causation_id": {
       "oneOf": [
-        { "$ref": "./common-v1.schema.json#/$defs/EntityId" },
+        { "$ref": "https://invoice-manager.invalid/contracts/common/v1/schema.json#/$defs/EntityId" },
         { "type": "null" }
       ]
     },

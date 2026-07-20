@@ -9,6 +9,7 @@ paths:
   /health:
     get:
       operationId: P0Health
+      x-invoice-manager-access: public
       summary: Report whether the business service is ready.
       responses:
         "200":
@@ -31,7 +32,7 @@ components:
       required: [request_id]
       properties:
         request_id:
-          $ref: "./common-v1.schema.json#/$defs/RequestId"
+          $ref: "https://invoice-manager.invalid/contracts/common/v1/schema.json#/$defs/RequestId"
     P0HealthData:
       type: object
       additionalProperties: false

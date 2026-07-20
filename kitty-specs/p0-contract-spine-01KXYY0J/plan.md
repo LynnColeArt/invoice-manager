@@ -28,8 +28,10 @@ Draft state.
   precision or textual variation would create incompatible signatures.
 - Domain missions contribute additive files discovered by convention. They do
   not edit root registries, generated aggregates, or each other's directories.
-- A mutation is successful only after commit and explicit checkpoint. A
-  committed mutation with a failed checkpoint is a distinct recovery state.
+- On Linux, a mutation is successful only after commit, explicit checkpoint,
+  and synchronization of the database parent directory after snapshot rename.
+  A committed mutation with a failed checkpoint or directory sync is a
+  distinct recovery state.
 - P0 implements only health, foundation contracts, migrations, and synthetic
   persistence proof. Billing and operational behavior is out of scope.
 
@@ -44,8 +46,9 @@ Draft state.
 artifacts remain outside the database
 **Testing**: Zig unit/coverage tests, contract-schema and fixture validation,
 deterministic composition tests, migration negative tests, real ShovelerDB
-checkpoint-close-reopen integration, black-box HTTP and same-origin proxy smoke,
-web format/lint/type/component/build, and runtime-license audit
+checkpoint-directory-sync-close-reopen integration, process-crash boundary
+tests, black-box HTTP and same-origin proxy smoke, web
+format/lint/type/component/build, and runtime-license audit
 **Target Platform**: Linux x86_64 development and CI baseline
 **Project Type**: Single repository with independently buildable web and API
 applications plus repository-owned contract tooling
@@ -101,6 +104,8 @@ kitty-specs/p0-contract-spine-01KXYY0J/
 │   ├── common-v1.schema.json
 │   ├── api-v1.openapi.yaml
 │   ├── event-envelope-v1.schema.json
+│   ├── event-catalog-v1.schema.json
+│   ├── module-contribution-v1.schema.json
 │   ├── migration-manifest-v1.schema.json
 │   ├── contract-manifest-v1.schema.json
 │   └── p0-contract-manifest.json
@@ -128,9 +133,13 @@ kitty-specs/p0-contract-spine-01KXYY0J/
 │   │   └── fragments/<owner>/
 │   ├── events/v1/
 │   │   ├── envelope.schema.json
+│   │   ├── catalogs/<owner>/
 │   │   └── payloads/<owner>/
+│   ├── modules/<owner>/module.json
 │   ├── fixtures/<owner>/v1/
-│   └── manifests/<owner>.json
+│   ├── manifests/v1/schema.json
+│   ├── manifests/<owner>.json
+│   └── migrations/v1/manifest.schema.json
 ├── deps/
 │   └── shovelerdb/                 # exact-commit submodule/source shim
 ├── services/
@@ -171,7 +180,7 @@ Browser or Next.js rendering
 serialized ShovelerDB adapter
           |
           v
-transaction commit -> explicit checkpoint -> acknowledgement
+transaction commit -> explicit checkpoint -> parent-directory sync -> acknowledgement
 ```
 
 The web application may perform usability checks, render safe server errors,
@@ -193,17 +202,57 @@ mutation.
 - Verified means the real integration and acceptance suite pass.
 - Additive optional fields are minor changes. Meaning, requiredness, removal,
   rename, or formerly-valid input tightening is a major change.
+- `baseline_commit` is the exact program base consumed by planning. Publication
+  identity is recorded by Git and the program ledger, avoiding an impossible
+  self-reference to the commit containing the manifest.
+- One canonical manifest records contract identity, owner and mission,
+  lifecycle, base commit, stable content digest, dependencies, exact consumed
+  content digests, outputs, owned paths, shared touchpoints, migration strategy,
+  and integration fixtures. P1-P8 may not invent a second manifest dialect.
+- At freeze, `content_digest` is SHA-256 over RFC 8785 JCS bytes for contract
+  ID, version, inputs, outputs, and integration fixtures after deterministic
+  identity sorting. It excludes mutable state, base, ownership metadata, and
+  itself, so consumer pins remain valid as Frozen advances to Implemented and
+  Verified. Any content change creates a new contract version.
+- Legal transitions are Draft -> Frozen -> Implemented -> Verified, with any
+  non-Superseded state also able to advance to terminal Superseded. Regression,
+  skipping a normal state, or changing content after Frozen is rejected.
+- JSON Schema rejects pending evidence outside Draft. The runtime lifecycle gate
+  also resolves normalized repository-relative paths, rejects duplicate paths,
+  verifies every file and digest, requires valid and invalid integration
+  fixtures, verifies input states/content digests, and enforces legal
+  transitions. It also requires the dependency-owner set to equal the input-
+  owner set, exactly one input per dependency, and no duplicate or conflicting
+  contract identity.
 
 ### Composition
 
-- P0 owns base/common schemas and the composition command.
-- Missions own fragments under their owner directory and namespace component,
-  operation, event, and mount names.
+- P0 owns base/common schemas, stable schema identifiers, contribution schemas,
+  and the composition command. Canonical common values resolve from
+  `https://invoice-manager.invalid/contracts/common/v1/schema.json`.
+- Each owner contributes `contracts/modules/<owner>/module.json`, OpenAPI under
+  `contracts/api/v1/fragments/<owner>/`, event catalogs under
+  `contracts/events/v1/catalogs/<owner>/`, payload schemas under
+  `contracts/events/v1/payloads/<owner>/`, fixtures under
+  `contracts/fixtures/<owner>/v1/`, and migrations below
+  `services/api/migrations/<owner>/`.
+- The module contribution declares its unique mount key, fragment/catalog
+  paths, migration root, protected-by-default route policy, and explicit public
+  operation IDs. Every OpenAPI operation carries
+  `x-invoice-manager-access: protected|public`; missing metadata is treated as
+  protected, and a public declaration must agree with the module manifest.
+- Event catalogs bind `source`, `event_type`, `event_version`, aggregate type,
+  and payload schema ID. Full-envelope validation first checks the P0 envelope,
+  then resolves exactly one catalog entry and validates `data`; an unconstrained
+  object alone never proves event compatibility.
 - Composition order is canonical path order.
 - The command rejects duplicate paths/methods, operation IDs, schema IDs,
   component names, event identities/versions, and module mount keys.
 - Composition runs twice in CI and compares bytes.
 - OpenAPI and generated TypeScript aggregates are ignored build outputs.
+- The task contract includes the recorded P1-P4 Draft schemas and manifests as
+  real conformance inputs plus synthetic mutation cases. Toy-only fragments do
+  not satisfy P0 acceptance.
 
 ### Producer/consumer fixtures
 
@@ -239,59 +288,80 @@ Idle
   -> TransactionActive
   -> Committed
   -> Checkpointed
+  -> DirectorySynchronized
   -> Acknowledged
 
 TransactionActive -> RolledBack
-Committed -> DurabilityUnconfirmed -> Checkpointed
+Committed -> DurabilityUnconfirmed -> Checkpointed -> DirectorySynchronized
 ```
 
-Only Checkpointed may become Acknowledged. `DurabilityUnconfirmed` retries the
-checkpoint boundary and never replays the already committed domain operation.
-Shutdown stops new work, completes or rolls back the active operation,
-checkpoints the committed generation, then closes.
+Only DirectorySynchronized may become Acknowledged on the supported Linux
+baseline. After ShovelerDB returns from checkpoint, the adapter opens and
+`fsync`s the database parent directory so the snapshot rename is part of the
+acknowledgment boundary. A checkpoint or directory-sync failure returns
+`DurabilityUnconfirmed`, retries only persistence completion, and never replays
+the already committed domain operation. Shutdown stops new work, completes or
+rolls back the active operation, checkpoints and directory-syncs the committed
+generation, then closes. Unsupported filesystems or directory-sync behavior
+fail readiness rather than weakening the guarantee silently.
 
 ### Migrations
 
 - Owner-scoped directories contain UUIDv7 descriptors and forward scripts.
 - Recursive discovery replaces a shared sequence/registry.
 - Explicit dependencies form a DAG; UUIDv7 is only a deterministic tie-break.
-- Applied ID, owner, checksum, and UTC instant are recorded.
+- Every descriptor carries `script_path`, `script_digest`, and
+  `descriptor_digest`. Dependencies are stored in ascending UUID string order;
+  the descriptor digest covers RFC 8785 JSON Canonicalization Scheme bytes for
+  ID, owner, name, dependencies, script path, and script digest while excluding
+  only itself. A fixed fixture publishes canonical bytes and the expected
+  digest.
+- Applied ID, owner, descriptor digest, script digest, and UTC instant are
+  recorded; mutation of any covered field is a hard failure.
 - Applied migrations are immutable and never receive down scripts.
 - Because ShovelerDB DDL is not session-transactional, startup migration failure
   discards the dirty uncheckpointed handle and reopens the last durable file.
-- Traffic begins only after the full migration set is checkpointed.
+- Traffic begins only after the full migration set is checkpointed and its
+  snapshot rename is directory-synchronized.
 
 ## Testing and Quality Strategy
 
 1. **Contract unit tests** validate canonical values, valid/invalid examples,
    schema references, lifecycle manifests, and collision diagnostics.
-2. **Composition tests** prove byte determinism and mutate one duplicate class
-   at a time so the architectural gate cannot pass vacuously.
+2. **Composition tests** prove byte determinism against real P1-P4 Draft
+   artifacts and mutate one duplicate, external-reference, discriminator,
+   route-access, manifest, and mount class at a time so the architectural gate
+   cannot pass vacuously.
 3. **Zig unit tests** drive exact money, dates, envelopes, migration DAGs,
    diagnostics, literal encoding, and durability state transitions red-first.
 4. **Persistence integration** uses real ShovelerDB through the application seam
-   for first migration, no-op rerun, commit/checkpoint/reopen, rollback, corrupt
-   file, and checkpoint failure.
+   for first migration, no-op rerun, commit/checkpoint/directory-sync/reopen,
+   rollback, corrupt file, checkpoint failure, injected directory-sync failure,
+   and process termination after each durability boundary.
 5. **Black-box HTTP tests** call the service's public health/error boundary; a
    web smoke test calls it through the same-origin proxy.
 6. **Web gates** run formatting, ESLint Flat Config, strict types, component
    tests, and the production build independently of Zig.
 7. **Coverage** enforces 90%+ on P0 shared Zig behavior and 100% coverage of
    enumerated critical error branches.
-8. **License audit** classifies distributed runtime packages, source dependency,
+8. **Lifecycle mutation tests** prove Frozen and later states cannot contain
+   pending, missing, duplicate, non-repository, or mismatched evidence and
+   cannot skip legal transitions.
+9. **License audit** classifies distributed runtime packages, source dependency,
    fonts/container contents when they become applicable, and preserves notices.
-9. **Mutation checks** deliberately break collision and route-count floors so a
+10. **Mutation checks** deliberately break collision and route-count floors so a
    zero-input or allow-everything validator cannot pass.
 
 ## Implementation Concern Map
 
 ### IC-01 — Reproducible repository shell
 
-- **Purpose**: Pin toolchains, create independent web/API builds, and provide one
-  documented bootstrap/validation entry point.
+- **Purpose**: Pin the root Node/Zig toolchain substrate and declare one
+  documented bootstrap plus focused validation command surface.
 - **Relevant requirements**: FR-001, FR-002, FR-015; NFR-001, NFR-008, NFR-012.
-- **Affected surfaces**: root package/lock/version files, `apps/web/`,
-  `services/api/build.zig*`, CI.
+- **Affected surfaces**: root `package.json`, `package-lock.json`, tool-version
+  files, and root bootstrap documentation only. Application builds/source and
+  CI are owned by later concerns.
 - **Sequencing/depends-on**: none.
 - **Risks**: Root files are high-contention; only P0/integration steward edits
   them after this mission.
@@ -312,7 +382,8 @@ checkpoints the committed generation, then closes.
 - **Purpose**: Let missions add namespaced fragments without shared registries.
 - **Relevant requirements**: FR-004-FR-008; NFR-002, NFR-003.
 - **Affected surfaces**: `contracts/api/`, `contracts/events/`,
-  `contracts/fixtures/`, `contracts/manifests/`, `tools/contracts/`.
+  `contracts/modules/`, `contracts/fixtures/`, `contracts/manifests/`,
+  `tools/contracts/`.
 - **Sequencing/depends-on**: IC-01, IC-02.
 - **Risks**: Generated aggregate or route registry must remain deterministic and
   uncommitted; non-vacuity checks need real reference fragments.
@@ -333,7 +404,9 @@ checkpoints the committed generation, then closes.
 - **Purpose**: Prove a public clean clone can build the pinned engine without a
   sibling path or floating revision.
 - **Relevant requirements**: FR-011, FR-012; NFR-012; C-004, C-005.
-- **Affected surfaces**: `deps/shovelerdb/`, service build and attribution.
+- **Affected surfaces**: `deps/shovelerdb/`, `services/api/build.zig`,
+  `services/api/build.zig.zon`, the storage dependency adapter, and its
+  attribution. IC-05 is the sole owner of service build integration.
 - **Sequencing/depends-on**: IC-01.
 - **Risks**: Upstream lacks consumer package metadata and a linkable library;
   source shim must remain narrow and replaceable.
@@ -346,8 +419,9 @@ checkpoints the committed generation, then closes.
 - **Affected surfaces**: `services/api/src/platform/persistence/` and real
   integration tests.
 - **Sequencing/depends-on**: IC-04, IC-05.
-- **Risks**: Blind replay after checkpoint failure duplicates business effects;
-  borrowed ABI values and concurrent handles can corrupt assumptions.
+- **Risks**: Blind replay after persistence failure duplicates business effects;
+  directory-sync omission, borrowed ABI values, and concurrent handles can
+  corrupt assumptions.
 
 ### IC-07 — Black-box boundary proof
 
@@ -365,19 +439,44 @@ checkpoints the committed generation, then closes.
   P1-P4 readiness auditable.
 - **Relevant requirements**: FR-015, FR-016; NFR-008, NFR-010-NFR-012;
   C-001, C-007, C-010.
-- **Affected surfaces**: CI, notices, quickstart, contract manifests,
-  `docs/program-ledger.md`.
+- **Affected surfaces**: final cross-cutting validation aggregation, manifest
+  promotion, CI orchestration, quickstart, and `docs/program-ledger.md`.
 - **Sequencing/depends-on**: IC-01-IC-07.
-- **Risks**: Apache-2.0 code must not enter the combined GPL-2.0-only runtime;
-  generic shared-file ownership must not be misassigned to P7 reporting.
+- **Risks**: This is an explicit codebase-wide closure package and depends on
+  every producing package. Tests, notices, fixtures, and focused commands stay
+  with their producing concerns; closure runs the full gate, promotes exact
+  evidence, and records readiness rather than absorbing unfinished work.
 
 ## Parallel Delivery Shape
 
-After IC-01 creates the skeleton, IC-02, IC-04, and IC-05 can proceed in
-parallel. IC-03 consumes IC-02; IC-06 consumes IC-04/IC-05; IC-07 consumes
-IC-02/IC-03. IC-08 integrates evidence. `/spec-kitty.tasks` must translate this
-graph into disjoint lanes and must not group all shared contracts into one long
-serial work package.
+After IC-01 creates only the substrate, IC-02 and IC-05 can proceed in
+parallel. IC-03 and IC-04 consume IC-02 and remain independent; IC-06 consumes
+IC-04/IC-05. The Zig HTTP and Next.js portions of IC-07 use disjoint source
+ownership and may proceed in parallel after their contract inputs exist. IC-08
+is one declared codebase-wide closure package after every producer. Tasking must
+keep root configs, application source, CI, and dependency notices assigned to a
+single primary package each.
+
+## Task Ownership Contract
+
+Task generation must preserve these primary owners; dependencies never excuse
+two narrow work packages claiming the same file:
+
+| Concern package | Exclusive primary surfaces |
+| --- | --- |
+| Repository substrate | Root package/lock and tool-version files; declares all focused commands up front |
+| Shared values | `contracts/common/v1/`, Zig shared values, and their tests |
+| Contract composition | API/event/module/manifest/fixture trees and `tools/contracts/` |
+| Migration runner | P0 migration descriptors, runner module, and migration tests; excludes the general store adapter |
+| ShovelerDB consumption | Dependency source, service build files, dependency adapter, and dependency notice |
+| Durable storage | Persistence state machine, directory sync, store tests; excludes migration and dependency-adapter files |
+| Zig HTTP boundary | `services/api/src/main.zig`, HTTP modules, and black-box service tests |
+| Next.js shell | Exact app configs, root layout/page/style, shared API/contract client, and foundation web tests; no domain feature directories |
+| Program closure | One `scope: codebase-wide` package owning foundation CI, full-gate execution, manifest promotion, quickstart, and ledger evidence after all producers |
+
+The closure package rejects or routes unfinished producer work back to its
+owner. It does not become the routine author of another package's tests,
+notices, fixtures, or source.
 
 P1-P4 may begin specification and planning as soon as this draft contract set is
 committed. Their implementation remains blocked until their consumed contracts
@@ -388,13 +487,13 @@ are Frozen and P0 is merged/revalidated on the program baseline.
 | Risk | Mitigation | Routed owner |
 | --- | --- | --- |
 | ShovelerDB packaging blocks clean clone | Exact-commit source/submodule shim; pursue a small upstream package release separately | P0 / upstream dependency |
-| Commit succeeds but checkpoint fails | Durable state machine and checkpoint-only recovery | P0 |
+| Commit succeeds but checkpoint or parent-directory sync fails | Durable state machine, Linux directory sync, and persistence-boundary-only recovery | P0 |
 | DDL failure leaves dirty in-memory schema | Startup-only migrations; discard uncheckpointed handle and reopen | P0 |
 | Shared registries reintroduce merge conflicts | Convention scanning, collision checks, generated ignored aggregates | P0 |
 | P0 absorbs feature behavior | Explicit exclusions and requirement/path review | Program orchestrator |
 | GPLv2-only incompatibility enters runtime | Runtime dependency classifier, license allow/deny evidence, notices | P0 then integration steward |
 | ShovelerDB snapshot cap is reached | Store binary artifacts externally; monitoring and operational limits | P3 |
-| Snapshot rename lacks directory sync guarantee | Document and harden power-loss strategy | P3 |
+| Snapshot rename lacks directory sync guarantee | P0 adapter syncs the parent directory before acknowledgment; P3 validates deployed filesystem support | P0/P3 |
 | Downstream plan assumes Draft means implementable | Contract state gate: only Frozen permits implementation | Program orchestrator |
 
 ## Planning Completion Gate
@@ -402,7 +501,10 @@ are Frozen and P0 is merged/revalidated on the program baseline.
 - Specification and requirements checklist are complete and committed.
 - Research decisions and evidence sources are recorded.
 - Data model contains only foundation records.
-- Draft schemas are syntactically valid and mutually resolvable.
+- Draft schemas are syntactically valid and mutually resolvable; P1-P4 use the
+  canonical manifest shape and P0 common schema IDs.
+- Module, event-catalog, route-access, migration-digest, and freeze semantics
+  are normative rather than left to work-package implementers.
 - Quickstart describes planned commands without claiming implementation exists.
 - Decision verifier reports no deferred or stale decisions.
 - Program ledger records P0 handle, baseline, Draft contract version, ownership,

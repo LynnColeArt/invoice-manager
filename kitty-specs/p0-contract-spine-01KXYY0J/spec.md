@@ -2,7 +2,7 @@
 
 **Mission Branch**: `feat/p0-contract-spine`  
 **Created**: 2026-07-19  
-**Status**: Ready for Planning  
+**Status**: Ready for Tasking after cross-mission Draft corrections
 **Input**: Establish the initial repository baseline, specify the smallest
 foundation mission, and expose stable draft contracts that allow P1 through P4
 to proceed as a coordinated swarm.
@@ -138,6 +138,9 @@ jobs remain independently diagnosable.
 - A previously applied migration changes content without changing identity.
 - A migration dependency is absent or cyclic.
 - Storage commits in memory but the durable checkpoint fails.
+- Storage checkpoint returns but parent-directory synchronization fails.
+- The process exits after commit, checkpoint, or directory synchronization but
+  before acknowledgment.
 - Shutdown occurs while a mutation or migration is active.
 - A storage string contains quotes, NUL, comment markers, Unicode, or newlines.
 - Dependency resolution points at a sibling checkout or floating branch.
@@ -154,15 +157,15 @@ jobs remain independently diagnosable.
 | FR-002 | Runnable service boundary | As a contributor, I want a visible application shell and a healthy business-service response through the supported origin so that the real boundary is proven before feature work. | High | Approved |
 | FR-003 | Shared value representations | As a domain contributor, I want one canonical representation for identifiers, exact money, currencies, civil dates, UTC instants, and large counters so that web and service code cannot disagree silently. | High | Approved |
 | FR-004 | Structured response contract | As a UI contributor, I want versioned success, error, field-failure, and request-correlation shapes so that user feedback remains accessible without duplicating business rules. | High | Approved |
-| FR-005 | Additive HTTP contracts | As a domain contributor, I want to add a namespaced contract fragment without editing a global registry so that missions can proceed independently. | High | Approved |
+| FR-005 | Additive module contracts | As a domain contributor, I want to add a namespaced module manifest, HTTP fragment, event catalog, fixtures, and migrations without editing a global registry so that missions can proceed independently. | High | Approved |
 | FR-006 | Collision detection | As a maintainer, I want composition to reject duplicate paths, operations, schemas, events, and generated mount keys so that parallel work cannot overwrite another mission silently. | High | Approved |
 | FR-007 | Event and fixture envelope | As a producer or consumer contributor, I want a versioned immutable event envelope and synthetic fixture-batch format so that reporting work can proceed against frozen examples. | High | Approved |
-| FR-008 | Contract lifecycle manifest | As an orchestrator, I want every shared contract to record owner, state, version, baseline, sources, fixtures, and digests so that Draft, Frozen, Implemented, and Verified have auditable meanings. | High | Approved |
+| FR-008 | Contract lifecycle manifest | As an orchestrator, I want every shared contract to record owner, mission, state, version, exact planning base, dependencies, inputs, outputs, ownership, shared touchpoints, migration strategy, integration fixtures, and digests so that Draft, Frozen, Implemented, and Verified have enforceable meanings. | High | Approved |
 | FR-009 | Parallel-safe migrations | As a domain contributor, I want owner-scoped forward migrations with collision-resistant identities and explicit dependencies so that no shared next-number registry is required. | High | Approved |
-| FR-010 | Migration integrity | As a maintainer, I want missing dependencies, cycles, duplicate identities, and changed applied content rejected so that schema history is deterministic and append-only. | High | Approved |
+| FR-010 | Migration integrity | As a maintainer, I want missing dependencies, cycles, duplicate identities, and any changed applied descriptor or script content rejected so that schema history is deterministic and append-only. | High | Approved |
 | FR-011 | Reproducible storage dependency | As a contributor, I want the approved storage engine resolved at one immutable revision through a clean-clone-consumable boundary so that builds never depend on a sibling checkout or floating branch. | High | Approved |
 | FR-012 | Serialized storage seam | As a domain contributor, I want one application-owned storage boundary for transactions, diagnostics, migrations, durability, close, and reopen so that storage implementation details never leak into domain work. | High | Approved |
-| FR-013 | Durable acknowledgement | As a maintainer, I want consequential mutations acknowledged only after durable persistence so that a reported success survives restart. | High | Approved |
+| FR-013 | Durable acknowledgement | As a maintainer, I want consequential mutations acknowledged only after commit, checkpoint, and supported Linux parent-directory synchronization so that a reported success survives restart and snapshot rename. | High | Approved |
 | FR-014 | Durability uncertainty | As an operator, I want a committed-but-not-durable result distinguished from a rolled-back failure so that recovery retries persistence rather than replaying business effects. | High | Approved |
 | FR-015 | Independent validation gates | As a contributor, I want separately diagnosable contract, service, web, persistence, HTTP, migration-negative, and license checks so that one lane's failure does not obscure another. | Medium | Approved |
 | FR-016 | Program ownership evidence | As an orchestrator, I want P0's contract versions, shared paths, integration steward, baseline, and validation evidence reflected in the program ledger so that downstream mission readiness is visible. | High | Approved |
@@ -175,7 +178,7 @@ jobs remain independently diagnosable.
 | NFR-002 | Deterministic composition | Repeated contract composition from an unchanged checkout produces byte-identical aggregates in 100% of validation runs. | Reliability | High | Approved |
 | NFR-003 | Collision rejection | The validation suite rejects 100% of covered duplicate route, operation, schema, event, mount-key, and migration cases. | Integrity | High | Approved |
 | NFR-004 | Numeric fidelity | Round trips preserve every supported signed 64-bit monetary and revision boundary value exactly between contract fixtures, service validation, and web type checks. | Correctness | High | Approved |
-| NFR-005 | Durability cycles | The persistence acceptance suite passes at least 20 consecutive commit-checkpoint-close-reopen cycles with no acknowledged record loss. | Durability | High | Approved |
+| NFR-005 | Durability cycles | The persistence acceptance suite passes at least 20 consecutive commit-checkpoint-directory-sync-close-reopen cycles with no acknowledged record loss and rejects injected checkpoint/sync failures plus external-process termination after each boundary. | Durability | High | Approved |
 | NFR-006 | Critical branch coverage | Shared service value, migration, and durability code maintains at least 90% automated coverage and covers every documented error branch regardless of aggregate percentage. | Testability | High | Approved |
 | NFR-007 | Health responsiveness | The health path completes within one second for 99% of 100 local reference requests while the service is ready. | Performance | Medium | Approved |
 | NFR-008 | Validation duration | Required P0 validation completes within 15 minutes on the reference CI runner, with jobs independently runnable for focused feedback. | Delivery | Medium | Approved |
@@ -201,14 +204,15 @@ jobs remain independently diagnosable.
 
 ### Key Entities
 
-- **Contract Manifest**: The owner, semantic version, lifecycle state, baseline,
-  source and fixture digests for one shared contract.
+- **Contract Manifest**: The canonical lifecycle, dependency, ownership,
+  artifact, migration, and fixture evidence for one shared contract.
 - **Domain Contract Fragment**: A mission-owned additive contribution composed
   into an API or event-contract build artifact.
 - **Contract Fixture**: An immutable synthetic valid or invalid example tied to
   an exact contract version.
 - **Migration Descriptor**: An owner-scoped forward schema change with
-  collision-resistant identity, dependencies, and immutable checksum.
+  collision-resistant identity, dependencies, script digest, and canonical
+  descriptor digest.
 - **Applied Migration**: Durable evidence that a descriptor reached the
   checkpointed state.
 - **Storage Handle Lease**: Exclusive serialized ownership of one storage path.
@@ -223,8 +227,9 @@ jobs remain independently diagnosable.
   calling it a plugin; runtime plugin loading is not part of P0.
 - **Frozen Contract**: A version with immutable sources and fixture digests that
   consumers may implement against.
-- **Durable Success**: A mutation that both committed and completed the required
-  durable persistence step. Avoid using commit and durable interchangeably.
+- **Durable Success**: A mutation that committed, checkpointed, and completed
+  supported parent-directory synchronization. Avoid using commit, checkpoint,
+  and durable interchangeably.
 - **Integration Steward**: The owner who applies approved shared-file changes.
   This is a coordination role, not a new business service.
 
@@ -252,10 +257,12 @@ jobs remain independently diagnosable.
   and migrations concurrently without editing a shared registry or overwriting
   another owner's contribution.
 - **SC-003**: Every covered incompatible contract, duplicate identity, missing
-  dependency, cycle, and checksum-drift mutation is rejected before acceptance.
+  dependency, cycle, route/event mismatch, manifest freeze violation, and
+  descriptor/script digest mutation is rejected before acceptance.
 - **SC-004**: Every acknowledged record survives at least 20 consecutive
-  close-and-reopen acceptance cycles, while rollback and durability-uncertain
-  cases remain distinguishable.
+  checkpoint-directory-sync-close-reopen acceptance cycles, while rollback,
+  injected sync failure, process-crash boundary, and durability-uncertain cases
+  remain distinguishable.
 - **SC-005**: All exact-money boundary fixtures round-trip without precision
   loss between the user-facing application and business service.
 - **SC-006**: Every required P0 quality and licensing gate passes independently,

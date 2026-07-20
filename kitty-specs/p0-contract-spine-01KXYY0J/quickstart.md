@@ -80,11 +80,14 @@ The persistence integration will:
 2. apply the bootstrap migration and checkpoint it;
 3. prove a second migration run is a no-op;
 4. commit and checkpoint a synthetic record;
-5. close and reopen the store;
-6. verify the record through the application storage boundary;
-7. separately prove rollback, corrupt-file refusal, and durability uncertainty.
+5. synchronize the database parent directory on Linux;
+6. close and reopen the store;
+7. verify the record through the application storage boundary;
+8. separately prove rollback, corrupt-file refusal, checkpoint failure,
+   directory-sync failure, and process termination at persistence boundaries.
 
-The service must never acknowledge durable success before the checkpoint.
+The service must never acknowledge durable success before both checkpoint and
+supported parent-directory synchronization complete.
 
 ## Expected planning-to-implementation handoff
 
