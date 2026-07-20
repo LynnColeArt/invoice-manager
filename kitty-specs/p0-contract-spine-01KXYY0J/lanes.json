@@ -95,6 +95,28 @@
       "parallel_group": 2
     },
     {
+      "lane_id": "lane-i",
+      "wp_ids": [
+        "WP09"
+      ],
+      "write_scope": [
+        "apps/web/*config*",
+        "apps/web/package.json"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "app-shell",
+        "artifact-rendering",
+        "workspace"
+      ],
+      "depends_on_lanes": [
+        "lane-a",
+        "lane-b",
+        "lane-c"
+      ],
+      "parallel_group": 2
+    },
+    {
       "lane_id": "lane-g",
       "wp_ids": [
         "WP07"
@@ -117,30 +139,6 @@
         "lane-f"
       ],
       "parallel_group": 3
-    },
-    {
-      "lane_id": "lane-h",
-      "wp_ids": [
-        "WP08"
-      ],
-      "write_scope": [
-        "services/api/src/http/**",
-        "services/api/src/main.zig",
-        "services/api/tests/http/**"
-      ],
-      "predicted_surfaces": [
-        "api",
-        "artifact-rendering",
-        "legacy-cleanup",
-        "tracker-integration"
-      ],
-      "depends_on_lanes": [
-        "lane-c",
-        "lane-e",
-        "lane-f",
-        "lane-g"
-      ],
-      "parallel_group": 4
     },
     {
       "lane_id": "lane-c",
@@ -183,29 +181,31 @@
         "lane-h",
         "lane-i"
       ],
-      "parallel_group": 5
+      "parallel_group": 4
     },
     {
-      "lane_id": "lane-i",
+      "lane_id": "lane-h",
       "wp_ids": [
-        "WP09"
+        "WP08"
       ],
       "write_scope": [
-        "apps/web/*config*",
-        "apps/web/package.json"
+        "services/api/src/http/**",
+        "services/api/src/main.zig",
+        "services/api/tests/http/**"
       ],
       "predicted_surfaces": [
         "api",
-        "app-shell",
         "artifact-rendering",
-        "workspace"
+        "legacy-cleanup",
+        "tracker-integration"
       ],
       "depends_on_lanes": [
-        "lane-a",
-        "lane-b",
-        "lane-c"
+        "lane-c",
+        "lane-e",
+        "lane-f",
+        "lane-g"
       ],
-      "parallel_group": 6
+      "parallel_group": 5
     },
     {
       "lane_id": "lane-a",
@@ -240,10 +240,10 @@
         "lane-h",
         "lane-i"
       ],
-      "parallel_group": 7
+      "parallel_group": 6
     }
   ],
-  "computed_at": "2026-07-20T16:19:07.289631+00:00",
+  "computed_at": "2026-07-20T16:20:04.726170+00:00",
   "computed_from": "dependency_graph+ownership",
   "planning_artifact_wps": [],
   "collapse_report": {
