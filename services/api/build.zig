@@ -1400,8 +1400,6 @@ fn configureHttp(
     const modules = createPublicServiceModules(b, target, optimize, abi_library);
     const http_imports = [_]std.Build.Module.Import{
         .{ .name = "shared", .module = modules.shared },
-        .{ .name = "persistence", .module = modules.persistence },
-        .{ .name = "migrations", .module = modules.migrations },
     };
     const http = b.createModule(.{
         .root_source_file = b.path("src/http/root.zig"),
