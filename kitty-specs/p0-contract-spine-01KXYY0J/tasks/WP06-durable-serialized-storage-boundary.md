@@ -26,7 +26,7 @@ subtasks:
 - T030
 phase: Phase 3
 assignee: ''
-agent: codex
+agent: "codex"
 history: []
 agent_profile: implementer-ivan
 authoritative_surface: services/api/src/platform/persistence/
@@ -56,6 +56,7 @@ owned_files:
 role: implementer
 tags: []
 task_type: implement
+shell_pid: "1807838"
 ---
 
 # WP06: Durable Serialized Storage Boundary
@@ -496,3 +497,4 @@ fake for the required 20-cycle or crash coverage.
 During implementation, append timestamped entries for each red command/failure,
 the corresponding production change, each green command/result, scope decisions,
 and the final full verification matrix.
+- 2026-07-21T02:09:15Z – codex – shell_pid=1807838 – Assigned agent via action command
