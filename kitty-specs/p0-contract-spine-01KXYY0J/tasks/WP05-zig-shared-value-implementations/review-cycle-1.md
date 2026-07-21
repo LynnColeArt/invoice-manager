@@ -7,6 +7,10 @@ reviewed_at: '2026-07-21T03:06:13Z'
 reviewer_agent: unknown
 verdict: rejected
 wp_id: WP05
+review_artifact_override_at: "2026-07-21T03:43:01Z"
+review_artifact_override_actor: "operator"
+review_artifact_override_wp_id: "WP05"
+review_artifact_override_reason: "Cycle-2 arbiter override: review-cycle-1.md correctly records the fixed pre-correction defect and is superseded by commit 610c72c plus independent cycle-2 evidence. Exact malformed 36-byte input and all 32 noncanonical hyphen offsets now return InvalidSyntax; deletion check reverts to the documented abort; Chicago/Auckland Debug and ReleaseSafe pass 41/41; Debug/ReleaseSafe coverage passes 221/243 and 24/24; fixtures pass 42 valid, 73 invalid, 8 runtime; contracts, format, scope, and anti-pattern gates pass."
 ---
 
 # WP05 Review Cycle 1 — REJECTED

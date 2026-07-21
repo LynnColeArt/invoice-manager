@@ -12,10 +12,10 @@ reviewed_lane_tip: f96df7a6387c3f4507bd0a3b438cf369b2602c59
 reviewer_agent: 'codex:gpt-5:reviewer-renata:reviewer'
 verdict: rejected
 wp_id: WP04
-review_artifact_override_at: "2026-07-21T03:30:36Z"
+review_artifact_override_at: "2026-07-21T04:39:56Z"
 review_artifact_override_actor: "operator"
 review_artifact_override_wp_id: "WP04"
-review_artifact_override_reason: "Arbiter override: historical review-cycle-6 adapter-PC contamination and review-cycle-7 diagnostic privacy blockers are independently remediated by 40d6661. Complete real lane-f PC map is 205/205 WP06-owned with adapter/other zero; coverage is 185/205 and 20/20 probes. Removing adapter fuzz=false fails before ratio with stable coverage-persistence, WP06, expected pattern, shovelerdb.zig, and OutOfScopeCoverageSite lines containing no absolute path or raw address. Shared/migration, no-shared, discovery, ABI, provenance, and scope regressions pass."
+review_artifact_override_reason: "Arbiter override of stale historical review-cycle-6 rejection: review-cycle-9.md at coordination commit 8f787a9 independently approves cycle-eight correction 0c32098/69458f9 with zero blockers and verifies all accepted coverage/privacy corrections remain green."
 ---
 
 # WP04 Review Cycle 6
