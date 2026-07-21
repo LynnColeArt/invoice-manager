@@ -26,7 +26,7 @@ subtasks:
 - T050
 phase: Phase 5
 assignee: ''
-agent: codex
+agent: "codex-wp11-curator"
 history: []
 agent_profile: curator-carla
 authoritative_surface: docs/governance/
@@ -39,6 +39,7 @@ owned_files:
 role: curator
 tags: []
 task_type: implement
+shell_pid: "1807838"
 ---
 
 # Work Package Prompt: WP11 – Governed Documentation Sync Attestation
@@ -335,3 +336,4 @@ ordinary `git commit`.
 > remediation, and WP12 handoff.
 
 No implementation entries yet.
+- 2026-07-21T17:56:38Z – codex-wp11-curator – shell_pid=1807838 – Started implementation via action command
