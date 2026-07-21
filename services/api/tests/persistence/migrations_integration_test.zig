@@ -354,6 +354,105 @@ test "early-plan durability completion requires revalidation and never replays c
     try std.testing.expect(all_completion_results_require_revalidation);
 }
 
+test "middle-migration durability faults revalidate and apply later work exactly once" {
+    const allocator = std.testing.allocator;
+    const io = std.testing.io;
+    const middle_id = "018f6f10-7b7a-7c2d-8e65-0f7b1c2d3e50";
+    const later_id = "018f6f10-7b7a-7c2d-8e65-0f7b1c2d3e51";
+    const FaultCase = struct {
+        category: migrations.CriticalCategory,
+        boundary: migrations.CriticalCategory,
+        faults: migrations.testing.Faults,
+    };
+    const cases = [_]FaultCase{
+        .{ .category = .checkpoint_failure, .boundary = .committed_not_durable, .faults = .{ .checkpoint = true } },
+        .{ .category = .directory_sync_failure, .boundary = .checkpointed_not_durable, .faults = .{ .directory_sync = true } },
+        .{ .category = .unsupported_directory_sync, .boundary = .checkpointed_not_durable, .faults = .{ .unsupported_directory_sync = true } },
+    };
+    for (cases) |case| {
+        var tmp = std.testing.tmpDir(.{});
+        defer tmp.cleanup();
+        const root_path = try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/p0", .{tmp.sub_path});
+        defer allocator.free(root_path);
+        try writeMigration(allocator, io, root_path, bootstrap_id, "bootstrap_migration_history", &.{}, "[]", bootstrap_script);
+        try writeMigration(
+            allocator,
+            io,
+            root_path,
+            middle_id,
+            "middle_durable_boundary",
+            &.{bootstrap_id},
+            "[\"018f6f10-7b7a-7c2d-8e65-0f7b1c2d3e4f\"]",
+            "CREATE TABLE wp07_middle_boundary (body TEXT);\n",
+        );
+        try writeMigration(
+            allocator,
+            io,
+            root_path,
+            later_id,
+            "later_after_middle",
+            &.{middle_id},
+            "[\"018f6f10-7b7a-7c2d-8e65-0f7b1c2d3e50\"]",
+            "CREATE TABLE wp07_later_boundary (body TEXT);\n",
+        );
+        const database_path = try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/wp07-middle.shovel", .{tmp.sub_path});
+        defer allocator.free(database_path);
+        var store = try migrations.testing.openStoreWithFaults(allocator, io, database_path, .{});
+        defer store.shutdown() catch {};
+        var calls: usize = 0;
+        const interrupted = try migrations.testing.runObservedWithApplicationFault(
+            allocator,
+            io,
+            &store,
+            &.{.{ .owner = "p0", .path = root_path }},
+            "2026-07-21T12:34:56.789Z",
+            &calls,
+            .{ .at_call = 1, .faults = case.faults },
+        );
+        try std.testing.expectEqual(@as(usize, 2), calls);
+        try std.testing.expectEqual(migrations.ReadinessStatus.durability_unconfirmed, interrupted.status);
+        try std.testing.expectEqual(case.category, interrupted.category.?);
+        try std.testing.expectEqual(case.boundary, interrupted.durability_boundary.?);
+        try std.testing.expectEqual(@as(usize, 1), interrupted.applied_count);
+        try std.testing.expect(!interrupted.application_complete);
+
+        migrations.testing.setFaults(&store, .{});
+        const completed = try migrations.completeDurability(&store, interrupted);
+        try std.testing.expectEqual(migrations.ReadinessStatus.revalidation_required, completed.status);
+        try std.testing.expect(!completed.isReady());
+        try std.testing.expectEqual(@as(usize, 2), calls);
+
+        const rerun = try migrations.testing.runObserved(
+            allocator,
+            io,
+            &store,
+            &.{.{ .owner = "p0", .path = root_path }},
+            "2026-07-21T12:34:56.789Z",
+            &calls,
+        );
+        try std.testing.expect(rerun.isReady());
+        try std.testing.expectEqual(@as(usize, 3), calls);
+        try std.testing.expectEqual(@as(usize, 1), rerun.applied_count);
+        try std.testing.expectEqual(@as(usize, 2), rerun.already_applied_count);
+        try std.testing.expectEqual(@as(usize, 3), try migrations.testing.rowCount(&store, "SELECT id FROM app_schema_migrations;"));
+        try std.testing.expectEqual(@as(usize, 0), try migrations.testing.rowCount(&store, "SELECT body FROM wp07_middle_boundary;"));
+        try std.testing.expectEqual(@as(usize, 0), try migrations.testing.rowCount(&store, "SELECT body FROM wp07_later_boundary;"));
+
+        const identical = try migrations.testing.runObserved(
+            allocator,
+            io,
+            &store,
+            &.{.{ .owner = "p0", .path = root_path }},
+            "2030-01-01T00:00:00.000Z",
+            &calls,
+        );
+        try std.testing.expect(identical.isReady());
+        try std.testing.expectEqual(@as(usize, 3), calls);
+        try std.testing.expectEqual(@as(usize, 0), identical.applied_count);
+        try std.testing.expectEqual(@as(usize, 3), identical.already_applied_count);
+    }
+}
+
 test "nonempty store without migration history is corruption and executes zero migration DDL" {
     const allocator = std.testing.allocator;
     const io = std.testing.io;
