@@ -6,6 +6,16 @@ test "migration production declarations are analyzed" {
     std.testing.refAllDecls(migrations);
 }
 
+test "migration public recovery and fail-closed edges are exercised" {
+    try exerciseUnknownEntrySweep(std.testing.allocator, std.testing.io);
+    try exerciseFileSafetySweep(std.testing.allocator, std.testing.io);
+    try exerciseDirtyDiscardSweep(std.testing.allocator, std.testing.io);
+    try exerciseStartupRecoveryDiagnosticSweep(std.testing.allocator, std.testing.io);
+    try exerciseBoundHistoryFailureSweep(std.testing.allocator, std.testing.io);
+    try exerciseMiddleDurabilitySweep(std.testing.allocator, std.testing.io);
+    try exerciseBootstrapIdentitySweep(std.testing.allocator, std.testing.io);
+}
+
 test "critical branch: discovery_failure" {
     try exerciseCritical(std.testing.allocator, std.testing.io, .discovery_failure);
 }
@@ -426,6 +436,20 @@ fn writeMigration(
     dependencies_json: []const u8,
     script: []const u8,
 ) !void {
+    return writeOwnedMigration(allocator, io, root_path, "p0", id, name, dependencies, dependencies_json, script);
+}
+
+fn writeOwnedMigration(
+    allocator: std.mem.Allocator,
+    io: std.Io,
+    root_path: []const u8,
+    owner: []const u8,
+    id: []const u8,
+    name: []const u8,
+    dependencies: []const []const u8,
+    dependencies_json: []const u8,
+    script: []const u8,
+) !void {
     const migration_path = try std.fmt.allocPrint(allocator, "{s}/{s}", .{ root_path, id });
     defer allocator.free(migration_path);
     try std.Io.Dir.createDirPath(.cwd(), io, migration_path);
@@ -438,7 +462,7 @@ fn writeMigration(
     const projection = try migrations.canonicalProjection(
         allocator,
         id,
-        "p0",
+        owner,
         name,
         dependencies,
         "up.sql",
@@ -449,8 +473,8 @@ fn writeMigration(
     const descriptor_digest = sha256Wire(projection, &descriptor_buffer);
     const manifest = try std.fmt.allocPrint(
         allocator,
-        "{{\"id\":\"{s}\",\"owner\":\"p0\",\"name\":\"{s}\",\"depends_on\":{s},\"script_path\":\"up.sql\",\"script_digest\":\"{s}\",\"descriptor_digest\":\"{s}\"}}",
-        .{ id, name, dependencies_json, script_digest, descriptor_digest },
+        "{{\"id\":\"{s}\",\"owner\":\"{s}\",\"name\":\"{s}\",\"depends_on\":{s},\"script_path\":\"up.sql\",\"script_digest\":\"{s}\",\"descriptor_digest\":\"{s}\"}}",
+        .{ id, owner, name, dependencies_json, script_digest, descriptor_digest },
     );
     defer allocator.free(manifest);
     const manifest_path = try std.fmt.allocPrint(allocator, "{s}/manifest.json", .{migration_path});
@@ -540,7 +564,7 @@ pub fn exerciseCritical(
         try exerciseValidationSweep(allocator, io);
     }
     return switch (category) {
-        .discovery_failure => expectPublicError(error.DiscoveryFailure, discoveryFailure(allocator, io, .{ .owner = "p0", .path = "missing/p0" })),
+        .discovery_failure => expectPublicError(error.DiscoveryFailure, discoveryFailure(allocator, io, .{ .owner = "p0", .path = "missing/p0" }, category)),
         .missing_manifest => expectPublicError(error.MissingManifest, fixtureFailure(allocator, io, category)),
         .missing_script => expectPublicError(error.MissingScript, fixtureFailure(allocator, io, category)),
         .malformed_manifest => expectPublicError(error.MalformedManifest, fixtureFailure(allocator, io, category)),
@@ -548,7 +572,7 @@ pub fn exerciseCritical(
         .invalid_uuid => expectPublicError(error.InvalidUuid, fixtureFailure(allocator, io, category)),
         .owner_mismatch => expectPublicError(error.OwnerMismatch, fixtureFailure(allocator, io, category)),
         .directory_mismatch => expectPublicError(error.DirectoryMismatch, fixtureFailure(allocator, io, category)),
-        .path_traversal => expectPublicError(error.PathTraversal, discoveryFailure(allocator, io, .{ .owner = "p0", .path = "migrations/../p0" })),
+        .path_traversal => expectPublicError(error.PathTraversal, discoveryFailure(allocator, io, .{ .owner = "p0", .path = "migrations/../p0" }, category)),
         .symlink_escape => expectPublicError(error.SymlinkEscape, fixtureFailure(allocator, io, category)),
         .noncanonical_dependencies => expectPublicError(error.NoncanonicalDependencies, fixtureFailure(allocator, io, category)),
         .script_digest_mismatch => expectPublicError(error.ScriptDigestMismatch, fixtureFailure(allocator, io, category)),
@@ -797,6 +821,397 @@ fn exerciseRootSafetySweep(allocator: std.mem.Allocator, io: std.Io) !void {
     try writeMigration(allocator, io, ancestor_real, bootstrap_id, "bootstrap_migration_history", &.{}, "[]", bootstrap_script);
     try std.Io.Dir.symLink(.cwd(), io, "real", ancestor_link, .{});
     try expectDiscoverError(allocator, io, .{ .owner = "p0", .path = ancestor_root }, error.SymlinkEscape);
+
+    try expectDiscoverError(allocator, io, .{ .owner = "p0", .path = "" }, error.PathTraversal);
+    try expectDiscoverError(allocator, io, .{ .owner = "p0", .path = "." }, error.PathTraversal);
+    try expectDiscoverError(allocator, io, .{ .owner = "p0", .path = "migrations\\p0" }, error.PathTraversal);
+
+    const file_component = try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/file/p0", .{tmp.sub_path});
+    defer allocator.free(file_component);
+    try std.Io.Dir.createDirPath(.cwd(), io, std.fs.path.dirname(file_component).?);
+    try std.Io.Dir.writeFile(.cwd(), io, .{ .sub_path = file_component, .data = "not a directory" });
+    try expectDiscoverError(allocator, io, .{ .owner = "p0", .path = file_component }, error.DiscoveryFailure);
+}
+
+fn exerciseUnknownEntrySweep(allocator: std.mem.Allocator, io: std.Io) !void {
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const root_path = try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/p0", .{tmp.sub_path});
+    defer allocator.free(root_path);
+    try std.Io.Dir.createDirPath(.cwd(), io, root_path);
+    const fifo_path = try std.fmt.allocPrintSentinel(allocator, "{s}/unknown-entry", .{root_path}, 0);
+    defer allocator.free(fifo_path);
+    try std.testing.expectEqual(
+        std.os.linux.E.SUCCESS,
+        std.os.linux.errno(std.os.linux.mknod(fifo_path, std.os.linux.S.IFIFO | 0o600, 0)),
+    );
+    try expectPublicError(
+        error.DiscoveryFailure,
+        discoveryFailure(allocator, io, .{ .owner = "p0", .path = root_path }, .discovery_failure),
+    );
+}
+
+fn exerciseFileSafetySweep(allocator: std.mem.Allocator, io: std.Io) !void {
+    const valid_manifest =
+        "{\"id\":\"018f6f10-7b7a-7c2d-8e65-0f7b1c2d3e4f\",\"owner\":\"p0\",\"name\":\"bootstrap_migration_history\",\"depends_on\":[],\"script_path\":\"up.sql\",\"script_digest\":\"sha256:68dff6daa265a0c0c6d603994438c43a0af3228fff72e677d9dcd0cd60b1fbd3\",\"descriptor_digest\":\"sha256:0b5af56a66a73c1f0f96b76ad4307a6e3a76f3cd34cb0ba71197a5e90d4e7877\"}";
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+
+    const root_manifest = try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/root-manifest/p0", .{tmp.sub_path});
+    defer allocator.free(root_manifest);
+    try std.Io.Dir.createDirPath(.cwd(), io, root_manifest);
+    const root_manifest_path = try std.fmt.allocPrint(allocator, "{s}/manifest.json", .{root_manifest});
+    defer allocator.free(root_manifest_path);
+    try std.Io.Dir.writeFile(.cwd(), io, .{ .sub_path = root_manifest_path, .data = valid_manifest });
+    try expectDiscoverError(allocator, io, .{ .owner = "p0", .path = root_manifest }, error.DirectoryMismatch);
+
+    const non_uuid_root = try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/non-uuid/p0", .{tmp.sub_path});
+    defer allocator.free(non_uuid_root);
+    const non_uuid_directory = try std.fmt.allocPrint(allocator, "{s}/not-a-migration", .{non_uuid_root});
+    defer allocator.free(non_uuid_directory);
+    try std.Io.Dir.createDirPath(.cwd(), io, non_uuid_directory);
+    const non_uuid_manifest = try std.fmt.allocPrint(allocator, "{s}/manifest.json", .{non_uuid_directory});
+    defer allocator.free(non_uuid_manifest);
+    try std.Io.Dir.writeFile(.cwd(), io, .{ .sub_path = non_uuid_manifest, .data = valid_manifest });
+    try expectDiscoverError(allocator, io, .{ .owner = "p0", .path = non_uuid_root }, error.DirectoryMismatch);
+
+    const oversized = try allocator.alloc(u8, 1024 * 1024 + 1);
+    defer allocator.free(oversized);
+    @memset(oversized, 'x');
+    const large_manifest_root = try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/large-manifest/p0", .{tmp.sub_path});
+    defer allocator.free(large_manifest_root);
+    const large_manifest_directory = try std.fmt.allocPrint(allocator, "{s}/{s}", .{ large_manifest_root, bootstrap_id });
+    defer allocator.free(large_manifest_directory);
+    try std.Io.Dir.createDirPath(.cwd(), io, large_manifest_directory);
+    const large_manifest_path = try std.fmt.allocPrint(allocator, "{s}/manifest.json", .{large_manifest_directory});
+    defer allocator.free(large_manifest_path);
+    try std.Io.Dir.writeFile(.cwd(), io, .{ .sub_path = large_manifest_path, .data = oversized });
+    try expectDiscoverError(allocator, io, .{ .owner = "p0", .path = large_manifest_root }, error.MissingManifest);
+
+    const large_script_root = try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/large-script/p0", .{tmp.sub_path});
+    defer allocator.free(large_script_root);
+    const large_script_directory = try std.fmt.allocPrint(allocator, "{s}/{s}", .{ large_script_root, bootstrap_id });
+    defer allocator.free(large_script_directory);
+    try std.Io.Dir.createDirPath(.cwd(), io, large_script_directory);
+    const script_manifest_path = try std.fmt.allocPrint(allocator, "{s}/manifest.json", .{large_script_directory});
+    defer allocator.free(script_manifest_path);
+    try std.Io.Dir.writeFile(.cwd(), io, .{ .sub_path = script_manifest_path, .data = valid_manifest });
+    const large_script_path = try std.fmt.allocPrint(allocator, "{s}/up.sql", .{large_script_directory});
+    defer allocator.free(large_script_path);
+    try std.Io.Dir.writeFile(.cwd(), io, .{ .sub_path = large_script_path, .data = oversized });
+    try expectDiscoverError(allocator, io, .{ .owner = "p0", .path = large_script_root }, error.MissingScript);
+}
+
+fn exerciseStartupRecoveryDiagnosticSweep(allocator: std.mem.Allocator, io: std.Io) !void {
+    const Case = struct {
+        suffix: []const u8,
+        faults: migrations.testing.Faults,
+        expected_error: anyerror,
+        primary: migrations.CriticalCategory,
+        consequence: ?migrations.CriticalCategory,
+        quarantined: bool,
+    };
+    const cases = [_]Case{
+        .{
+            .suffix = "dirty",
+            .faults = .{ .executor_registration = true, .dirty_discard = true },
+            .expected_error = error.RecoveryQuarantine,
+            .primary = .recovery_quarantine,
+            .consequence = null,
+            .quarantined = true,
+        },
+        .{
+            .suffix = "reopen",
+            .faults = .{ .executor_registration = true, .reopen = true },
+            .expected_error = error.ReopenFailure,
+            .primary = .reopen_failure,
+            .consequence = .recovery_quarantine,
+            .quarantined = true,
+        },
+        .{
+            .suffix = "begin",
+            .faults = .{ .transaction_begin = true },
+            .expected_error = error.CorruptAppliedHistory,
+            .primary = .corrupt_applied_history,
+            .consequence = null,
+            .quarantined = false,
+        },
+    };
+    for (cases) |case| {
+        var tmp = std.testing.tmpDir(.{});
+        defer tmp.cleanup();
+        const database_path = try std.fmt.allocPrint(
+            allocator,
+            ".zig-cache/tmp/{s}/wp07-startup-{s}.shovel",
+            .{ tmp.sub_path, case.suffix },
+        );
+        defer allocator.free(database_path);
+        var store = try migrations.testing.openStoreWithFaults(allocator, io, database_path, case.faults);
+        defer store.shutdown() catch {};
+        var diagnostic = migrations.RunDiagnostic{};
+        try std.testing.expectError(
+            case.expected_error,
+            migrations.runWithDiagnostic(
+                allocator,
+                io,
+                &store,
+                &.{.{ .owner = "p0", .path = "migrations/p0" }},
+                "2026-07-21T12:34:56.789Z",
+                &diagnostic,
+            ),
+        );
+        try std.testing.expectEqual(case.primary, diagnostic.primary.?);
+        try std.testing.expectEqual(case.consequence, diagnostic.consequence);
+        if (case.quarantined) {
+            try std.testing.expectEqual(.quarantined, store.state());
+        } else {
+            try std.testing.expectEqual(.ready, store.state());
+        }
+    }
+}
+
+fn exerciseBoundHistoryFailureSweep(allocator: std.mem.Allocator, io: std.Io) !void {
+    const destructive_id = "018f6f10-7b7a-7c2d-8e65-0f7b1c2d3e50";
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const root_path = try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/p0", .{tmp.sub_path});
+    defer allocator.free(root_path);
+    try writeMigration(allocator, io, root_path, bootstrap_id, "bootstrap_migration_history", &.{}, "[]", bootstrap_script);
+    const database_path = try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/wp07-bound-failure.shovel", .{tmp.sub_path});
+    defer allocator.free(database_path);
+    var store = try migrations.testing.openStoreWithFaults(allocator, io, database_path, .{});
+    defer store.shutdown() catch {};
+    var calls: usize = 0;
+    _ = try migrations.testing.runObserved(
+        allocator,
+        io,
+        &store,
+        &.{.{ .owner = "p0", .path = root_path }},
+        "2026-07-21T12:34:56.789Z",
+        &calls,
+    );
+    try writeMigration(
+        allocator,
+        io,
+        root_path,
+        destructive_id,
+        "drop_history_before_insert",
+        &.{bootstrap_id},
+        "[\"018f6f10-7b7a-7c2d-8e65-0f7b1c2d3e4f\"]",
+        "DROP TABLE app_schema_migrations;\n",
+    );
+    var diagnostic = migrations.RunDiagnostic{};
+    try std.testing.expectError(
+        error.DdlFailure,
+        migrations.testing.runObservedWithDiagnostic(
+            allocator,
+            io,
+            &store,
+            &.{.{ .owner = "p0", .path = root_path }},
+            "2026-07-21T12:34:56.789Z",
+            &calls,
+            &diagnostic,
+        ),
+    );
+    try std.testing.expectEqual(migrations.CriticalCategory.ddl_failure, diagnostic.primary.?);
+    try std.testing.expectEqual(.ready, store.state());
+    try std.testing.expectEqual(@as(usize, 1), try migrations.testing.rowCount(&store, "SELECT id FROM app_schema_migrations;"));
+}
+
+fn expectFreshCorruption(
+    allocator: std.mem.Allocator,
+    io: std.Io,
+    root_path: []const u8,
+    owner: []const u8,
+    database_path: []const u8,
+) !void {
+    var store = try migrations.testing.openStoreWithFaults(allocator, io, database_path, .{});
+    defer store.shutdown() catch {};
+    var diagnostic = migrations.RunDiagnostic{};
+    try std.testing.expectError(
+        error.CorruptAppliedHistory,
+        migrations.runWithDiagnostic(
+            allocator,
+            io,
+            &store,
+            &.{.{ .owner = owner, .path = root_path }},
+            "2026-07-21T12:34:56.789Z",
+            &diagnostic,
+        ),
+    );
+    try std.testing.expectEqual(migrations.CriticalCategory.corrupt_applied_history, diagnostic.primary.?);
+}
+
+fn exerciseBootstrapIdentitySweep(allocator: std.mem.Allocator, io: std.Io) !void {
+    const alternate_id = "018f6f10-7b7a-7c2d-8e65-0f7b1c2d3e50";
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+
+    const empty_root = try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/empty/p0", .{tmp.sub_path});
+    defer allocator.free(empty_root);
+    try std.Io.Dir.createDirPath(.cwd(), io, empty_root);
+    const empty_db = try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/empty.shovel", .{tmp.sub_path});
+    defer allocator.free(empty_db);
+    try expectFreshCorruption(allocator, io, empty_root, "p0", empty_db);
+
+    const id_root = try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/id/p0", .{tmp.sub_path});
+    defer allocator.free(id_root);
+    try writeMigration(allocator, io, id_root, alternate_id, "not_bootstrap", &.{}, "[]", "CREATE TABLE not_bootstrap (body TEXT);\n");
+    const id_db = try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/id.shovel", .{tmp.sub_path});
+    defer allocator.free(id_db);
+    try expectFreshCorruption(allocator, io, id_root, "p0", id_db);
+
+    const script_root = try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/script/p0", .{tmp.sub_path});
+    defer allocator.free(script_root);
+    try writeMigration(allocator, io, script_root, bootstrap_id, "bootstrap_migration_history", &.{}, "[]", "CREATE TABLE wrong_bootstrap (body TEXT);\n");
+    const script_db = try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/script.shovel", .{tmp.sub_path});
+    defer allocator.free(script_db);
+    try expectFreshCorruption(allocator, io, script_root, "p0", script_db);
+
+    const descriptor_root = try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/descriptor/p0", .{tmp.sub_path});
+    defer allocator.free(descriptor_root);
+    try writeMigration(allocator, io, descriptor_root, bootstrap_id, "renamed_bootstrap", &.{}, "[]", bootstrap_script);
+    const descriptor_db = try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/descriptor.shovel", .{tmp.sub_path});
+    defer allocator.free(descriptor_db);
+    try expectFreshCorruption(allocator, io, descriptor_root, "p0", descriptor_db);
+
+    const owner_root = try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/owner/p1", .{tmp.sub_path});
+    defer allocator.free(owner_root);
+    try writeOwnedMigration(allocator, io, owner_root, "p1", bootstrap_id, "bootstrap_migration_history", &.{}, "[]", bootstrap_script);
+    const owner_db = try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/owner.shovel", .{tmp.sub_path});
+    defer allocator.free(owner_db);
+    try expectFreshCorruption(allocator, io, owner_root, "p1", owner_db);
+}
+
+fn exerciseDirtyDiscardSweep(allocator: std.mem.Allocator, io: std.Io) !void {
+    const bad_id = "018f6f10-7b7a-7c2d-8e65-0f7b1c2d3e50";
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const root_path = try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/p0", .{tmp.sub_path});
+    defer allocator.free(root_path);
+    try writeMigration(allocator, io, root_path, bootstrap_id, "bootstrap_migration_history", &.{}, "[]", bootstrap_script);
+    const database_path = try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/wp07-dirty-coverage.shovel", .{tmp.sub_path});
+    defer allocator.free(database_path);
+    var store = try migrations.testing.openStoreWithFaults(allocator, io, database_path, .{});
+    defer store.shutdown() catch {};
+    var calls: usize = 0;
+    _ = try migrations.testing.runObserved(
+        allocator,
+        io,
+        &store,
+        &.{.{ .owner = "p0", .path = root_path }},
+        "2026-07-21T12:34:56.789Z",
+        &calls,
+    );
+    try writeMigration(
+        allocator,
+        io,
+        root_path,
+        bad_id,
+        "dirty_discard_coverage",
+        &.{bootstrap_id},
+        "[\"018f6f10-7b7a-7c2d-8e65-0f7b1c2d3e4f\"]",
+        "CREATE TABLE broken (\n",
+    );
+    const discard_before = migrations.testing.discardCount(&store);
+    const reopen_before = migrations.testing.reopenCount(&store);
+    migrations.testing.setFaults(&store, .{ .dirty_discard = true });
+    var diagnostic = migrations.RunDiagnostic{};
+    try std.testing.expectError(
+        error.RecoveryQuarantine,
+        migrations.testing.runObservedWithDiagnostic(
+            allocator,
+            io,
+            &store,
+            &.{.{ .owner = "p0", .path = root_path }},
+            "2026-07-21T12:34:56.789Z",
+            &calls,
+            &diagnostic,
+        ),
+    );
+    try std.testing.expectEqual(migrations.CriticalCategory.recovery_quarantine, diagnostic.primary.?);
+    try std.testing.expectEqual(@as(?migrations.CriticalCategory, null), diagnostic.consequence);
+    try std.testing.expectEqual(discard_before + 1, migrations.testing.discardCount(&store));
+    try std.testing.expectEqual(reopen_before, migrations.testing.reopenCount(&store));
+}
+
+fn exerciseMiddleDurabilitySweep(allocator: std.mem.Allocator, io: std.Io) !void {
+    const middle_id = "018f6f10-7b7a-7c2d-8e65-0f7b1c2d3e50";
+    const later_id = "018f6f10-7b7a-7c2d-8e65-0f7b1c2d3e51";
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const root_path = try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/p0", .{tmp.sub_path});
+    defer allocator.free(root_path);
+    try writeMigration(allocator, io, root_path, bootstrap_id, "bootstrap_migration_history", &.{}, "[]", bootstrap_script);
+    try writeMigration(
+        allocator,
+        io,
+        root_path,
+        middle_id,
+        "middle_coverage",
+        &.{bootstrap_id},
+        "[\"018f6f10-7b7a-7c2d-8e65-0f7b1c2d3e4f\"]",
+        "CREATE TABLE middle_coverage (body TEXT);\n",
+    );
+    try writeMigration(
+        allocator,
+        io,
+        root_path,
+        later_id,
+        "later_coverage",
+        &.{middle_id},
+        "[\"018f6f10-7b7a-7c2d-8e65-0f7b1c2d3e50\"]",
+        "CREATE TABLE later_coverage (body TEXT);\n",
+    );
+    const database_path = try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/wp07-middle-coverage.shovel", .{tmp.sub_path});
+    defer allocator.free(database_path);
+    var store = try migrations.testing.openStoreWithFaults(allocator, io, database_path, .{});
+    defer store.shutdown() catch {};
+    var calls: usize = 0;
+    const interrupted = try migrations.testing.runObservedWithApplicationFault(
+        allocator,
+        io,
+        &store,
+        &.{.{ .owner = "p0", .path = root_path }},
+        "2026-07-21T12:34:56.789Z",
+        &calls,
+        .{ .at_call = 1, .faults = .{ .checkpoint = true } },
+    );
+    try std.testing.expectEqual(migrations.ReadinessStatus.durability_unconfirmed, interrupted.status);
+    try std.testing.expectEqual(migrations.CriticalCategory.checkpoint_failure, interrupted.category.?);
+    try std.testing.expectEqual(migrations.CriticalCategory.committed_not_durable, interrupted.durability_boundary.?);
+    try std.testing.expectEqual(@as(usize, 1), interrupted.applied_count);
+    try std.testing.expect(!interrupted.application_complete);
+    try std.testing.expectEqual(@as(usize, 2), calls);
+
+    migrations.testing.setFaults(&store, .{});
+    const completed = try migrations.completeDurability(&store, interrupted);
+    try std.testing.expectEqual(migrations.ReadinessStatus.revalidation_required, completed.status);
+    try std.testing.expect(!completed.isReady());
+    const rerun = try migrations.testing.runObserved(
+        allocator,
+        io,
+        &store,
+        &.{.{ .owner = "p0", .path = root_path }},
+        "2026-07-21T12:34:56.789Z",
+        &calls,
+    );
+    try std.testing.expect(rerun.isReady());
+    try std.testing.expectEqual(@as(usize, 3), calls);
+    try std.testing.expectEqual(@as(usize, 1), rerun.applied_count);
+    try std.testing.expectEqual(@as(usize, 2), rerun.already_applied_count);
+    const identical = try migrations.testing.runObserved(
+        allocator,
+        io,
+        &store,
+        &.{.{ .owner = "p0", .path = root_path }},
+        "2030-01-01T00:00:00.000Z",
+        &calls,
+    );
+    try std.testing.expect(identical.isReady());
+    try std.testing.expectEqual(@as(usize, 3), calls);
+    try std.testing.expectEqual(@as(usize, 0), identical.applied_count);
+    try std.testing.expectEqual(@as(usize, 3), identical.already_applied_count);
 }
 
 fn exerciseFreshRefusalSweep(allocator: std.mem.Allocator, io: std.Io) !void {
@@ -941,17 +1356,6 @@ fn exerciseValidationSweep(allocator: std.mem.Allocator, io: std.Io) !void {
         error.NoncanonicalDependencies,
     );
     try expectManifestError(allocator, io, valid_manifest, null, true, error.MissingScript);
-
-    const control_projection = migrations.canonicalProjection(
-        allocator,
-        bootstrap_id,
-        "p0",
-        "bad\x01name",
-        &.{},
-        "up.sql",
-        bootstrap_script_digest,
-    );
-    try std.testing.expectError(error.AllocationFailureCleanup, control_projection);
 
     const ready_base = migrations.Readiness{
         .status = .ready,
@@ -1141,9 +1545,31 @@ fn completionFailure(
     try std.testing.expectEqual(@as(usize, 1), evidence.application_calls);
 }
 
-fn discoveryFailure(allocator: std.mem.Allocator, io: std.Io, root: migrations.OwnerRoot) !void {
-    var discovered = try migrations.discover(allocator, io, &.{root});
-    discovered.deinit();
+fn discoveryFailure(
+    allocator: std.mem.Allocator,
+    io: std.Io,
+    root: migrations.OwnerRoot,
+    expected_category: migrations.CriticalCategory,
+) !void {
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const database_path = try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/wp07-discovery-diagnostic.shovel", .{tmp.sub_path});
+    defer allocator.free(database_path);
+    var store = try migrations.testing.openStoreWithFaults(allocator, io, database_path, .{});
+    defer store.shutdown() catch {};
+    var diagnostic = migrations.RunDiagnostic{};
+    _ = migrations.runWithDiagnostic(
+        allocator,
+        io,
+        &store,
+        &.{root},
+        "2026-07-21T12:34:56.789Z",
+        &diagnostic,
+    ) catch |err| {
+        try std.testing.expectEqual(expected_category, diagnostic.primary.?);
+        try std.testing.expectEqual(@as(?migrations.CriticalCategory, null), diagnostic.consequence);
+        return err;
+    };
     return error.TestUnexpectedResult;
 }
 
@@ -1161,7 +1587,7 @@ fn fixtureFailure(
         const link_path = try std.fmt.allocPrint(allocator, "{s}/escape", .{root_path});
         defer allocator.free(link_path);
         try std.Io.Dir.symLink(.cwd(), io, "..", link_path, .{});
-        return discoveryFailure(allocator, io, .{ .owner = "p0", .path = root_path });
+        return discoveryFailure(allocator, io, .{ .owner = "p0", .path = root_path }, category);
     }
     const invalid_id = "018f6f10-7b7a-7c2d-8e65-0f7b1c2d3e4F";
     const directory_id = if (category == .invalid_uuid) invalid_id else bootstrap_id;
@@ -1169,7 +1595,7 @@ fn fixtureFailure(
     defer allocator.free(migration_path);
     try std.Io.Dir.createDirPath(.cwd(), io, migration_path);
     if (category == .missing_manifest) {
-        return discoveryFailure(allocator, io, .{ .owner = "p0", .path = root_path });
+        return discoveryFailure(allocator, io, .{ .owner = "p0", .path = root_path }, category);
     }
     const manifest_path = try std.fmt.allocPrint(allocator, "{s}/manifest.json", .{migration_path});
     defer allocator.free(manifest_path);
@@ -1195,7 +1621,7 @@ fn fixtureFailure(
             bootstrap_script;
         try std.Io.Dir.writeFile(.cwd(), io, .{ .sub_path = script_path, .data = script });
     }
-    return discoveryFailure(allocator, io, .{ .owner = "p0", .path = root_path });
+    return discoveryFailure(allocator, io, .{ .owner = "p0", .path = root_path }, category);
 }
 
 fn borrowedDescriptor(
@@ -1322,6 +1748,47 @@ fn allocationFailureScenario(allocator: std.mem.Allocator, io: std.Io) !void {
         };
         planned.deinit();
     }
+    const long_value = try allocator.alloc(u8, 4096);
+    defer allocator.free(long_value);
+    @memset(long_value, 'x');
+    const no_dependencies = [_][]const u8{};
+    const long_dependency = [_][]const u8{long_value};
+    const ProjectionCase = struct {
+        id: []const u8 = a,
+        owner: []const u8 = "p0",
+        name: []const u8 = "allocation_edge",
+        dependencies: []const []const u8 = &no_dependencies,
+        script_path: []const u8 = "up.sql",
+        script_digest: []const u8 = bootstrap_script_digest,
+    };
+    const projection_cases = [_]ProjectionCase{
+        .{ .dependencies = &long_dependency },
+        .{ .id = long_value },
+        .{ .name = long_value },
+        .{ .owner = long_value },
+        .{ .script_digest = long_value },
+        .{ .script_path = long_value },
+    };
+    for (projection_cases) |case| {
+        for (0..16) |failure_index| {
+            var failing = std.testing.FailingAllocator.init(allocator, .{ .fail_index = failure_index });
+            const projection = migrations.canonicalProjection(
+                failing.allocator(),
+                case.id,
+                case.owner,
+                case.name,
+                case.dependencies,
+                case.script_path,
+                case.script_digest,
+            ) catch |err| {
+                try std.testing.expectEqual(error.AllocationFailureCleanup, err);
+                try std.testing.expectEqual(failing.allocated_bytes, failing.freed_bytes);
+                try std.testing.expectEqual(failing.allocations, failing.deallocations);
+                continue;
+            };
+            failing.allocator().free(projection);
+        }
+    }
     for (0..64) |failure_index| {
         var failing = std.testing.FailingAllocator.init(allocator, .{ .fail_index = failure_index });
         const projection = migrations.canonicalProjection(
@@ -1374,7 +1841,8 @@ fn allocationFailureScenario(allocator: std.mem.Allocator, io: std.Io) !void {
         "[\"018f6f10-7b7a-7c2d-8e65-0f7b1c2d3e50\",\"018f6f10-7b7a-7c2d-8e65-0f7b1c2d3e51\"]",
         "CREATE TABLE allocation_c (id TEXT);\n",
     );
-    for (0..192) |failure_index| {
+    var observed_startup_cleanup = false;
+    for (0..256) |failure_index| {
         var failing = std.testing.FailingAllocator.init(allocator, .{ .fail_index = failure_index });
         var discovered = migrations.discover(
             failing.allocator(),
@@ -1416,10 +1884,12 @@ fn allocationFailureScenario(allocator: std.mem.Allocator, io: std.Io) !void {
             if (migrations.testing.discardCount(&store) == discard_before + 1) {
                 try std.testing.expectEqual(reopen_before + 1, migrations.testing.reopenCount(&store));
                 try std.testing.expectEqual(.ready, store.state());
-                return err;
+                try std.testing.expectEqual(error.AllocationFailureCleanup, err);
+                observed_startup_cleanup = true;
             }
             continue;
         };
     }
+    if (observed_startup_cleanup) return error.AllocationFailureCleanup;
     return error.TestUnexpectedResult;
 }
