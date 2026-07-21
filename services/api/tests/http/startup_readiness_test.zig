@@ -188,6 +188,63 @@ test "WP06 mutation recovery and handle failure classes use the causal no-bind p
     try expectUnbound(lease_address);
 }
 
+test "seeded durable snapshot survives precommit startup failures and reopens as no-op" {
+    const cases = [_]struct {
+        suffix: []const u8,
+        faults: persistence.testing.Faults,
+        expected: anyerror,
+    }{
+        .{ .suffix = "seed-executor", .faults = .{ .executor_registration = true }, .expected = error.AllocationFailureCleanup },
+        .{ .suffix = "seed-transaction", .faults = .{ .transaction_begin = true }, .expected = error.CorruptAppliedHistory },
+        .{ .suffix = "seed-callback", .faults = .{ .callback = true }, .expected = error.CorruptAppliedHistory },
+    };
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    for (cases) |case| {
+        const path = try databasePath(std.testing.allocator, &tmp, case.suffix);
+        defer std.testing.allocator.free(path);
+        const seed_address = try unusedLoopbackAddress();
+        var seed_observation = composition.StartupObservation{};
+        var seeded = try composition.testing.startWithFaults(
+            std.testing.allocator,
+            std.testing.io,
+            .{ .bind_address = "127.0.0.1", .port = seed_address.getPort(), .database_path = path },
+            &migration_roots,
+            .{},
+            &seed_observation,
+        );
+        try seeded.shutdown(std.testing.io);
+        const before_file = try std.Io.Dir.openFile(.cwd(), std.testing.io, path, .{});
+        const before_stat = try before_file.stat(std.testing.io);
+        before_file.close(std.testing.io);
+        const before = try std.Io.Dir.readFileAlloc(.cwd(), std.testing.io, path, std.testing.allocator, .limited(1024 * 1024));
+        defer std.testing.allocator.free(before);
+
+        try expectFaultStartupFailure(&tmp, case.suffix, &migration_roots, case.faults, case.expected);
+        const after_file = try std.Io.Dir.openFile(.cwd(), std.testing.io, path, .{});
+        const after_stat = try after_file.stat(std.testing.io);
+        after_file.close(std.testing.io);
+        const after = try std.Io.Dir.readFileAlloc(.cwd(), std.testing.io, path, std.testing.allocator, .limited(1024 * 1024));
+        defer std.testing.allocator.free(after);
+        try std.testing.expectEqualSlices(u8, before, after);
+        try std.testing.expectEqual(before_stat.inode, after_stat.inode);
+
+        const reopen_address = try unusedLoopbackAddress();
+        var reopen_observation = composition.StartupObservation{};
+        var reopened = try composition.testing.startWithFaults(
+            std.testing.allocator,
+            std.testing.io,
+            .{ .bind_address = "127.0.0.1", .port = reopen_address.getPort(), .database_path = path },
+            &migration_roots,
+            .{},
+            &reopen_observation,
+        );
+        try std.testing.expectEqual(@as(usize, 0), reopened.migration_readiness.applied_count);
+        try std.testing.expectEqual(@as(usize, 1), reopened.migration_readiness.already_applied_count);
+        try reopened.shutdown(std.testing.io);
+    }
+}
+
 test "graceful Started shutdown stops listener before surfacing store close failure" {
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
