@@ -1199,8 +1199,11 @@ fn allocationFailureScenario(allocator: std.mem.Allocator, io: std.Io) !void {
         &.{.{ .owner = "p0", .path = root_path }},
         "2026-07-21T12:34:56.789Z",
     );
+    try std.testing.expect(observed);
     for (0..192) |failure_index| {
         var failing = std.testing.FailingAllocator.init(allocator, .{ .fail_index = failure_index });
+        const discard_before = migrations.testing.discardCount(&store);
+        const reopen_before = migrations.testing.reopenCount(&store);
         _ = migrations.run(
             failing.allocator(),
             io,
@@ -1208,10 +1211,16 @@ fn allocationFailureScenario(allocator: std.mem.Allocator, io: std.Io) !void {
             &.{.{ .owner = "p0", .path = root_path }},
             "2026-07-21T12:34:56.789Z",
         ) catch |err| {
-            if (err == error.AllocationFailureCleanup or err == error.CorruptAppliedHistory) observed = true;
+            try std.testing.expect(failing.has_induced_failure);
+            try std.testing.expectEqual(failing.allocated_bytes, failing.freed_bytes);
+            try std.testing.expectEqual(failing.allocations, failing.deallocations);
+            if (migrations.testing.discardCount(&store) == discard_before + 1) {
+                try std.testing.expectEqual(reopen_before + 1, migrations.testing.reopenCount(&store));
+                try std.testing.expectEqual(.ready, store.state());
+                return err;
+            }
             continue;
         };
     }
-    try std.testing.expect(observed);
-    return error.AllocationFailureCleanup;
+    return error.TestUnexpectedResult;
 }
