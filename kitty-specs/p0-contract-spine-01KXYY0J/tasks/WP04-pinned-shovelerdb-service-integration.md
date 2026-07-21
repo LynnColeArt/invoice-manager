@@ -27,7 +27,7 @@ subtasks:
 - T019
 phase: Phase 2 - Service Dependency Integration
 assignee: ''
-agent: "codex-wp04-cycle16-reviewer"
+agent: "codex-wp04-least-authority-fix"
 history: []
 agent_profile: reviewer-renata
 authoritative_surface: deps/shovelerdb/
@@ -595,3 +595,5 @@ Review `THIRD_PARTY_NOTICES.md` and the complete upstream license as acceptance-
 - 2026-07-21T11:00:14Z – codex-wp04-http-consumer-fix – shell_pid=1807838 – GREEN cycle 16: product commit 1d97a2a after RED test be9af8d and Zig-typed assertion follow-up 1a453e5. Exact discovery command passed 19/19, including named http and composition refAllDecls plus spawning the invoice-manager-api path generated directly from executable.getEmittedBin(). Two cold-cache discovery replays passed 19/19 each. Zig 0.16.0 fmt and base build passed; adapter passed 4/4 Debug and ReleaseSafe; real integration passed 5/5 Debug and ReleaseSafe; stable build help names are unchanged; absent-WP08 test-http and run remain fail-closed with owning-WP diagnostics.
 - 2026-07-21T11:00:31Z – codex-wp04-http-consumer-fix – shell_pid=1807838 – Cycle 16 consumer-boundary correction ready for independent review at be9af8d, 1a453e5, and 1d97a2a; qualifying RED and full GREEN matrix recorded.
 - 2026-07-21T11:01:40Z – codex-wp04-cycle16-reviewer – shell_pid=1807838 – Started review via action command
+- 2026-07-21T11:08:55Z – user – shell_pid=1807838 – Moved to planned
+- 2026-07-21T11:09:50Z – codex-wp04-least-authority-fix – shell_pid=1807838 – Started implementation via action command
