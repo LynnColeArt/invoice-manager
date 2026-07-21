@@ -57,6 +57,46 @@ fn expectCommandExit(
     return result;
 }
 
+fn expectCommandFailureContaining(
+    allocator: std.mem.Allocator,
+    cwd: ?[]const u8,
+    argv: []const []const u8,
+    expected_stderr: []const u8,
+) !void {
+    const result = try std.process.run(allocator, std.testing.io, .{
+        .argv = argv,
+        .cwd = if (cwd) |path| .{ .path = path } else .inherit,
+        .stdout_limit = .limited(4 * 1024 * 1024),
+        .stderr_limit = .limited(4 * 1024 * 1024),
+    });
+    defer allocator.free(result.stdout);
+    defer allocator.free(result.stderr);
+
+    switch (result.term) {
+        .exited => |code| if (code == 0) {
+            std.debug.print(
+                "command unexpectedly succeeded; expected stderr containing {s}\nstdout:\n{s}\nstderr:\n{s}\n",
+                .{ expected_stderr, result.stdout, result.stderr },
+            );
+            return error.UnexpectedCommandSuccess;
+        },
+        else => {
+            std.debug.print(
+                "command terminated unexpectedly\nstdout:\n{s}\nstderr:\n{s}\n",
+                .{ result.stdout, result.stderr },
+            );
+            return error.UnexpectedCommandTermination;
+        },
+    }
+    if (std.mem.indexOf(u8, result.stderr, expected_stderr) == null) {
+        std.debug.print(
+            "command failed without expected stderr {s}\nstdout:\n{s}\nstderr:\n{s}\n",
+            .{ expected_stderr, result.stdout, result.stderr },
+        );
+        return error.ExpectedCommandDiagnosticMissing;
+    }
+}
+
 fn prepareHttpFixture(
     allocator: std.mem.Allocator,
     delay_ms: u64,
@@ -182,12 +222,18 @@ fn prepareHttpFixture(
     try writeFixtureFile(
         fixture.tmp.dir,
         "services/api/src/http/root.zig",
-        "pub const marker: u8 = 1;\n",
+        "const shared = @import(\"shared\");\n" ++
+            "pub const marker = shared.marker;\n" ++
+            "pub fn touch() void { shared.touch(); }\n",
     );
     try writeFixtureFile(
         fixture.tmp.dir,
         "services/api/src/main.zig",
-        "pub fn main() !void {}\n",
+        "const shared = @import(\"shared\");\n" ++
+            "const persistence = @import(\"persistence\");\n" ++
+            "const migrations = @import(\"migrations\");\n" ++
+            "const http = @import(\"http\");\n" ++
+            "pub fn main() !void { shared.touch(); persistence.touch(); migrations.touch(); http.touch(); }\n",
     );
     try writeFixtureFile(
         fixture.tmp.dir,
@@ -276,7 +322,7 @@ test "stable step names and aggregate order are exact" {
     );
 }
 
-test "isolated HTTP roots compile against the public service module graph" {
+test "isolated HTTP roots compile against the complete service graph and emitted API" {
     const allocator = std.testing.allocator;
     var fixture = try prepareHttpFixture(
         allocator,
@@ -285,10 +331,23 @@ test "isolated HTTP roots compile against the public service module graph" {
             "const shared = @import(\"shared\");\n" ++
             "const persistence = @import(\"persistence\");\n" ++
             "const migrations = @import(\"migrations\");\n" ++
+            "const http = @import(\"http\");\n" ++
+            "const composition = @import(\"composition\");\n" ++
+            "const http_test_config = @import(\"http_test_config\");\n" ++
             "test \"public HTTP dependencies compile\" {\n" ++
             "    std.testing.refAllDecls(shared);\n" ++
             "    std.testing.refAllDecls(persistence);\n" ++
             "    std.testing.refAllDecls(migrations);\n" ++
+            "    std.testing.refAllDecls(http);\n" ++
+            "    std.testing.refAllDecls(composition);\n" ++
+            "    try std.testing.expectEqualStrings(\"invoice-manager-api\", std.fs.path.basename(http_test_config.api_executable_path));\n" ++
+            "    const result = try std.process.run(std.testing.allocator, std.testing.io, .{ .argv = &.{http_test_config.api_executable_path} });\n" ++
+            "    defer std.testing.allocator.free(result.stdout);\n" ++
+            "    defer std.testing.allocator.free(result.stderr);\n" ++
+            "    switch (result.term) {\n" ++
+            "        .exited => |code| try std.testing.expectEqual(@as(u8, 0), code),\n" ++
+            "        else => return error.UnexpectedApiTermination,\n" ++
+            "    }\n" ++
             "}\n",
     );
     defer fixture.deinit(allocator);
@@ -301,6 +360,33 @@ test "isolated HTTP roots compile against the public service module graph" {
     );
     defer allocator.free(result.stdout);
     defer allocator.free(result.stderr);
+}
+
+test "production HTTP module cannot import persistence" {
+    const allocator = std.testing.allocator;
+    var fixture = try prepareHttpFixture(
+        allocator,
+        0,
+        "const std = @import(\"std\");\n" ++
+            "const http = @import(\"http\");\n" ++
+            "test \"HTTP module declarations compile\" {\n" ++
+            "    std.testing.refAllDecls(http);\n" ++
+            "}\n",
+    );
+    defer fixture.deinit(allocator);
+
+    try writeFixtureFile(
+        fixture.tmp.dir,
+        "services/api/src/http/root.zig",
+        "const persistence = @import(\"persistence\");\n" ++
+            "pub fn touch() void { persistence.touch(); }\n",
+    );
+    try expectCommandFailureContaining(
+        allocator,
+        fixture.api_path,
+        &.{ "zig", "build", "test-http", "-j16", "--summary", "all" },
+        "no module named 'persistence'",
+    );
 }
 
 test "HTTP materialization completes before every compile step" {
