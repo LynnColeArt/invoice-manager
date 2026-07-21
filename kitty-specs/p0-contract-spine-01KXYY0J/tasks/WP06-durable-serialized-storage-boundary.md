@@ -546,3 +546,4 @@ and the final full verification matrix.
   `sanitizer PC 15/356 ... shovelerdb.zig` and `OutOfScopeCoverageSite` while all
   42 ordinary dependencies passed. Restored the committed WP04 isolation setting
   and removed the generated cache.
+- 2026-07-21T03:08:51Z – codex – shell_pid=1807838 – Ready for review: 185/205 owned PCs, 20/20 probes, zero adapter PCs
