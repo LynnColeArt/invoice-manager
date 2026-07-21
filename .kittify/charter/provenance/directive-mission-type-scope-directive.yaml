@@ -3,19 +3,19 @@ adapter_notes:
   generated-artifact:.kittify/charter/generated/directives/001-mission-type-scope-directive.directive.yaml
 adapter_version: 1.0.0
 artifact_content_hash: 
-  a5d7cfd69a59b2bfe85962d9a1db8c486af96796c61b5e653ecf3b535dbb0908
+  ad9232519aeb1635fbb568c673e41dfe2d978ecbb3abe5502232cb31a499bf1c
 artifact_kind: directive
 artifact_slug: mission-type-scope-directive
 artifact_urn: directive:PROJECT_001
 corpus_snapshot_id: generic-v1.0.0
 evidence_bundle_hash: 
-  466634b3759651f87ff25f2897214097aa2988300e988758189c865a0bfccd45
-generated_at: '2026-07-20T04:53:27.117303+00:00'
-inputs_hash: d72bb8d0e8c4907704d1a942d696c95d7f162de66fa160df809c9456de87a54a
-produced_at: '2026-07-20T04:53:35.771661+00:00'
+  e5c7cfe44f8abefab6811bdb9eea3a87ef02e643e575e097aaaecd7796c30777
+generated_at: '2026-07-21T22:37:29.005888+00:00'
+inputs_hash: 1145c0d0be97f50048d1ed13cc8a16162108e050eab9a2b8a02351d1c11fe30a
+produced_at: '2026-07-21T22:37:30.199822+00:00'
 schema_version: '2'
 source_input_ids: []
 source_section: mission_type
 source_urns: []
-synthesis_run_id: 145356D332074FA39DE9DFA2AB
+synthesis_run_id: 01KY3D7E5CCTPQRGA1VVG1AZP9
 synthesizer_version: 3.2.6

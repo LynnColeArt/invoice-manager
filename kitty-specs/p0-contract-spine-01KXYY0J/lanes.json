@@ -14,6 +14,7 @@
         ".node-version",
         ".npmrc",
         ".zig-version",
+        "LICENSE",
         "apps/web/package.json",
         "package-lock.json",
         "package.json",
@@ -196,6 +197,7 @@
         "api",
         "artifact-rendering",
         "legacy-cleanup",
+        "tracker-integration",
         "workspace"
       ],
       "depends_on_lanes": [
@@ -314,7 +316,7 @@
       "parallel_group": 7
     }
   ],
-  "computed_at": "2026-07-21T14:59:14.551180+00:00",
+  "computed_at": "2026-07-21T20:36:08.783596+00:00",
   "computed_from": "dependency_graph+ownership",
   "planning_artifact_wps": [
     "WP11"

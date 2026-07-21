@@ -46,7 +46,7 @@ Draft state.
 **Language/Version**: Zig 0.16.0; TypeScript 6.0.3; Node.js 24.18.0 LTS
 **Primary Dependencies**: Next.js 16.2.10; React/React DOM 19.2.7; ESLint
 9.39.5; npm 11.16.0; ShovelerDB commit
-`021e3b3d9247a181252329d6ba7ec8d2ed943a97`; OpenAPI 3.1; JSON Schema
+`20dced69738bfce08f94368b8d017cfc283747fe`; OpenAPI 3.1; JSON Schema
 2020-12
 **Storage**: One serialized ShovelerDB handle per database path; binary
 artifacts remain outside the database
@@ -61,11 +61,16 @@ mandatory `migration:negative`, and runtime-license audit
 applications plus repository-owned contract tooling
 **Performance Goals**: Health p99 under one second for 100 local requests;
 complete P0 validation within 15 minutes on the reference CI runner
-**Constraints**: GPL-2.0-only distribution; exact integer money; no floating
+**Constraints**: GPL-3.0-only distribution; exact integer money; no floating
 dependency revisions; no feature behavior; one storage process/handle per path;
 generated aggregates are not committed
 **Scale/Scope**: One internal organization and administrator, four Wave A
 consumer missions, one local database file, and only foundation entities in P0
+
+The licensing-policy migration uses `occurrence_map.yaml` to classify all
+eight bulk-edit risk surfaces. Current policy and tests are reviewed for
+migration, while append-only events and immutable historical review evidence
+retain the license policy they evaluated at that time.
 
 ## Charter Check
 
@@ -79,7 +84,7 @@ consumer missions, one local database file, and only foundation entities in P0
 | Exact money and separated currencies | Canonical decimal-string minor units plus checked signed 64-bit parsing | Pass |
 | Test-first critical persistence, migration, and route-policy behavior | Reviewable red-first evidence names the failing case and command before production changes, then records the green result | Pass |
 | 90% Zig domain coverage | Coverage gate applies to P0 shared value/migration/durability logic | Pass |
-| GPL-2.0-only and dependency notices | Dedicated runtime compatibility/notice gate | Pass |
+| GPL-3.0-only compatibility and dependency notices | Dedicated real-artifact compatibility/notice gate; GPL-2.0-only combined-runtime code and incomplete evidence fail closed | Pass |
 | Living behavior documentation | Versioned schemas/fixtures plus orchestrator pre-acceptance sync for governed mission docs/quickstart/glossary; closure updates README and ledger | Pass |
 | Frontend accessibility and Playwright workflow | The real shell/Route-Handler integration owns component accessibility checks and a same-origin Playwright health workflow | Pass |
 | Persistence concurrency and idempotency | Durable-store tests exercise serialization/competing handles; migration tests prove repeatable no-op application | Pass |
@@ -332,10 +337,10 @@ mutation.
 
 ### ShovelerDB boundary
 
-- Pin `021e3b3d9247a181252329d6ba7ec8d2ed943a97`.
+- Pin GPL-3.0-only engine commit `20dced69738bfce08f94368b8d017cfc283747fe`.
 - Consume the pin as the committed `git archive` source export under
   `deps/shovelerdb/`. Verify `PROVENANCE` records the source commit and
-  `source_tree_sha256=6bb2b4215aa50a8ffbbff3278aea4f32c4fc0f906da817037c44095cfd19480b`;
+  `source_tree_sha256=681d76ebe2ab6b05b3a94c7ab86749e5c3013520adb7c84f83dabfd15b2a544c`;
   never use a submodule, sibling checkout, or floating branch.
 - Import through one module boundary and call only the documented embedding ABI
   behavior from the invoice adapter.

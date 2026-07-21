@@ -3,7 +3,7 @@
 - Status: pre-mission planning input
 - Prepared for: Spec Kitty `specify -> plan -> tasks`
 - Project type: single-repository open-source application
-- License decision: GPL-2.0-only
+- License decision: GPL-3.0-only
 - Primary user: owner of a small technical consulting business
 
 ## 1. Purpose of this document
@@ -583,8 +583,8 @@ The first public release is acceptable when:
 12. A checkpointed backup can be restored into a fresh deployment.
 13. The primary workflows pass keyboard-accessibility and end-to-end tests.
 14. A new contributor can start the application from the documented setup.
-15. The distributed source and dependency notices comply with GPL-2.0-only and
-    all bundled dependency licenses.
+15. The distributed source and dependency notices comply with GPL-3.0-only and
+    preserve all required bundled dependency license and notice evidence.
 
 ## 17. Decisions required during specification
 

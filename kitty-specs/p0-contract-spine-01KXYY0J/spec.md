@@ -151,7 +151,11 @@ jobs remain independently diagnosable.
 - A storage string contains quotes, NUL, comment markers, Unicode, or newlines.
 - Dependency resolution points at a sibling checkout or floating branch.
 - A dependency is individually open source but incompatible with the
-  GPL-2.0-only combined runtime.
+  GPL-3.0-only combined runtime. GPL-2.0-only third-party material may remain
+  only in clearly separate, non-distributed reference aggregates. This mission
+  migrates the prior `GPL-2.0-only` policy term to `GPL-3.0-only`; every
+  occurrence category and preserved historical exception is classified in
+  `occurrence_map.yaml`.
 - A contract is moved to terminal Superseded and a later change attempts to
   transition it back, reuse its version for changed content, or redirect a
   pinned consumer silently.
@@ -193,7 +197,7 @@ jobs remain independently diagnosable.
 | NFR-008 | Validation duration | Under the reference measurement protocol, required P0 validation completes within 15 minutes, with jobs independently runnable for focused feedback. | Delivery | Medium | Approved |
 | NFR-009 | Failure safety | Corrupt storage, unresolved dependencies, contract drift, and license incompatibility produce zero silent fallbacks or destructive replacement attempts in acceptance tests. | Safety | High | Approved |
 | NFR-010 | Synthetic evidence | 100% of committed fixtures, examples, and logs contain synthetic data and no client, bank, invoice, password, token, or private-key material. | Privacy | High | Approved |
-| NFR-011 | License cleanliness | The distribution audit reports zero known runtime components incompatible with GPL-2.0-only and records notices for every distributed third-party component. | Compliance | High | Approved |
+| NFR-011 | License cleanliness | The distribution audit reports zero known runtime components incompatible with GPL-3.0-only, records notices for every distributed third-party component, and fails closed on GPL-2.0-only combined-runtime code, unknown or custom licenses, missing evidence, and unselected multi-license expressions. | Compliance | High | Owner-approved amendment |
 | NFR-012 | Reproducible dependency graph | Every service and web dependency used by a clean build is pinned by immutable version, lockfile integrity, source digest, or commit. | Reproducibility | High | Approved |
 
 #### Reference Measurement Protocol
@@ -219,10 +223,10 @@ jobs remain independently diagnosable.
 
 | ID | Title | Constraint | Category | Priority | Status |
 | --- | --- | --- | --- | --- | --- |
-| C-001 | Project license | Distributed project code is GPL-2.0-only; combined runtime dependencies must be compatible and notices preserved. | Licensing | High | Approved |
+| C-001 | Project license | Distributed project code is GPL-3.0-only; combined runtime dependencies must be compatible and all required license, source-offer/relinking, attribution, and notice evidence must be preserved. Separately licensed reference corpora are excluded from the runtime distribution. | Licensing | High | Owner-approved amendment |
 | C-002 | Presentation boundary | The web application presents and submits data but does not own authoritative business validation, lifecycle, money, persistence, scheduling, or document-generation rules. | Architecture | High | Approved |
 | C-003 | Business authority | The Zig service is the only business backend and owns future authorization, domain rules, persistence, and rendering orchestration. | Architecture | High | Approved |
-| C-004 | Required store | ShovelerDB at approved commit `021e3b3d9247a181252329d6ba7ec8d2ed943a97` is the embedded transactional store; no silent substitute or floating revision is allowed. | Dependency | High | Approved |
+| C-004 | Required store | ShovelerDB at approved GPL-3.0-only engine commit `20dced69738bfce08f94368b8d017cfc283747fe` is the embedded transactional store; no silent substitute or floating revision is allowed. | Dependency | High | Owner-approved amendment |
 | C-005 | Single handle | One service process owns and serializes one storage handle for each database path; multiple replicas may not share one path. | Durability | High | Approved |
 | C-006 | Exact money | Monetary values use integer minor units with explicit currency and checked arithmetic; binary floating point and implicit foreign exchange are prohibited. | Correctness | High | Approved |
 | C-007 | Additive ownership | Feature missions add domain-owned fragments, fixtures, and migrations; shared builds, generated aggregates, and root configuration require the named integration steward. | Delivery | High | Approved |

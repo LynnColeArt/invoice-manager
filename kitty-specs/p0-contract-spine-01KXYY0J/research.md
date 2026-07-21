@@ -154,10 +154,11 @@ parallel missions to coordinate every new migration.
 ## Decision 8: ShovelerDB consumption and durability seam
 
 **Decision:** Pin public ShovelerDB commit
-`021e3b3d9247a181252329d6ba7ec8d2ed943a97`. Consume it through one narrow
-invoice-manager adapter; domain code must not import its handles, SQL, results,
-or borrowed values. Own one handle per path and serialize access. The reference
-deployment runs one Zig API replica per database path.
+`20dced69738bfce08f94368b8d017cfc283747fe`, the accepted GPL-3.0-only engine
+commit. Consume it through one narrow invoice-manager adapter; domain code must
+not import its handles, SQL, results, or borrowed values. Own one handle per
+path and serialize access. The reference deployment runs one Zig API replica
+per database path.
 
 Consequential mutation follows this boundary:
 
@@ -202,12 +203,13 @@ database; only metadata, paths, versions, and digests are stored.
 HTTP-contract, migration-negative, and license jobs. P0 creates real assertions
 for current surfaces, not empty future PDF or browser jobs.
 
-The GPL-2.0-only audit covers runtime npm/Zig dependencies, fonts, TeX packages,
-and distributed container contents. Apache-2.0 build/orchestration tools can
-remain separate programs, but Apache-2.0 code must not become a combined
-GPL-2.0-only runtime without an explicit compatibility decision. ShovelerDB's
-GPLv2 license direction is compatible with this project and requires pinned
-dependency attribution.
+The GPL-3.0-only audit covers runtime npm/Zig dependencies, fonts, TeX packages,
+and distributed container contents. Under the owner-approved GPL-3.0-only
+policy, Apache-2.0 runtime code is compatible when its license and notice
+evidence is preserved. GPL-2.0-only combined-runtime material remains
+incompatible and must be excluded. The distributed ShovelerDB engine is
+GPL-3.0-only at the accepted pin; its separately GPL-2.0-only MariaDB reference
+material remains outside the engine and runtime export.
 
 ## Acceptance evidence required from P0
 

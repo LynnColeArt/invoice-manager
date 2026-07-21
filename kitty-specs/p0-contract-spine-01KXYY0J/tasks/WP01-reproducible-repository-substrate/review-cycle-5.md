@@ -1,113 +1,68 @@
----
-affected_files:
-  - path: package-lock.json
-blocking_findings: 0
-cycle_number: 5
-implementation_commit: 2fc13e76eb5c1d37f63a3ddc0c40fe31fbe0a555
-mission_slug: p0-contract-spine-01KXYY0J
-reviewed_at: '2026-07-20T23:28:17Z'
-reviewed_lane_tip: 46d7aadf47713812c4a0628f0f4f0da1dc63136a
-reviewer_agent: 'codex-wp01-lock-rereview:node-norris'
-verdict: approved
-wp_id: WP01
----
+# WP01 Review Cycle 5 — Changes Requested
 
-# WP01 Review Cycle 5
+## Blocking finding: the GPL amendment regresses the accepted wrapper baseline
 
-Verdict: **APPROVE**
+The GPL-3.0-only evidence added by `c7fc303` is correct in isolation, but the
+lane's `package.json` predates the accepted WP01 wrapper corrections in
+`539963f` and `6d703b4`. As a result, this candidate does not preserve behavior
+that was already accepted before the licensing amendment:
 
-Correction commit: `2fc13e76eb5c1d37f63a3ddc0c40fe31fbe0a555`.
+- `verify:foundation:clean` and `bootstrap:foundation` contain no generated-output
+  cleanup and no `lstatSync`-based pre-existing-entry classification.
+- A fresh-clone replay under Node 24.18.0, npm 11.16.0, and Zig 0.16.0 made each
+  wrapper fail at the expected missing WP03 producer, but both left the newly
+  created root `node_modules` behind.
+- `bootstrap:foundation` invokes `verify:foundation` as a full aggregate. The
+  accepted first-run contract uses the focused sequence `ci`, substrate,
+  contracts, API, migration-negative, persistence, web, and one real
+  `http:smoke`; it does not invoke the aggregate license gate.
+- `verify:substrate` no longer checks the accepted wrapper cleanup/order
+  invariants and has lost the extended system-browser fallback guard for
+  `google-chrome`, `chromium-browser`, `CHROME_PATH`, and
+  `PLAYWRIGHT_BROWSERS_PATH=0`.
 
-## Cycle-four blocker closure
+Please reapply the GPL-3.0-only amendment on the accepted WP01 package-script
+baseline from `6d703b4` (including the prerequisite correction in `539963f`),
+or transplant those exact accepted semantics without weakening them. Keep the
+new canonical-license hash and manifest/lock license assertions. The resulting
+`verify:substrate` must validate both the GPL-3.0-only evidence and the accepted
+cleanup, focused-bootstrap, timing, first-failure, and browser-fallback
+contracts.
 
-1. **Canonical lock output: closed.** The correction deletes only the
-   redundant 23-line
-   `node_modules/@eslint/eslintrc/node_modules/js-yaml` lock entry. The
-   committed lock now contains 610 package entries and exactly one hoisted
-   `node_modules/js-yaml@4.3.0` entry.
-2. **Independent lock regeneration: closed.** Two isolated directories were
-   populated from only `.npmrc`, root `package.json`, and the two workspace
-   manifests. Under Node.js `24.18.0` and npm `11.16.0`, separate
-   `npm install --package-lock-only --ignore-scripts --offline` runs produced
-   locks byte-identical to each other and to the committed lock. All three
-   SHA-256 values were
-   `6ea2ffb829843f8f67f407754166ca52c1556ddfc9164f6b1b2c4d5e3dc257f7`.
-3. **Installed graph and security: closed.** Repeated offline clean installs
-   are metadata-immutable; the dependency tree is valid; substrate validation
-   and both audit scopes pass.
+The next handoff should include fresh-clone evidence that:
 
-## Verification evidence
+1. both wrappers remove only outputs they created on child failure;
+2. pre-existing regular entries, dangling symlinks, and inaccessible entries
+   survive cleanup classification;
+3. cleanup continues after an individual removal error, promotes an otherwise
+   successful run to nonzero, and never masks an earlier child failure;
+4. bootstrap runs the exact focused sequence and reaches exactly one real
+   `http:smoke`, with no aggregate/license stage or hidden browser preinstall;
+5. the GPL missing/truncated/byte-mismatch, three manifest-mismatch, and three
+   lock-record-mismatch mutations still fail closed.
 
-- Correction scope: `git show 2fc13e7` changes only `package-lock.json`, with
-  23 deletions and no additions. The accumulated WP01 mission diff remains
-  exactly the seven owned metadata paths.
-- Exact supported environment: Node.js `24.18.0`, npm `11.16.0`, Zig `0.16.0`,
-  Linux x86_64.
-- Lock structure: 610 package entries; the sole path matching `js-yaml` is
-  `node_modules/js-yaml`, version `4.3.0`.
-- Direct generator preservation: `tools/contracts/package.json` and the lock
-  both retain `@hey-api/openapi-ts` exactly `0.99.0`.
-- Override preservation: the root chain remains exactly
-  `@hey-api/openapi-ts@0.99.0` →
-  `@hey-api/json-schema-ref-parser@1.4.4` → `js-yaml@4.3.0`.
-- Registry provenance: the committed `js-yaml@4.3.0` tarball URL and SHA-512
-  exactly match public npm metadata:
-  `sha512-1td788aAnnZ5qs7V2QIRl1owjtYpbKt749Y3xauqQgwIIGF/xXWz1wMTEBx5O3LK3lXLVuqXPdPxj2BoFHaW9Q==`.
-- Two `npm ci --offline` runs each install 496 packages and report zero
-  vulnerabilities. SHA-256 values for all seven WP01-owned files are
-  identical before, between, and after the runs.
-- `npm run verify:substrate`: pass, including exact tool policy, override,
-  workspace manifest, lock-integrity, and dependency-tree assertions.
-- `npm ls --all --json`: exit 0 with `problems: []`. The targeted tree shows
-  parser consumption of `js-yaml@4.3.0 overridden` and ESLint consumption of
-  the same root package as `deduped`.
-- `npm audit --audit-level=high`: zero vulnerabilities.
-- `npm audit --omit=dev --audit-level=high`: zero vulnerabilities.
-- `git diff --check`: pass. Test-created `node_modules` trees were removed;
-  no implementation source or generated cache remained.
+## Passing evidence to preserve
 
-## Contract round-trip disposition
-
-- `p0-contract-manifest.json`: **PASS**. It declares the affected npm paths
-  within P0 ownership and identifies `package.json` as a shared touchpoint;
-  the WP prompt and root metadata keep WP01 as the sole npm metadata/lock
-  owner. The correction changes only that owned lock.
-- `README.md`, `api-v1.openapi.yaml`, `common-v1.schema.json`,
-  `contract-manifest-v1.schema.json`, `event-catalog-v1.schema.json`,
-  `event-envelope-v1.schema.json`, `governed-doc-sync-v1.schema.json`,
-  `migration-manifest-v1.schema.json`, and
-  `module-contribution-v1.schema.json`: **ORTHOGONAL** to the dependency-lock
-  correction. No pinned payload, allowed-value set, CLI example, schema
-  fragment, or error message changed.
-
-## Subtask disposition
-
-- T001: **PASS** — exact tool and package-manager policy remains intact.
-- T002: **PASS** — the final graph is pinned, patched, canonical, public-
-  registry-backed, and reproducible from manifests under npm 11.16.0.
-- T003: **PASS** — the stable command surface is unchanged, and
-  `verify:substrate` enforces the approved override and valid tree.
-- T004: **PASS** — isolated lock regeneration is byte-reproducible, repeated
-  offline clean installs are immutable, and security/dependency gates pass.
+- `LICENSE` byte-matches `/usr/share/common-licenses/GPL-3` and has SHA-256
+  `3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986`.
+- Root, contracts, web, and the corresponding lock records all use
+  `GPL-3.0-only` and fail closed under all nine evidence mutations above.
+- Two fresh offline `npm ci` plus `verify:substrate` runs were byte-identical;
+  `npm ls --all` had no problems and `npm audit` reported zero vulnerabilities.
+- Empty-cache and prepared-cache `browser:install` runs installed Playwright's
+  managed Chromium and headless-shell revision 1228 without metadata mutation
+  or a system-browser fallback.
+- `c7fc303` changes only WP01-owned files. The bulk-edit occurrence map is
+  present, the changed license occurrences are in manual-review categories,
+  and historical evidence / separately licensed exceptions were not rewritten.
 
 ## Anti-pattern checklist
 
-1. Dead code: **N/A** — no public function, class, or module was added.
-2. Synthetic-fixture test: **N/A** — no fixture was added; npm's real resolver,
-   installer, tree validator, and audit interfaces exercise the correction.
-3. Silent empty return: **N/A** — no production code path was introduced.
-4. FR coverage: **PASS** — original executable substrate coverage remains
-   intact; the corrected graph passes the exact override and tree assertions.
-5. Frozen surface: **PASS** — only WP01-owned lock metadata changed; all
-   planning contracts remain Draft and no Frozen source was touched.
-6. Locked decision: **PASS** — exact versions, public-registry integrity,
-   pinned-npm lock generation, immutable ownership, and reproducibility match
-   the prompt.
-7. Shared-file ownership: **PASS** — WP01 is the declared sole npm metadata
-   and lock owner; downstream WPs consume these bytes unchanged.
-8. Production fragility: **N/A** — no production request, worker, CLI, or
-   service path changed.
-
-The requested charter section fetch for `section:code-review-checklist`
-returned no matching section; the generated review prompt, action-scoped
-review context, and Node Norris directive set were applied instead.
+1. Dead code: **PASS** — the executable checks are reached through root npm scripts.
+2. Synthetic-fixture test: **PASS** — review mutations invoked `verify:substrate` itself.
+3. Silent empty return: **PASS** — no silent-empty failure path was introduced.
+4. FR coverage: **PASS** — supported and negative substrate paths exercise FR-001/FR-015 behavior.
+5. Frozen surface: **PASS** — the corrective commit touches only WP01-owned files.
+6. Locked decision: **FAIL** — current clean/bootstrap behavior contradicts the accepted wrapper contract described above.
+7. Shared-file ownership: **PASS** — all changed metadata remains in WP01 ownership.
+8. Production fragility: **PASS** — new throws are intentional fail-loud substrate diagnostics.

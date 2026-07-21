@@ -1,7 +1,7 @@
 {
   "schema": "invoice-manager.governed-doc-sync/v1",
-  "producer_baseline_commit": "263b8a25190775f54b280788da0135a7862d2b4e",
-  "synchronized_baseline_commit": "03818d8573ce50443a863d6ed9fdcc5b0cd1b921",
+  "producer_baseline_commit": "65ca5ac70870b984a5aa527ca061542c7021a9c5",
+  "synchronized_baseline_commit": "65ca5ac70870b984a5aa527ca061542c7021a9c5",
   "required_artifacts": [
     ".kittify/charter/charter.md",
     "kitty-specs/p0-contract-spine-01KXYY0J/contracts/README.md",
@@ -25,15 +25,15 @@
   "checked_artifacts": [
     {
       "path": ".kittify/charter/charter.md",
-      "sha256": "a1176517b273e322d3dc408e369ef836c40e3bb84c69ae140ad554cffbb53f0f",
+      "sha256": "23993e7fca5a61d02bf0f687cc8f89982aad660fb1f06648e165e228e1170aef",
       "status": "no_change",
-      "rationale": "Read-only charter remains aligned with the accepted P0 architecture, security, durability, licensing, and documentation boundaries."
+      "rationale": "Read-only charter already governs the accepted GPL-3.0-only compatibility, excluded reference-corpus, architecture, security, durability, and documentation boundaries."
     },
     {
       "path": "kitty-specs/p0-contract-spine-01KXYY0J/contracts/README.md",
       "sha256": "6df115c3a79f7591d19d92a9262a6957009cf0b4e84d7705c8e9ea5f1796df76",
-      "status": "changed",
-      "rationale": "Updated by the sole governed sync commit to describe accepted repository contracts and fixtures while reserving Frozen promotion for WP12."
+      "status": "no_change",
+      "rationale": "Repository contract and fixture guidance already matches accepted producer behavior while reserving Frozen promotion for WP12."
     },
     {
       "path": "kitty-specs/p0-contract-spine-01KXYY0J/contracts/api-v1.openapi.yaml",
@@ -86,32 +86,32 @@
     {
       "path": "kitty-specs/p0-contract-spine-01KXYY0J/contracts/p0-contract-manifest.json",
       "sha256": "73538e1e40214112198ff004aa4e3e506e930e37db7352c0cb8a663efd214825",
-      "status": "changed",
-      "rationale": "Updated by the sole governed sync commit to match the accepted repository Draft manifest and its actual canonical fixture paths."
+      "status": "no_change",
+      "rationale": "The repository Draft manifest and canonical fixture paths already match accepted contract tooling and producer outputs."
     },
     {
       "path": "kitty-specs/p0-contract-spine-01KXYY0J/data-model.md",
       "sha256": "747fa56e1ae5a111781a2dea148e06933a0c07160db47f97e0d01d600b326a64",
-      "status": "changed",
-      "rationale": "Updated by the sole governed sync commit to match accepted persistence State, DurableReceipt, StoreError, and Diagnostic shapes."
+      "status": "no_change",
+      "rationale": "Persistence State, DurableReceipt, StoreError, and Diagnostic shapes already match accepted storage behavior."
     },
     {
       "path": "kitty-specs/p0-contract-spine-01KXYY0J/plan.md",
-      "sha256": "5b974e0236a6a9dfb52de437e3804186b591de00ba88051b9727c98da6d3202b",
-      "status": "changed",
-      "rationale": "Updated by the sole governed sync commit to record the selected ShovelerDB source export and the producer-versus-closure evidence boundary."
+      "sha256": "140dc6553a978dd8b5d86f6ad2da44f12ae84824c0389eb00c7bf2db9cdd8549",
+      "status": "no_change",
+      "rationale": "The plan already records the GPL-3.0-only policy, exact ShovelerDB engine pin and source-tree digest, and producer-versus-closure evidence boundary."
     },
     {
       "path": "kitty-specs/p0-contract-spine-01KXYY0J/quickstart.md",
-      "sha256": "89c3897c15b13cbc7166a09764f5134ebe89340228a5c6b6d031dfdc9745efe7",
-      "status": "changed",
-      "rationale": "Updated by the sole governed sync commit to describe accepted WP03-WP10 commands, the committed source export, and WP12 closure evidence."
+      "sha256": "7ab8e69ba5457766971a5c8fa32046cd95a5a07b8df6ef9d90065617ad164790",
+      "status": "no_change",
+      "rationale": "The quickstart already names the accepted ShovelerDB revision, GPL-3.0-only engine export paths and exclusions, producer commands, and WP12 closure boundary."
     },
     {
       "path": "kitty-specs/p0-contract-spine-01KXYY0J/research.md",
-      "sha256": "0cdc6b3b020bef64a006a51fbe3be3554aebf03727f6f3af7799c00b439ab65a",
-      "status": "changed",
-      "rationale": "Updated by the sole governed sync commit to record the resolved ShovelerDB packaging decision and reproducible source export."
+      "sha256": "ce4a7b63b8932f3343ca06760c30208e244b9a21c644567bf1abb6829a209b3c",
+      "status": "no_change",
+      "rationale": "Research already aligns the ShovelerDB decision and license analysis with the accepted GPL-3.0-only engine pin and excluded GPL-2.0-only reference material."
     },
     {
       "path": "kitty-specs/p0-contract-spine-01KXYY0J/research/evidence-log.csv",
@@ -121,15 +121,15 @@
     },
     {
       "path": "kitty-specs/p0-contract-spine-01KXYY0J/research/source-register.csv",
-      "sha256": "b7058b607c88d4e5ce252a9d6b91ad42bef2a7d0cbb62481715fbcc76027decf",
-      "status": "changed",
-      "rationale": "Updated by the sole governed sync commit to replace host-local locations with public commit-pinned ShovelerDB evidence URLs."
+      "sha256": "5eac2c30888fb7b14e94713ba3ab32e6021fae58f820f03080d9abc25d9a3c24",
+      "status": "no_change",
+      "rationale": "All four public ShovelerDB evidence URLs already use the accepted immutable GPL-3.0-only engine revision."
     },
     {
       "path": "kitty-specs/p0-contract-spine-01KXYY0J/spec.md",
-      "sha256": "cbf96c32d255558dd1464b73a21ad4d101c171f0e3af45823b85823dfbf87420",
+      "sha256": "9bf14b0791387aa4a96ae420d47294f17b29c6723b6583e98076b4653a934b93",
       "status": "no_change",
-      "rationale": "Requirements and acceptance scenarios remain aligned with accepted WP03-WP10 behavior and the WP12 closure boundary."
+      "rationale": "Amended GPL-3.0-only requirements, negative license policy, exact ShovelerDB pin, acceptance scenarios, and the WP12 closure boundary already match accepted behavior."
     }
   ],
   "example_mappings": [

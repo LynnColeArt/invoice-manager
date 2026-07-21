@@ -17,9 +17,11 @@ reference deployment and P2 owns the document runtime.
 
 ShovelerDB source is committed under `deps/shovelerdb/` as an unmodified
 `git archive` export of commit
-`021e3b3d9247a181252329d6ba7ec8d2ed943a97`. The source URL, included paths,
-and tree digest are recorded in `deps/shovelerdb/PROVENANCE`; no submodule,
-sibling checkout, or floating branch is required.
+`20dced69738bfce08f94368b8d017cfc283747fe`. The GPL-3.0-only engine export
+contains exactly `LICENSE`, `NOTICE`, `build.zig`, `include/**`, and `src/**`.
+The source URL, included paths, tree digest, and excluded MariaDB reference and
+test corpus are recorded in `deps/shovelerdb/PROVENANCE`; no submodule, sibling
+checkout, or floating branch is required.
 
 ## Clean-clone flow
 

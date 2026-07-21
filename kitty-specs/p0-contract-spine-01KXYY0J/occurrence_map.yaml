@@ -1,0 +1,34 @@
+# Owner-approved licensing-policy migration. Each GPL-2.0-only occurrence is
+# classified because current policy, historical evidence, and third-party
+# licensing records do not have the same semantics.
+target:
+  term: GPL-2.0-only
+  replacement: GPL-3.0-only
+  operation: rename
+
+categories:
+  code_symbols: { action: manual_review }
+  import_paths: { action: do_not_change }
+  filesystem_paths: { action: do_not_change }
+  serialized_keys: { action: manual_review }
+  cli_commands: { action: do_not_change }
+  user_facing_strings: { action: manual_review }
+  tests_fixtures: { action: manual_review }
+  logs_telemetry: { action: do_not_change }
+
+exceptions:
+  - path: "kitty-specs/p0-contract-spine-01KXYY0J/tasks/**/review-cycle-*.md"
+    action: do_not_change
+    reason: "Immutable historical review evidence must retain the policy evaluated at that time."
+  - path: "kitty-specs/p0-contract-spine-01KXYY0J/status.events.jsonl"
+    action: do_not_change
+    reason: "Append-only status history is not rewritten."
+  - path: "kitty-specs/p0-contract-spine-01KXYY0J/mission-events.jsonl"
+    action: do_not_change
+    reason: "Append-only mission history is not rewritten."
+  - path: "references/mariadb/**"
+    action: do_not_change
+    reason: "The separately licensed MariaDB reference corpus remains GPL-2.0-only and outside the combined runtime."
+  - path: "tests/fixtures/mariadb-adapted/**"
+    action: do_not_change
+    reason: "Historical test fixtures are outside the Invoice Manager engine export and are not relicensed by this amendment."
