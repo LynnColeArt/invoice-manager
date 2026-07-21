@@ -508,10 +508,23 @@ fn createPersistenceModule(
     target: std.Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
     adapter: *std.Build.Module,
-    shared: *std.Build.Module,
+    shared: ?*std.Build.Module,
     probe: *std.Build.Module,
     instrumented: bool,
 ) *std.Build.Module {
+    if (shared) |shared_module| {
+        return b.createModule(.{
+            .root_source_file = b.path("src/platform/persistence/root.zig"),
+            .target = target,
+            .optimize = optimize,
+            .fuzz = instrumented,
+            .imports = &.{
+                .{ .name = "shovelerdb_adapter", .module = adapter },
+                .{ .name = "shared", .module = shared_module },
+                .{ .name = "persistence_coverage_probe", .module = probe },
+            },
+        });
+    }
     return b.createModule(.{
         .root_source_file = b.path("src/platform/persistence/root.zig"),
         .target = target,
@@ -519,7 +532,6 @@ fn createPersistenceModule(
         .fuzz = instrumented,
         .imports = &.{
             .{ .name = "shovelerdb_adapter", .module = adapter },
-            .{ .name = "shared", .module = shared },
             .{ .name = "persistence_coverage_probe", .module = probe },
         },
     });
@@ -645,12 +657,6 @@ fn configurePersistence(
         return;
     }
     const adapter = createAdapterModule(b, target, optimize, abi_library);
-    const shared_probe = createCoverageProbeModule(
-        b,
-        target,
-        "src/platform/persistence/shovelerdb_shared_coverage_probe.zig",
-    );
-    const shared = createSharedModule(b, target, optimize, shared_probe, false);
     const persistence_probe = createCoverageProbeModule(
         b,
         target,
@@ -661,7 +667,7 @@ fn configurePersistence(
         target,
         optimize,
         adapter,
-        shared,
+        null,
         persistence_probe,
         false,
     );
@@ -686,7 +692,7 @@ fn configurePersistence(
         target,
         .Debug,
         adapter,
-        shared,
+        null,
         persistence_probe,
         true,
     );
@@ -895,6 +901,16 @@ pub fn persistenceCoverageTestContractValid(source: []const u8) bool {
     );
 }
 
+pub fn persistenceImportsCoverageScoped(source: []const u8) bool {
+    const named = [_][]const u8{
+        "std",
+        "builtin",
+        "shovelerdb_adapter",
+        "persistence_coverage_probe",
+    };
+    return importsLexicallyScoped(std.heap.page_allocator, source, &named, "");
+}
+
 const CoverageScope = enum { shared, persistence, migration };
 
 fn coverageScopeSourcesValid(b: *std.Build, scope: CoverageScope) bool {
@@ -924,7 +940,7 @@ fn coverageScopeSourcesValid(b: *std.Build, scope: CoverageScope) bool {
     };
     const named_imports: []const []const u8 = switch (scope) {
         .shared => &.{ "std", "builtin", "shared_coverage_probe" },
-        .persistence => &.{ "std", "builtin", "shared", "shovelerdb_adapter", "persistence_coverage_probe" },
+        .persistence => &.{ "std", "builtin", "shovelerdb_adapter", "persistence_coverage_probe" },
         .migration => &.{ "std", "builtin", "shared", "persistence", "shovelerdb_adapter", "migration_coverage_probe" },
     };
 

@@ -497,6 +497,21 @@ test "migration production imports reject normalized traversal and prefix lookal
     ));
 }
 
+test "persistence production imports reject undeclared shared dependency" {
+    try std.testing.expect(registry.persistenceImportsCoverageScoped(
+        "const std = @import(\"std\");\n" ++
+            "const adapter = @import(\"shovelerdb_adapter\");\n" ++
+            "const probe = @import(\"persistence_coverage_probe\");\n" ++
+            "const helper = @import(\"durability.zig\");\n",
+    ));
+    try std.testing.expect(!registry.persistenceImportsCoverageScoped(
+        "const shared = @import(\"shared\");",
+    ));
+    try std.testing.expect(!registry.persistenceImportsCoverageScoped(
+        "const shared = @import(\"../../shared/root.zig\");",
+    ));
+}
+
 test "notice validation fails when any acceptance-critical field is absent" {
     const valid =
         \\ShovelerDB GPL-2.0-only
