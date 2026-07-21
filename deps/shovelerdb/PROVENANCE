@@ -1,0 +1,10 @@
+component=ShovelerDB
+source_url=https://github.com/LynnColeArt/ShovelerDB.git
+commit=021e3b3d9247a181252329d6ba7ec8d2ed943a97
+abi_version=0.1.0
+export_method=git archive <commit> LICENSE include src
+included_paths=LICENSE,include/**,src/**
+excluded_paths=all paths outside LICENSE,include/**,src/**; nested Git metadata; generated outputs; caches
+digest_algorithm=sha256 over sorted lines of "<file-sha256><two spaces><repository-relative-path>" for LICENSE,include/**,src/**
+source_tree_sha256=6bb2b4215aa50a8ffbbff3278aea4f32c4fc0f906da817037c44095cfd19480b
+source_modifications=none
