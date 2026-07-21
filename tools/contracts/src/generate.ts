@@ -22,6 +22,7 @@ import { type ContractManifest, validateLifecycleManifest } from "./lifecycle.js
 import { discoverAndValidateMigrations } from "./migrations.js";
 import { composeModules, type ComposedContracts } from "./modules.js";
 import { inspectPinnedConformance, type PinnedOwnerMaterial } from "./pinned-conformance.js";
+import { validateCanonicalP0IfPresent } from "./p0-lifecycle.js";
 import { assertReferencesResolve, discoverStableIdRegistry, isJsonObject, type StableIdRegistry } from "./registry.js";
 
 export type PreflightResult = {
@@ -57,6 +58,7 @@ export async function preflightContracts(
   const draftValue = parseJsonBytes(await readRepositoryBytes(root, "contracts/manifests/drafts/p0.json", ""));
   registry.validate("https://invoice-manager.invalid/contracts/manifests/v1/schema.json", draftValue);
   await validateLifecycleManifest(root, draftValue as unknown as ContractManifest);
+  await validateCanonicalP0IfPresent(root, registry);
   const composition = await composeModules(root, registry);
   const pinnedConformance = await inspectPinnedConformance(root, conformance, registry);
   await discoverAndValidateMigrations(root, composition.modules.map((module) => module.migration_root), registry);
