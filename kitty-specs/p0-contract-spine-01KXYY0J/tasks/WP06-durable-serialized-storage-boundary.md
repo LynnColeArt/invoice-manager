@@ -26,7 +26,7 @@ subtasks:
 - T030
 phase: Phase 3
 assignee: ''
-agent: "codex:gpt-5:reviewer-renata:reviewer"
+agent: "codex"
 history: []
 agent_profile: implementer-ivan
 authoritative_surface: services/api/src/platform/persistence/
@@ -549,3 +549,4 @@ and the final full verification matrix.
 - 2026-07-21T03:08:51Z – codex – shell_pid=1807838 – Ready for review: 185/205 owned PCs, 20/20 probes, zero adapter PCs
 - 2026-07-21T03:10:29Z – codex:gpt-5:reviewer-renata:reviewer – shell_pid=1807838 – Started review via action command
 - 2026-07-21T03:22:00Z – user – shell_pid=1807838 – Moved to planned
+- 2026-07-21T03:33:25Z – codex – shell_pid=1807838 – Started implementation via action command
