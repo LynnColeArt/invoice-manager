@@ -1,7 +1,7 @@
 {
-  "event_count": 136,
-  "last_event_id": "01KY1S00V950VJTR89PJD85XQB",
-  "materialized_at": "2026-07-21T07:24:41.193391+00:00",
+  "event_count": 138,
+  "last_event_id": "01KY1S13AZV9FGG2ZE2WP5Z33R",
+  "materialized_at": "2026-07-21T07:25:16.504090+00:00",
   "mission_number": "",
   "mission_slug": "p0-contract-spine-01KXYY0J",
   "mission_type": "software-dev",
@@ -12,9 +12,9 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 1,
+    "in_progress": 2,
     "in_review": 0,
-    "planned": 5
+    "planned": 4
   },
   "work_packages": {
     "WP01": {
@@ -39,11 +39,11 @@
       "last_transition_at": "2026-07-20T23:37:00.558447+00:00"
     },
     "WP04": {
-      "actor": "codex-wp04-http-readiness",
+      "actor": "codex-wp04-http-corrector",
       "force_count": 8,
-      "lane": "planned",
-      "last_event_id": "01KY1S00V950VJTR89PJD85XQB",
-      "last_transition_at": "2026-07-21T07:24:41.193391+00:00"
+      "lane": "in_progress",
+      "last_event_id": "01KY1S13AZV9FGG2ZE2WP5Z33R",
+      "last_transition_at": "2026-07-21T07:25:16.504090+00:00"
     },
     "WP05": {
       "actor": "user",
