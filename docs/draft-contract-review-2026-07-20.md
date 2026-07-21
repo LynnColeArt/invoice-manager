@@ -111,21 +111,3 @@ reports complete requirement coverage with no unresolved ownership errors.
 
 The overall mission topology was affirmed: P0 first; P1, P3, and P4 after P0;
 P2 after P1; then P5/P6, P7, and P8 at their recorded dependency gates.
-
-## Resolution
-
-The P0 tasking gate is **Ready with corrections applied** as of 2026-07-20.
-
-- P0 consumed the review-bearing `main` baseline `a71448b` and resolved the
-  canonical manifest, shared-reference, composition, durability, migration
-  integrity, and ownership findings at `63d0543`.
-- P1-P4 aligned their Draft manifests and shared primitive references at
-  `47638a9`, `8830e8b`, `1a83ce0`, and `860ee50`, respectively.
-- The P0 task finalizer passed requirement, ownership, and dependency validation
-  and committed 10 WPs covering 53 subtasks at `231b858`.
-- All contracts remain Draft. This resolution authorizes the governed P0
-  implement-review loop; it does not freeze contracts or authorize downstream
-  implementation before P0 merges and each consumer refreshes its baseline.
-
-The later-mission correction queue above remains binding at the corresponding
-P1-P4 tasking and contract-freeze gates.
