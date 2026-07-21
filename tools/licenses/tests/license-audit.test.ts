@@ -336,9 +336,11 @@ describe("foundation workflow contract", () => {
       jobs: Record<
         string,
         {
+          env?: Record<string, string>;
           "timeout-minutes": number;
           needs?: string[];
           steps: Array<{
+            env?: Record<string, string>;
             name?: string;
             run?: string;
             uses?: string;
@@ -354,6 +356,11 @@ describe("foundation workflow contract", () => {
       requiredJobs.filter((entry) => entry !== "foundation").sort(),
     );
     for (const [jobName, job] of Object.entries(parsed.jobs)) {
+      for (const value of Object.values(job.env ?? {}))
+        expect(
+          value,
+          `${jobName} job-level env cannot use the step-only runner context`,
+        ).not.toMatch(/\$\{\{\s*runner\./u);
       if (jobName === "foundation") continue;
       expect(
         job.steps.find((step) => step.uses?.startsWith("actions/checkout@"))
@@ -396,5 +403,29 @@ describe("foundation workflow contract", () => {
           : "npm run verify:foundation:clean",
       );
     }
+    const stepEnvValues = (jobName: string): string[] =>
+      parsed.jobs[jobName].steps.flatMap((step) =>
+        Object.values(step.env ?? {}),
+      );
+    expect(stepEnvValues("http_proxy")).toContain(
+      "${{ runner.temp }}/playwright-http",
+    );
+    expect(stepEnvValues("verify_foundation")).toContain(
+      "${{ runner.temp }}/playwright-aggregate",
+    );
+    expect(stepEnvValues("bootstrap_foundation")).toEqual(
+      expect.arrayContaining([
+        "${{ runner.temp }}/foundation-bootstrap-home",
+        "${{ runner.temp }}/foundation-bootstrap-npm",
+        "${{ runner.temp }}/foundation-bootstrap-playwright",
+      ]),
+    );
+    expect(stepEnvValues("verify_foundation_clean")).toEqual(
+      expect.arrayContaining([
+        "${{ runner.temp }}/foundation-verify-home",
+        "${{ runner.temp }}/foundation-verify-npm",
+        "${{ runner.temp }}/foundation-verify-playwright",
+      ]),
+    );
   });
 });
