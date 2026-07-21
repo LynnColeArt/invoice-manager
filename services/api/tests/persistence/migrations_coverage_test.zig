@@ -6,147 +6,147 @@ test "migration production declarations are analyzed" {
 }
 
 test "critical branch: discovery_failure" {
-    try std.testing.expectError(migrations.expectedError(.discovery_failure), exerciseCritical(std.testing.allocator, std.testing.io, .discovery_failure));
+    try exerciseCritical(std.testing.allocator, std.testing.io, .discovery_failure);
 }
 
 test "critical branch: missing_manifest" {
-    try std.testing.expectError(migrations.expectedError(.missing_manifest), exerciseCritical(std.testing.allocator, std.testing.io, .missing_manifest));
+    try exerciseCritical(std.testing.allocator, std.testing.io, .missing_manifest);
 }
 
 test "critical branch: missing_script" {
-    try std.testing.expectError(migrations.expectedError(.missing_script), exerciseCritical(std.testing.allocator, std.testing.io, .missing_script));
+    try exerciseCritical(std.testing.allocator, std.testing.io, .missing_script);
 }
 
 test "critical branch: malformed_manifest" {
-    try std.testing.expectError(migrations.expectedError(.malformed_manifest), exerciseCritical(std.testing.allocator, std.testing.io, .malformed_manifest));
+    try exerciseCritical(std.testing.allocator, std.testing.io, .malformed_manifest);
 }
 
 test "critical branch: unknown_descriptor_field" {
-    try std.testing.expectError(migrations.expectedError(.unknown_descriptor_field), exerciseCritical(std.testing.allocator, std.testing.io, .unknown_descriptor_field));
+    try exerciseCritical(std.testing.allocator, std.testing.io, .unknown_descriptor_field);
 }
 
 test "critical branch: invalid_uuid" {
-    try std.testing.expectError(migrations.expectedError(.invalid_uuid), exerciseCritical(std.testing.allocator, std.testing.io, .invalid_uuid));
+    try exerciseCritical(std.testing.allocator, std.testing.io, .invalid_uuid);
 }
 
 test "critical branch: owner_mismatch" {
-    try std.testing.expectError(migrations.expectedError(.owner_mismatch), exerciseCritical(std.testing.allocator, std.testing.io, .owner_mismatch));
+    try exerciseCritical(std.testing.allocator, std.testing.io, .owner_mismatch);
 }
 
 test "critical branch: directory_mismatch" {
-    try std.testing.expectError(migrations.expectedError(.directory_mismatch), exerciseCritical(std.testing.allocator, std.testing.io, .directory_mismatch));
+    try exerciseCritical(std.testing.allocator, std.testing.io, .directory_mismatch);
 }
 
 test "critical branch: path_traversal" {
-    try std.testing.expectError(migrations.expectedError(.path_traversal), exerciseCritical(std.testing.allocator, std.testing.io, .path_traversal));
+    try exerciseCritical(std.testing.allocator, std.testing.io, .path_traversal);
 }
 
 test "critical branch: symlink_escape" {
-    try std.testing.expectError(migrations.expectedError(.symlink_escape), exerciseCritical(std.testing.allocator, std.testing.io, .symlink_escape));
+    try exerciseCritical(std.testing.allocator, std.testing.io, .symlink_escape);
 }
 
 test "critical branch: noncanonical_dependencies" {
-    try std.testing.expectError(migrations.expectedError(.noncanonical_dependencies), exerciseCritical(std.testing.allocator, std.testing.io, .noncanonical_dependencies));
+    try exerciseCritical(std.testing.allocator, std.testing.io, .noncanonical_dependencies);
 }
 
 test "critical branch: script_digest_mismatch" {
-    try std.testing.expectError(migrations.expectedError(.script_digest_mismatch), exerciseCritical(std.testing.allocator, std.testing.io, .script_digest_mismatch));
+    try exerciseCritical(std.testing.allocator, std.testing.io, .script_digest_mismatch);
 }
 
 test "critical branch: descriptor_digest_mismatch" {
-    try std.testing.expectError(migrations.expectedError(.descriptor_digest_mismatch), exerciseCritical(std.testing.allocator, std.testing.io, .descriptor_digest_mismatch));
+    try exerciseCritical(std.testing.allocator, std.testing.io, .descriptor_digest_mismatch);
 }
 
 test "critical branch: duplicate_migration_id" {
-    try std.testing.expectError(migrations.expectedError(.duplicate_migration_id), exerciseCritical(std.testing.allocator, std.testing.io, .duplicate_migration_id));
+    try exerciseCritical(std.testing.allocator, std.testing.io, .duplicate_migration_id);
 }
 
 test "critical branch: duplicate_descriptor_path" {
-    try std.testing.expectError(migrations.expectedError(.duplicate_descriptor_path), exerciseCritical(std.testing.allocator, std.testing.io, .duplicate_descriptor_path));
+    try exerciseCritical(std.testing.allocator, std.testing.io, .duplicate_descriptor_path);
 }
 
 test "critical branch: missing_dependency" {
-    try std.testing.expectError(migrations.expectedError(.missing_dependency), exerciseCritical(std.testing.allocator, std.testing.io, .missing_dependency));
+    try exerciseCritical(std.testing.allocator, std.testing.io, .missing_dependency);
 }
 
 test "critical branch: self_dependency" {
-    try std.testing.expectError(migrations.expectedError(.self_dependency), exerciseCritical(std.testing.allocator, std.testing.io, .self_dependency));
+    try exerciseCritical(std.testing.allocator, std.testing.io, .self_dependency);
 }
 
 test "critical branch: dependency_cycle" {
-    try std.testing.expectError(migrations.expectedError(.dependency_cycle), exerciseCritical(std.testing.allocator, std.testing.io, .dependency_cycle));
+    try exerciseCritical(std.testing.allocator, std.testing.io, .dependency_cycle);
 }
 
 test "critical branch: graph_capacity_exceeded" {
-    try std.testing.expectError(migrations.expectedError(.graph_capacity_exceeded), exerciseCritical(std.testing.allocator, std.testing.io, .graph_capacity_exceeded));
+    try exerciseCritical(std.testing.allocator, std.testing.io, .graph_capacity_exceeded);
 }
 
 test "critical branch: corrupt_applied_history" {
-    try std.testing.expectError(migrations.expectedError(.corrupt_applied_history), exerciseCritical(std.testing.allocator, std.testing.io, .corrupt_applied_history));
+    try exerciseCritical(std.testing.allocator, std.testing.io, .corrupt_applied_history);
 }
 
 test "critical branch: duplicate_applied_history" {
-    try std.testing.expectError(migrations.expectedError(.duplicate_applied_history), exerciseCritical(std.testing.allocator, std.testing.io, .duplicate_applied_history));
+    try exerciseCritical(std.testing.allocator, std.testing.io, .duplicate_applied_history);
 }
 
 test "critical branch: applied_id_drift" {
-    try std.testing.expectError(migrations.expectedError(.applied_id_drift), exerciseCritical(std.testing.allocator, std.testing.io, .applied_id_drift));
+    try exerciseCritical(std.testing.allocator, std.testing.io, .applied_id_drift);
 }
 
 test "critical branch: applied_owner_drift" {
-    try std.testing.expectError(migrations.expectedError(.applied_owner_drift), exerciseCritical(std.testing.allocator, std.testing.io, .applied_owner_drift));
+    try exerciseCritical(std.testing.allocator, std.testing.io, .applied_owner_drift);
 }
 
 test "critical branch: applied_descriptor_drift" {
-    try std.testing.expectError(migrations.expectedError(.applied_descriptor_drift), exerciseCritical(std.testing.allocator, std.testing.io, .applied_descriptor_drift));
+    try exerciseCritical(std.testing.allocator, std.testing.io, .applied_descriptor_drift);
 }
 
 test "critical branch: applied_script_drift" {
-    try std.testing.expectError(migrations.expectedError(.applied_script_drift), exerciseCritical(std.testing.allocator, std.testing.io, .applied_script_drift));
+    try exerciseCritical(std.testing.allocator, std.testing.io, .applied_script_drift);
 }
 
 test "critical branch: ddl_failure" {
-    try std.testing.expectError(migrations.expectedError(.ddl_failure), exerciseCritical(std.testing.allocator, std.testing.io, .ddl_failure));
+    try exerciseCritical(std.testing.allocator, std.testing.io, .ddl_failure);
 }
 
 test "critical branch: checkpoint_failure" {
-    try std.testing.expectError(migrations.expectedError(.checkpoint_failure), exerciseCritical(std.testing.allocator, std.testing.io, .checkpoint_failure));
+    try exerciseCritical(std.testing.allocator, std.testing.io, .checkpoint_failure);
 }
 
 test "critical branch: directory_sync_failure" {
-    try std.testing.expectError(migrations.expectedError(.directory_sync_failure), exerciseCritical(std.testing.allocator, std.testing.io, .directory_sync_failure));
+    try exerciseCritical(std.testing.allocator, std.testing.io, .directory_sync_failure);
 }
 
 test "critical branch: reopen_failure" {
-    try std.testing.expectError(migrations.expectedError(.reopen_failure), exerciseCritical(std.testing.allocator, std.testing.io, .reopen_failure));
+    try exerciseCritical(std.testing.allocator, std.testing.io, .reopen_failure);
 }
 
 test "critical branch: recovery_quarantine" {
-    try std.testing.expectError(migrations.expectedError(.recovery_quarantine), exerciseCritical(std.testing.allocator, std.testing.io, .recovery_quarantine));
+    try exerciseCritical(std.testing.allocator, std.testing.io, .recovery_quarantine);
 }
 
 test "critical branch: durability_unconfirmed" {
-    try std.testing.expectError(migrations.expectedError(.durability_unconfirmed), exerciseCritical(std.testing.allocator, std.testing.io, .durability_unconfirmed));
+    try exerciseCritical(std.testing.allocator, std.testing.io, .durability_unconfirmed);
 }
 
 test "critical branch: unsupported_directory_sync" {
-    try std.testing.expectError(migrations.expectedError(.unsupported_directory_sync), exerciseCritical(std.testing.allocator, std.testing.io, .unsupported_directory_sync));
+    try exerciseCritical(std.testing.allocator, std.testing.io, .unsupported_directory_sync);
 }
 
 test "critical branch: committed_not_durable" {
-    try std.testing.expectError(migrations.expectedError(.committed_not_durable), exerciseCritical(std.testing.allocator, std.testing.io, .committed_not_durable));
+    try exerciseCritical(std.testing.allocator, std.testing.io, .committed_not_durable);
 }
 
 test "critical branch: checkpointed_not_durable" {
-    try std.testing.expectError(migrations.expectedError(.checkpointed_not_durable), exerciseCritical(std.testing.allocator, std.testing.io, .checkpointed_not_durable));
+    try exerciseCritical(std.testing.allocator, std.testing.io, .checkpointed_not_durable);
 }
 
 test "critical branch: later_migration_blocked" {
-    try std.testing.expectError(migrations.expectedError(.later_migration_blocked), exerciseCritical(std.testing.allocator, std.testing.io, .later_migration_blocked));
+    try exerciseCritical(std.testing.allocator, std.testing.io, .later_migration_blocked);
 }
 
 test "critical branch: allocation_failure_cleanup" {
-    try std.testing.expectError(migrations.expectedError(.allocation_failure_cleanup), exerciseCritical(std.testing.allocator, std.testing.io, .allocation_failure_cleanup));
+    try expectPublicError(error.AllocationFailureCleanup, allocationFailureScenario(std.testing.allocator, std.testing.io));
 }
 
 const CompletionEvidence = struct {
@@ -168,7 +168,7 @@ fn completeWithoutReplay(
         .checkpoint_failure => .{ .checkpoint = true },
         .directory_sync_failure => .{ .directory_sync = true },
         .unsupported_directory_sync => .{ .unsupported_directory_sync = true },
-        else => return migrations.expectedError(category),
+        else => return error.TestUnexpectedResult,
     };
     var store = try migrations.testing.openStoreWithFaults(allocator, io, database_path, faults);
     defer store.shutdown() catch {};
@@ -181,8 +181,18 @@ fn completeWithoutReplay(
         "2026-07-21T12:34:56.789Z",
         &calls,
     );
+    try std.testing.expect(!initial.isReady());
+    try std.testing.expectEqual(.uncertain, store.state());
+    const diagnostic = store.lastDiagnostic() orelse return error.TestUnexpectedResult;
+    switch (category) {
+        .checkpoint_failure => try std.testing.expectEqual(.checkpoint_failure, diagnostic.category),
+        .directory_sync_failure => try std.testing.expectEqual(.directory_sync_failure, diagnostic.category),
+        .unsupported_directory_sync => try std.testing.expectEqual(.unsupported_directory_sync, diagnostic.category),
+        else => return error.TestUnexpectedResult,
+    }
     migrations.testing.setFaults(&store, .{});
     const completed = try migrations.completeDurability(&store, initial);
+    try std.testing.expectEqual(.ready, store.state());
     return .{ .initial = initial, .completed = completed, .application_calls = calls };
 }
 
@@ -341,7 +351,7 @@ fn historyFailure(
         .applied_descriptor_drift => .{ .id = bootstrap_id, .owner = "p0", .descriptor_digest = bad_digest, .script_digest = bootstrap_script_digest },
         .applied_script_drift => .{ .id = bootstrap_id, .owner = "p0", .descriptor_digest = bootstrap_descriptor_digest, .script_digest = bad_digest },
         .duplicate_applied_history => .{ .id = bootstrap_id, .owner = "p0", .descriptor_digest = bootstrap_descriptor_digest, .script_digest = bootstrap_script_digest },
-        else => return migrations.expectedError(category),
+        else => return error.TestUnexpectedResult,
     };
     const rows = if (category == .duplicate_applied_history)
         &[_]SeedRow{ primary, primary }
@@ -379,8 +389,15 @@ fn reopenFailure(allocator: std.mem.Allocator, io: std.Io, quarantine: bool) !vo
         "2026-07-21T12:34:56.789Z",
     ) catch |err| {
         try std.testing.expectEqual(error.ReopenFailure, err);
-        try std.testing.expectEqual(.quarantined, store.state());
-        return if (quarantine) error.RecoveryQuarantine else error.ReopenFailure;
+        if (quarantine) {
+            try std.testing.expectEqual(.quarantined, store.state());
+            const diagnostic = store.lastDiagnostic() orelse return error.TestUnexpectedResult;
+            try std.testing.expectEqual(.reopen_failure, diagnostic.category);
+            try std.testing.expectEqual(.quarantined, diagnostic.state);
+            try std.testing.expectEqual(@as(usize, 1), migrations.testing.discardCount(&store));
+            try std.testing.expectEqual(@as(usize, 0), migrations.testing.reopenCount(&store));
+        }
+        return;
     };
     return error.TestUnexpectedResult;
 }
@@ -470,17 +487,31 @@ fn ddlFailure(allocator: std.mem.Allocator, io: std.Io, expect_later_blocked: bo
     defer allocator.free(database_path);
     var store = try migrations.testing.openStoreWithFaults(allocator, io, database_path, .{});
     defer store.shutdown() catch {};
-    _ = migrations.run(
+    var application_calls: usize = 0;
+    _ = migrations.testing.runObserved(
         allocator,
         io,
         &store,
         &.{.{ .owner = "p0", .path = root_path }},
         "2026-07-21T12:34:56.789Z",
+        &application_calls,
     ) catch |err| {
         try std.testing.expectEqual(error.DdlFailure, err);
-        try std.testing.expect(migrations.testing.discardCount(&store) > 0);
-        try std.testing.expect(migrations.testing.reopenCount(&store) > 0);
-        return if (expect_later_blocked) error.LaterMigrationBlocked else error.DdlFailure;
+        try std.testing.expectEqual(@as(usize, 2), migrations.testing.discardCount(&store));
+        try std.testing.expectEqual(@as(usize, 2), migrations.testing.reopenCount(&store));
+        try std.testing.expectEqual(.ready, store.state());
+        try std.testing.expectEqual(@as(usize, 2), application_calls);
+        try std.testing.expectEqual(
+            @as(usize, 1),
+            try migrations.testing.rowCount(&store, "SELECT * FROM app_schema_migrations;"),
+        );
+        if (expect_later_blocked) {
+            try std.testing.expectError(
+                error.QueryFailed,
+                migrations.testing.rowCount(&store, "SELECT * FROM later_migration;"),
+            );
+        }
+        return;
     };
     return error.TestUnexpectedResult;
 }
@@ -496,34 +527,31 @@ pub fn exerciseCritical(
         try exerciseValidationSweep(allocator, io);
     }
     return switch (category) {
-        .discovery_failure => discoveryFailure(allocator, io, .{ .owner = "p0", .path = "missing/p0" }),
-        .missing_manifest,
-        .missing_script,
-        .malformed_manifest,
-        .unknown_descriptor_field,
-        .invalid_uuid,
-        .owner_mismatch,
-        .directory_mismatch,
-        .symlink_escape,
-        .noncanonical_dependencies,
-        .script_digest_mismatch,
-        .descriptor_digest_mismatch,
-        => fixtureFailure(allocator, io, category),
-        .path_traversal => discoveryFailure(allocator, io, .{ .owner = "p0", .path = "migrations/../p0" }),
-        .duplicate_migration_id,
-        .duplicate_descriptor_path,
-        .missing_dependency,
-        .self_dependency,
-        .dependency_cycle,
-        .graph_capacity_exceeded,
-        => graphFailure(allocator, category),
-        .corrupt_applied_history,
-        .duplicate_applied_history,
-        .applied_id_drift,
-        .applied_owner_drift,
-        .applied_descriptor_drift,
-        .applied_script_drift,
-        => historyFailure(allocator, io, category),
+        .discovery_failure => expectPublicError(error.DiscoveryFailure, discoveryFailure(allocator, io, .{ .owner = "p0", .path = "missing/p0" })),
+        .missing_manifest => expectPublicError(error.MissingManifest, fixtureFailure(allocator, io, category)),
+        .missing_script => expectPublicError(error.MissingScript, fixtureFailure(allocator, io, category)),
+        .malformed_manifest => expectPublicError(error.MalformedManifest, fixtureFailure(allocator, io, category)),
+        .unknown_descriptor_field => expectPublicError(error.UnknownDescriptorField, fixtureFailure(allocator, io, category)),
+        .invalid_uuid => expectPublicError(error.InvalidUuid, fixtureFailure(allocator, io, category)),
+        .owner_mismatch => expectPublicError(error.OwnerMismatch, fixtureFailure(allocator, io, category)),
+        .directory_mismatch => expectPublicError(error.DirectoryMismatch, fixtureFailure(allocator, io, category)),
+        .path_traversal => expectPublicError(error.PathTraversal, discoveryFailure(allocator, io, .{ .owner = "p0", .path = "migrations/../p0" })),
+        .symlink_escape => expectPublicError(error.SymlinkEscape, fixtureFailure(allocator, io, category)),
+        .noncanonical_dependencies => expectPublicError(error.NoncanonicalDependencies, fixtureFailure(allocator, io, category)),
+        .script_digest_mismatch => expectPublicError(error.ScriptDigestMismatch, fixtureFailure(allocator, io, category)),
+        .descriptor_digest_mismatch => expectPublicError(error.DescriptorDigestMismatch, fixtureFailure(allocator, io, category)),
+        .duplicate_migration_id => expectPublicError(error.DuplicateMigrationId, graphFailure(allocator, category)),
+        .duplicate_descriptor_path => expectPublicError(error.DuplicateDescriptorPath, graphFailure(allocator, category)),
+        .missing_dependency => expectPublicError(error.MissingDependency, graphFailure(allocator, category)),
+        .self_dependency => expectPublicError(error.SelfDependency, graphFailure(allocator, category)),
+        .dependency_cycle => expectPublicError(error.DependencyCycle, graphFailure(allocator, category)),
+        .graph_capacity_exceeded => expectPublicError(error.GraphCapacityExceeded, graphFailure(allocator, category)),
+        .corrupt_applied_history => expectPublicError(error.CorruptAppliedHistory, historyFailure(allocator, io, category)),
+        .duplicate_applied_history => expectPublicError(error.DuplicateAppliedHistory, historyFailure(allocator, io, category)),
+        .applied_id_drift => expectPublicError(error.AppliedIdDrift, historyFailure(allocator, io, category)),
+        .applied_owner_drift => expectPublicError(error.AppliedOwnerDrift, historyFailure(allocator, io, category)),
+        .applied_descriptor_drift => expectPublicError(error.AppliedDescriptorDrift, historyFailure(allocator, io, category)),
+        .applied_script_drift => expectPublicError(error.AppliedScriptDrift, historyFailure(allocator, io, category)),
         .ddl_failure => ddlFailure(allocator, io, false),
         .later_migration_blocked => ddlFailure(allocator, io, true),
         .reopen_failure => reopenFailure(allocator, io, false),
@@ -538,6 +566,14 @@ pub fn exerciseCritical(
         .unsupported_directory_sync => completionFailure(allocator, io, category, .unsupported_directory_sync),
         .allocation_failure_cleanup => allocationFailureScenario(allocator, io),
     };
+}
+
+fn expectPublicError(expected: anyerror, result: anytype) !void {
+    _ = result catch |observed| {
+        try std.testing.expectEqual(expected, observed);
+        return;
+    };
+    return error.TestUnexpectedResult;
 }
 
 fn exercisePositiveSweep(allocator: std.mem.Allocator, io: std.Io) !void {
@@ -960,8 +996,38 @@ fn completionFailure(
     const evidence = try completeWithoutReplay(allocator, io, fault);
     try std.testing.expectEqual(@as(usize, 1), evidence.application_calls);
     try std.testing.expectEqual(migrations.ReadinessStatus.durability_unconfirmed, evidence.initial.status);
-    try std.testing.expect(evidence.completed.isReady());
-    return migrations.expectedError(category);
+    try std.testing.expect(evidence.initial.application_complete);
+    try std.testing.expect(!evidence.initial.directory_sync_complete);
+    try std.testing.expect(evidence.initial.durable_reopen_complete);
+    switch (category) {
+        .checkpoint_failure => {
+            try std.testing.expectEqual(migrations.CriticalCategory.checkpoint_failure, evidence.initial.category.?);
+            try std.testing.expect(!evidence.initial.checkpoint_complete);
+        },
+        .directory_sync_failure => {
+            try std.testing.expectEqual(migrations.CriticalCategory.directory_sync_failure, evidence.initial.category.?);
+            try std.testing.expect(evidence.initial.checkpoint_complete);
+        },
+        .unsupported_directory_sync => {
+            try std.testing.expectEqual(migrations.CriticalCategory.unsupported_directory_sync, evidence.initial.category.?);
+            try std.testing.expect(evidence.initial.checkpoint_complete);
+        },
+        .durability_unconfirmed => try std.testing.expect(!evidence.initial.isReady()),
+        .committed_not_durable => {
+            try std.testing.expectEqual(migrations.CriticalCategory.checkpoint_failure, evidence.initial.category.?);
+            try std.testing.expect(!evidence.initial.checkpoint_complete);
+            try std.testing.expect(!evidence.initial.directory_sync_complete);
+        },
+        .checkpointed_not_durable => {
+            try std.testing.expectEqual(migrations.CriticalCategory.directory_sync_failure, evidence.initial.category.?);
+            try std.testing.expect(evidence.initial.checkpoint_complete);
+            try std.testing.expect(!evidence.initial.directory_sync_complete);
+        },
+        else => return error.TestUnexpectedResult,
+    }
+    try std.testing.expect(!evidence.completed.isReady());
+    try std.testing.expectEqual(evidence.initial.applied_count, evidence.completed.applied_count);
+    try std.testing.expectEqual(@as(usize, 1), evidence.application_calls);
 }
 
 fn discoveryFailure(allocator: std.mem.Allocator, io: std.Io, root: migrations.OwnerRoot) !void {
@@ -979,17 +1045,18 @@ fn fixtureFailure(
     defer tmp.cleanup();
     const root_path = try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/p0", .{tmp.sub_path});
     defer allocator.free(root_path);
-    const invalid_id = "018f6f10-7b7a-7c2d-8e65-0f7b1c2d3e4F";
-    const directory_id = if (category == .invalid_uuid) invalid_id else bootstrap_id;
-    const migration_path = try std.fmt.allocPrint(allocator, "{s}/{s}", .{ root_path, directory_id });
-    defer allocator.free(migration_path);
-    try std.Io.Dir.createDirPath(.cwd(), io, migration_path);
     if (category == .symlink_escape) {
+        try std.Io.Dir.createDirPath(.cwd(), io, root_path);
         const link_path = try std.fmt.allocPrint(allocator, "{s}/escape", .{root_path});
         defer allocator.free(link_path);
         try std.Io.Dir.symLink(.cwd(), io, "..", link_path, .{});
         return discoveryFailure(allocator, io, .{ .owner = "p0", .path = root_path });
     }
+    const invalid_id = "018f6f10-7b7a-7c2d-8e65-0f7b1c2d3e4F";
+    const directory_id = if (category == .invalid_uuid) invalid_id else bootstrap_id;
+    const migration_path = try std.fmt.allocPrint(allocator, "{s}/{s}", .{ root_path, directory_id });
+    defer allocator.free(migration_path);
+    try std.Io.Dir.createDirPath(.cwd(), io, migration_path);
     if (category == .missing_manifest) {
         return discoveryFailure(allocator, io, .{ .owner = "p0", .path = root_path });
     }
@@ -1069,7 +1136,7 @@ fn graphFailure(allocator: std.mem.Allocator, category: migrations.CriticalCateg
             borrowedDescriptor(a, &.{b}, "p0/a/manifest.json"),
             borrowedDescriptor(b, &.{a}, "p0/b/manifest.json"),
         },
-        else => return migrations.expectedError(category),
+        else => return error.TestUnexpectedResult,
     };
     var diagnostic = migrations.PlanDiagnostic{};
     var result = try migrations.planWithDiagnostic(allocator, &descriptors, &diagnostic);
