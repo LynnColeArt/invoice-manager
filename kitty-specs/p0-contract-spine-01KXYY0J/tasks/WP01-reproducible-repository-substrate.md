@@ -42,7 +42,7 @@ requirement_refs:
   - C-009
 agent_profile: node-norris
 role: implementer
-agent: "codex:gpt-5:node-norris:implementer"
+agent: "codex:gpt-5:reviewer-renata:reviewer"
 model: ""
 assignee: ""
 shell_pid: "1807838"
@@ -546,3 +546,4 @@ Verify the full command surface is compatible with later work without preempting
 - 2026-07-21T21:01:26Z – user – shell_pid=1807838 – Moved to planned
 - 2026-07-21T21:03:32Z – codex:gpt-5:node-norris:implementer – shell_pid=1807838 – Started implementation via action command
 - 2026-07-21T21:27:48Z – codex:gpt-5:node-norris:implementer – shell_pid=1807838 – Cycle-2 handoff at 11b8c0d (GPL c7fc303 + wrapper restore). Node v24.18.0/npm 11.16.0/Zig 0.16.0: fresh clone npm ci --offline twice PASS with immutable hashes; verify:substrate PASS; npm ls problems=[]; full/prod audit 0. Both real wrappers fail actionably at absent WP03 and remove all newly created outputs; pre-existing regular entries, dangling symlink, and EACCES-classified entry survive. Injected cleanup failure continues through all 11 targets and promotes success to 1; earlier child exits 7/13 remain 7/13. Bootstrap calls exactly ci, substrate, contracts, api, migration-negative, persistence, web, one http:smoke; no aggregate/license/browser leakage; active system-browser fallbacks absent. Empty/prepared Playwright caches PASS at Chromium and headless-shell rev1228 with X_OK executables and immutable metadata. Canonical GPL3 hash 3972dc97; missing/truncated/byte mutations plus 3 manifest and 3 lock mismatches all reject; restored baseline PASS. Effective product diff only LICENSE, package.json, package-lock.json, apps/web/package.json, tools/contracts/package.json; no aborted-merge residue. git diff --check PASS; changed Python files none, diff-scoped ruff N/A exit 0; lane porcelain empty; no test processes.
+- 2026-07-21T21:29:19Z – codex:gpt-5:reviewer-renata:reviewer – shell_pid=1807838 – Started review via action command
