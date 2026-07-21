@@ -1,0 +1,9 @@
+{
+  "id": "018f6f10-7b7a-7c2d-8e65-0f7b1c2d3e4f",
+  "owner": "p0",
+  "name": "bootstrap_migration_history",
+  "depends_on": [],
+  "script_path": "up.sql",
+  "script_digest": "sha256:68dff6daa265a0c0c6d603994438c43a0af3228fff72e677d9dcd0cd60b1fbd3",
+  "descriptor_digest": "sha256:0b5af56a66a73c1f0f96b76ad4307a6e3a76f3cd34cb0ba71197a5e90d4e7877"
+}
