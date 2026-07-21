@@ -87,7 +87,7 @@ If no profile is specified, run `spec-kitty agent profile list` and select the b
 ## Objective
 
 Close P0 with auditable evidence: independently diagnosable CI, one bounded full
-verification target, deterministic GPL-2.0-only runtime licensing, a clean-clone proof,
+verification target, deterministic GPL-3.0-only runtime licensing, a clean-clone proof,
 legal P0 manifest promotion, immutable real P1-P4 conformance, a real Zig-to-Next.js
 proxy/performance proof, and an accurate program handoff.
 
@@ -242,7 +242,9 @@ while measuring the real same-origin WP08+WP10 health path exactly as specified.
 **Purpose**
 
 Audit the actual distributed runtime closure deterministically and fail closed unless every
-component has explicit GPL-2.0-only-compatible evidence and preserved notices.
+component has explicit GPL-3.0-only-compatible evidence and preserved notices.
+Reject GPL-2.0-only components from the combined runtime while permitting
+separately licensed, non-distributed reference aggregates.
 
 **Steps**
 
@@ -401,7 +403,7 @@ documents it covers are still current, and make every next program action or blo
 8. Execute the exact resolver constant and require its output set to match the 18 required paths.
 9. With the trusted handoff value still loaded as `accepted_wp11_receipt_commit`, execute the exact schema `commands.drift` constant above without redefining the variable; require it to include the receipt path and block closure on any difference.
 10. Never edit quickstart, the receipt, schema, or any `kitty-specs/` artifact from WP12.
-11. Create a concise README with purpose, GPL-2.0-only status, supported baseline, immutable
+11. Create a concise README with purpose, GPL-3.0-only status, supported baseline, immutable
    quickstart link, prerequisites, clone/bootstrap, focused gates, aggregate, and local run.
 12. Document the same-origin health path and generated/owner-contribution rules.
 13. Document common failures with focused command and responsible owner.

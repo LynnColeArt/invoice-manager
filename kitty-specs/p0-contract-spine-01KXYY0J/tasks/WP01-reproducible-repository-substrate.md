@@ -15,6 +15,7 @@ merge_target_branch: feat/p0-contract-spine
 branch_strategy: "Planning artifacts for this mission were generated on feat/p0-contract-spine. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/p0-contract-spine unless the human explicitly redirects the landing branch."
 execution_mode: code_change
 owned_files:
+  - "LICENSE"
   - ".node-version"
   - ".zig-version"
   - ".npmrc"
@@ -24,6 +25,7 @@ owned_files:
   - "apps/web/package.json"
 authoritative_surface: "package"
 create_intent:
+  - "LICENSE"
   - ".node-version"
   - ".zig-version"
   - ".npmrc"
@@ -96,6 +98,7 @@ This work package is the sole immutable npm metadata and root-lock owner.
 Create or modify only paths matched by the declared ownership patterns:
 
 - `.node-version`
+- `LICENSE`
 - `.zig-version`
 - `.npmrc`
 - `package.json`
@@ -168,7 +171,11 @@ Do not enable a setting that would silently change downstream package lifecycle 
 Express the supported runtime assumptions in `package.json` using exact `engines` values.
 Record the package manager with the exact `npm@11.16.0` declaration.
 Keep the repository package private so it cannot be accidentally published.
-Use the project license identity selected by the mission rather than inventing a second license policy.
+Create the canonical root `LICENSE` with the complete GPL-3.0-only text selected
+by the owner-approved charter amendment. Use that exact project license identity
+in every owned package manifest and lockfile record rather than inventing a
+second policy. The substrate verification must fail if the root license is
+missing, truncated, or disagrees with package metadata.
 
 Add an executable root prerequisite check using only root package metadata.
 Because no helper-script path is owned here, keep its implementation within `package.json` scripts.

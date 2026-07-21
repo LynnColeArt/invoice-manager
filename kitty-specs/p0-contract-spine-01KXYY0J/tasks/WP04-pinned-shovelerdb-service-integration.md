@@ -79,7 +79,9 @@ Address every review item and keep remediation evidence chronological before dec
 Consume the public ShovelerDB repository at exactly commit `021e3b3d9247a181252329d6ba7ec8d2ed943a97` from a clean clone.
 Integrate its real C embedding ABI into the Zig `0.16.0` service build through one narrow, replaceable dependency adapter.
 Prove borrowed result values are copied before result release, SQL text literals are encoded centrally, and the real engine survives checkpoint, close, and reopen.
-Preserve complete GPL-2.0 dependency attribution and immutable source provenance.
+Preserve complete GPL-3.0-only engine attribution and immutable source provenance.
+Keep the separately GPL-2.0-only MariaDB reference corpus outside the exported
+engine archive and prove its exclusion from the Invoice Manager runtime.
 
 Success means no build depends on `/home/lynn/projects/shovelerdb`, another sibling checkout, a private registry, or a floating branch.
 Success also means no ShovelerDB handle, result, row, borrowed slice, SQL construction detail, or engine diagnostic leaks beyond the adapter.
@@ -169,7 +171,8 @@ Land completed changes back on `feat/p0-contract-spine` unless the human explici
 - `NFR-009`: no silent fallback, destructive recovery, or substitute engine on failure.
 - `NFR-011`: notice and license evidence for every distributed ShovelerDB component.
 - `NFR-012`: commit-addressed, reproducible service dependency graph.
-- `C-001`: preserve GPL-2.0-only compatibility and notices.
+- `C-001`: preserve GPL-3.0-only compatibility, complete notices, and the
+  exclusion of separately GPL-2.0-only reference material.
 - `C-004`: use only ShovelerDB commit `021e3b3d9247a181252329d6ba7ec8d2ed943a97`.
 - `C-005`: one adapter instance owns one handle and serializes calls sharing it.
 - `C-009`: build from public repository inputs without sibling paths or private data.
