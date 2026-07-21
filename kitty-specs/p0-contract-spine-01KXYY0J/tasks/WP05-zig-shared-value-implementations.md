@@ -51,7 +51,7 @@ owned_files:
 role: implementer
 tags: []
 task_type: implement
-shell_pid: "1807838"
+shell_pid: "1417471"
 ---
 
 # Work Package Prompt: WP05 – Zig Shared Value Implementations
@@ -486,3 +486,5 @@ logs or frontmatter state by hand.
 - 2026-07-21T02:34:35Z – codex – shell_pid=1807838 – 2026-07-21T02:31:37Z implementation evidence at 43c76a3: zig fmt --check clean; test-shared 40/40 twice under America/Chicago and Pacific/Auckland, plus ReleaseSafe 40/40; WP02 fixtures consumed in place, 42/42 valid accepted and 73/73 invalid rejected with 8 runtime-only structural-before-semantic cases; coverage-shared measured 217/241 production PCs (90% minimum), 24/24 exact critical branches, 25 coverage tests, 0 skipped in Debug and ReleaseSafe. Adversarial sentinels: removing a production probe or renaming a critical test failed the static gate; removing edge execution failed 198/241 BelowThreshold. WP04 regressions: adapter 4/4, ABI integration 3/3, discovery 16/16. Diff-scoped zig fmt: 0 issues, exit 0; ownership: 16/16 paths under services/api/src/shared/** or services/api/tests/shared/**.
 - 2026-07-21T02:35:08Z – codex – shell_pid=1807838 – Ready for independent review: commit 43c76a3; 40/40 Debug and ReleaseSafe; 42 valid + 73 invalid fixtures; measured 217/241 PCs and 24/24 critical branches; three adversarial coverage sentinels fail closed; owned diff and formatting clean.
 - 2026-07-21T02:58:50Z – codex – shell_pid=1807838 – Started review via action command
+- 2026-07-21T03:06:13Z – user – shell_pid=1807838 – Moved to planned
+- 2026-07-21T03:32:53Z – codex – shell_pid=1417471 – Started implementation via action command
