@@ -26,7 +26,7 @@ subtasks:
 - T041
 phase: Phase 4 - Application Boundaries
 assignee: ''
-agent: codex
+agent: "codex-wp08-cycle2-reviewer"
 history: []
 agent_profile: implementer-ivan
 authoritative_surface: services/api/src/http/
@@ -54,6 +54,7 @@ owned_files:
 role: implementer
 tags: []
 task_type: implement
+shell_pid: "1807838"
 ---
 
 # Work Package Prompt: WP08 – Zig Health and Route-Policy Boundary
@@ -114,6 +115,9 @@ no feature APIs, and black-box evidence that the backend contract is real.
 - Do not disclose database paths, engine diagnostics, stack traces, or raw request bodies.
 - Traffic must not bind or accept before both WP06 durable-store readiness and WP07 migration readiness succeed.
 - Startup failure must not activate an in-memory fallback, replace a corrupt store, or serve false readiness.
+- WP08's black-box boundary is the real Zig service exercised by `test-http`.
+  The repository-level Next.js proxy smoke belongs to WP10 and is not a WP08
+  implementation or acceptance dependency.
 - Use the repository-pinned Zig 0.16 APIs; do not add compatibility branches for older Zig releases.
 - All fixtures, temporary paths, logs, and request bodies must be synthetic.
 
@@ -290,7 +294,8 @@ cannot create a vacuous architecture gate.
 12. Require all 100 responses to be valid ready responses.
 13. Require at least 99 response durations to be at or below 1,000 milliseconds.
 14. Record min, median, p99, maximum, mode, and failure count without machine-specific absolute paths.
-15. Keep the test bounded and independently runnable through the HTTP smoke command.
+15. Keep the test bounded and independently runnable through the exact repository-root
+    `zig build test-http --build-file services/api/build.zig` command.
 16. Shut down the child process and remove temporary data on every success/error path.
 
 **Files**:
@@ -302,7 +307,8 @@ cannot create a vacuous architecture gate.
 
 - Prove the test fails if routing bypasses the real listener or returns a fabricated body.
 - Prove the 99-of-100 threshold counts invalid responses as failures.
-- Repeat the smoke test twice and confirm no leaked process, port, or store remains.
+- Repeat `zig build test-http --build-file services/api/build.zig` twice and
+  confirm no leaked process, port, or store remains.
 
 ### Subtask T041 – Couple Startup Readiness to Store Open and Migrations
 
@@ -358,9 +364,9 @@ zig version
 npm run contracts:generate
 zig fmt --check services/api/src/main.zig services/api/src/http services/api/tests/http
 zig build test-http --build-file services/api/build.zig
+zig build test-http --build-file services/api/build.zig
 zig build test --build-file services/api/build.zig
 npm run api:check
-npm run http:smoke
 ```
 
 The first command must report `0.16.0`. The service build/test commands must
@@ -408,7 +414,8 @@ Before handoff, run `git diff --check`, `git status --short`, and
 - [ ] Failed startup preserves the last durable snapshot and emits no false readiness.
 - [ ] Direct controlled not-ready response is canonical HTTP 503.
 - [ ] Process and resource cleanup passes success, error, disconnect, and shutdown cases.
-- [ ] Zig formatting, service tests, API checks, and HTTP smoke pass independently.
+- [ ] Zig formatting, service tests, API checks, and the focused `test-http`
+      boundary pass independently, including two consecutive `test-http` runs.
 - [ ] Route-policy Activity Log evidence records public-boundary red before matching green.
 - [ ] Only WP08-owned files changed and all Activity Log evidence is chronological.
 
@@ -472,3 +479,14 @@ No implementation entries yet.
 
 Use `spec-kitty agent tasks move-task WP08 --to <status>`; never edit status
 events or frontmatter state by hand.
+- 2026-07-21T10:38:55Z – codex-wp08-implementer – shell_pid=1807838 – Assigned agent via action command
+- 2026-07-21T11:24:36Z – codex-wp08-implementer – shell_pid=1807838 – RED WP08-ROUTE-POLICY-001: exact repository-root command 'zig build test-http --build-file services/api/build.zig' materialized fresh canonical inventory (format_version=1, routes=1), mutated owned in-memory P0Health access public->protected, traversed actual dispatch, and failed as expected: handler_calls expected 0, observed 1; 5/6 HTTP tests passed and only this qualifying case failed. Test commit 6a63d78 precedes route-policy enforcement.
+- 2026-07-21T11:48:08Z – codex-wp08-implementer – shell_pid=1807838 – Refined route-policy RED at commit f58f651 after approved WP04 inventory mapping. Exact repository-root command: zig build test-http --build-file services/api/build.zig. Result: RED, 12/14 passed. WP08-ROUTE-POLICY-001 expected handler_calls=0, observed=1 for a protected canonical metadata mutation; invalid-effective-access case expected handler_calls=0, observed=1. Parser, binding, and isolated method/path/operation mutation cases were green. No route_policy production enforcement existed.
+- 2026-07-21T11:52:22Z – codex-wp08-implementer – shell_pid=1807838 – Matching route-policy GREEN at product commit febfd2d. Exact repository-root command: zig build test-http --build-file services/api/build.zig. Result: GREEN, 14/14 passed. WP08-ROUTE-POLICY-001 protected canonical metadata and invalid-effective-access mutations both stopped before the actual handler; handler_calls=0. Canonical inventory parsing, one-to-one bindings, and method/path/operation drift tests also passed.
+- 2026-07-21T14:06:28Z – codex-wp08-implementer – shell_pid=1807838 – FINAL GREEN WP08 integration at lane tip 54f90ed after approved WP04/WP05/WP07 corrections. Product/test commits 438e397, 6a63d78, ea0c4ee, f58f651, 4079342, febfd2d, 4774d2e, 4e881eb, 108e946, 75904ab, 21d2740, 2a46be8, 31ebb16, 2361349 implement the real health listener, canonical envelopes, inventory-bound protected-default dispatch, typed store/migration readiness, fail-closed startup, bounded parsing, graceful SIGINT/SIGTERM shutdown, snapshot preservation, and slow-client deadline proof. Exact root command zig build test-http --build-file services/api/build.zig passed twice in Debug with 100/100 valid responses and zero failures: median/p99/max 281/356/358 us and 273/339/341 us. Exact ReleaseSafe command zig build -Doptimize=ReleaseSafe test-http --build-file services/api/build.zig passed 100/100 with median/p99/max 198/247/250 us. Exact zig build test --build-file services/api/build.zig --summary all passed 12/12 deterministic groups; integrated HTTP was 100/100 with median/p99/max 276/316/319 us. Exact zig build coverage --build-file services/api/build.zig --summary all passed: shared 221/243 plus 24/24 critical branches, persistence 577/641 plus 20/20, migration 571/631 plus 36/36. Exact npm run api:check passed with final HTTP 100/100, median/p99/max 277/336/339 us. zig fmt --check services/api/build.zig services/api/src services/api/tests and git diff --check passed. T041 causal startup matrix covers store open/corruption/checkpoint/directory-sync/unsupported-filesystem and migration dependency/cycle/duplicate/digest/DDL/lease/transaction/executor/recovery/quarantine/reopen failures: every case exits nonzero before bind/readiness, preserves seeded durable snapshots, and activates no fallback.
+- 2026-07-21T14:07:53Z – codex-wp08-implementer – shell_pid=1807838 – WP08 lane tip cbb08ff fully green; code tip 54f90ed; final evidence 22fded6
+- 2026-07-21T14:08:03Z – codex-wp08-cycle1-reviewer – shell_pid=1807838 – Started review via action command
+- 2026-07-21T14:25:17Z – user – shell_pid=1807838 – Moved to planned
+- 2026-07-21T14:25:27Z – codex-wp08-shutdown-proof-fix – shell_pid=1807838 – Started implementation via action command
+- 2026-07-21T14:32:43Z – codex-wp08-shutdown-proof-fix – shell_pid=1807838 – Cycle 1 sole shutdown-proof correction a43e658 ready for review
+- 2026-07-21T14:33:06Z – codex-wp08-cycle2-reviewer – shell_pid=1807838 – Started review via action command

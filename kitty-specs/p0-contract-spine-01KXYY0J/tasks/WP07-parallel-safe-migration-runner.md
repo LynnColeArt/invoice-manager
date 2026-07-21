@@ -27,7 +27,7 @@ subtasks:
 - T036
 phase: Phase 4
 assignee: ''
-agent: codex
+agent: "codex-wp07-cycle5-reviewer"
 history: []
 agent_profile: implementer-ivan
 authoritative_surface: services/api/src/platform/persistence/migrations
@@ -38,6 +38,7 @@ create_intent:
 - services/api/tests/persistence/migrations_test.zig
 - services/api/tests/persistence/migrations_integration_test.zig
 - services/api/tests/persistence/migrations_negative_test.zig
+- services/api/tests/persistence/migrations_coverage_test.zig
 - services/api/tests/persistence/migrations_digest_vector.json
 execution_mode: code_change
 model: ''
@@ -48,6 +49,7 @@ owned_files:
 role: implementer
 tags: []
 task_type: implement
+shell_pid: "1807838"
 ---
 
 # Work Package Prompt: WP07 – Parallel-Safe Migration Runner
@@ -366,10 +368,18 @@ covering every documented collision, graph, mutation, and durability failure bra
 16. Keep all fixtures synthetic and deterministic.
 17. Exercise each documented error branch regardless of aggregate coverage percentage.
 18. Maintain at least 90% automated coverage through literal WP04 `coverage-migration`, then aggregate `coverage`; put a nonempty, never-empty-pass negative matrix in exact root `services/api/tests/persistence/migrations_negative_test.zig`.
+19. Put executable coverage cases in exact dedicated root `services/api/tests/persistence/migrations_coverage_test.zig`; ordinary unit, integration, or negative roots and renamed substitutes do not satisfy the coverage producer contract.
+20. Import WP04's build-wired probe in production with exact `const migration_coverage = @import("migration_coverage_probe");`. Consume WP05 and WP06 only through the build-wired named modules `@import("shared")` and `@import("persistence")`; do not relative-import shared, store, durability, directory-sync, adapter, or other non-`migrations*.zig` source into the instrumented migration module. Coverage tests may import only the public `@import("migrations")` module and must never import or mutate the probe directly.
+21. Call `migration_coverage.hit(.<tag>)` inside the real production error branch represented by each tag. A test label, manifest row, stdout claim, or direct probe call is not coverage evidence.
+22. Name each dedicated critical test exactly `test "critical branch: <tag>"`. Each test must reach its tag through the public migration boundary, assert the expected stable result category, and execute at least one instrumented PC from `services/api/src/platform/persistence/migrations*.zig` after counters are reset.
+    The dedicated root must also contain exact `test "migration production declarations are analyzed" { std.testing.refAllDecls(migrations); }` using its canonical `std` and `migrations` imports so pinned Zig 0.16 cannot lazily omit uncalled public migration declarations from the production coverage denominator.
+23. Cover these exact critical tags once each: `discovery_failure`, `missing_manifest`, `missing_script`, `malformed_manifest`, `unknown_descriptor_field`, `invalid_uuid`, `owner_mismatch`, `directory_mismatch`, `path_traversal`, `symlink_escape`, `noncanonical_dependencies`, `script_digest_mismatch`, `descriptor_digest_mismatch`, `duplicate_migration_id`, `duplicate_descriptor_path`, `missing_dependency`, `self_dependency`, `dependency_cycle`, `graph_capacity_exceeded`, `corrupt_applied_history`, `duplicate_applied_history`, `applied_id_drift`, `applied_owner_drift`, `applied_descriptor_drift`, `applied_script_drift`, `ddl_failure`, `checkpoint_failure`, `directory_sync_failure`, `reopen_failure`, `recovery_quarantine`, `durability_unconfirmed`, `unsupported_directory_sync`, `committed_not_durable`, `checkpointed_not_durable`, `later_migration_blocked`, and `allocation_failure_cleanup`.
+24. Let WP04's pinned Zig runner measure compiler PCs from only `services/api/src/platform/persistence/migrations*.zig`; require a nonzero denominator of at least 36 PCs, at least 90% aggregate executed PCs, every exact critical name, every matching production-side hit bit, and a positive production-PC delta per critical test.
+25. Treat missing DWARF/instrumentation sections, a zero or implausibly small production denominator, an unknown/duplicate/missing critical name, a tag without a canonical production hit call, a critical test without production execution, or a below-threshold report as a hard gate failure. Do not edit WP04's runner or build wiring to make WP07 pass.
 
 **Files**
 
-- `services/api/tests/persistence/migrations_test.zig`, `migrations_integration_test.zig`, and `migrations_negative_test.zig`
+- `services/api/tests/persistence/migrations_test.zig`, `migrations_integration_test.zig`, `migrations_negative_test.zig`, and `migrations_coverage_test.zig`
 - `services/api/tests/persistence/migrations_digest_vector.json`
 
 **Validation**
@@ -441,6 +451,7 @@ root scripts, or WP06 internals; missing stable wiring is an upstream WP04 failu
 - [ ] Migration `Ready` requires WP06 durable-store readiness and `DirectorySynchronized`.
 - [ ] Checkpoint and directory-sync failure never make the service ready.
 - [ ] T036 covers every documented error branch and at least 90% migration logic.
+- [ ] The exact dedicated coverage root reaches all 36 production-side critical tags through public behavior, and WP04's source-filtered Zig PC gate reports a nonzero denominator of at least 36 with at least 90% executed.
 - [ ] No down migration or destructive reset path exists.
 - [ ] No shared sequence, migration registry, or domain registry exists.
 - [ ] `npm run migration:negative` reports nonzero cases and every expected category.
@@ -498,3 +509,38 @@ root scripts, or WP06 internals; missing stable wiring is an upstream WP04 failu
   integrity, deterministic planning, durable application, and negative evidence.
 - 2026-07-20T16:05:56Z – system – Prompt remapped to WP07 and constrained to
   WP06's public durability/recovery seam and WP04's mandatory negative gate.
+- 2026-07-21T06:52:36Z – codex – shell_pid=1807838 – Assigned agent via action command
+- 2026-07-21T06:56:06Z – codex – shell_pid=1807838 – RED: cd services/api && zig build test-migration exited 1; public @import("migrations") bootstrap discovery/digest test failed at migrations.discover because root module migrations has no member named discover.
+- 2026-07-21T06:59:17Z – codex – shell_pid=1807838 – RED correction: after additive test-only commit 645b631 changed both expected digests to canonical sha256: wire values, cd services/api && zig build test-migration still exited 1 at the public boundary: migrations has no member named discover. No migration production implementation had been committed.
+- 2026-07-21T07:04:46Z – codex – shell_pid=1807838 – RED: cd services/api && zig build test-migration-integration exited 1; public bootstrap durable-apply/reopen/no-op test failed because @import("migrations") has no member named run. Discovery code exists in the working tree, but no application runner implementation or product commit exists.
+- 2026-07-21T07:12:41Z – codex – shell_pid=1807838 – RED package (isolated from all uncommitted product via git stash --keep-index -u): test-migration exited 1 missing public discover/canonicalProjection/Descriptor; test-migration-integration exited 1 missing testing/CriticalCategory/run; migration-negative exited 1 missing CriticalCategory; coverage-migration exited 1 because canonical production probe implementation was absent. Tests cover DAG/JCS/bootstrap, durable apply/no-op, history drift, failure recovery/no-replay, nonempty negative matrix, and all 36 exact critical branches.
+- 2026-07-21T08:05:00Z – codex – shell_pid=1807838 – GREEN: test commit 6d959bd and product/bootstrap commit 64524c3 implement the public migration boundary. From services/api, `zig build test-migration`, `zig build test-migration-integration`, `zig build migration-negative`, and `zig build coverage-migration` passed; exact source coverage measured 488/542 owned production control-flow sites (90.04%), all 36/36 critical branch tests passed, 37 coverage tests passed, and zero were skipped.
+- 2026-07-21T08:12:06Z – codex – shell_pid=1807838 – GREEN after approved WP04 composition merge 6b5112a: Debug and ReleaseSafe `test-migration` passed 4/4, `test-migration-integration` passed 5/5, `migration-negative` passed 6/6, `coverage-migration` remained 488/542 with 36/36 critical branches, and aggregate `coverage` passed shared 221/243, persistence 562/624, and migration 488/542. Exact bootstrap bytes recomputed to script sha256:68dff6daa265a0c0c6d603994438c43a0af3228fff72e677d9dcd0cd60b1fbd3 and 224-byte JCS descriptor sha256:0b5af56a66a73c1f0f96b76ad4307a6e3a76f3cd34cb0ba71197a5e90d4e7877; lane-g is clean.
+- 2026-07-21T08:13:50Z – codex – shell_pid=2155096 – Implementation complete at lane-g 6b5112a after approved WP04 composition; Debug/ReleaseSafe unit 4/4, integration 5/5, negative 6/6, exact coverage 488/542 with 36/36 critical branches, and aggregate coverage pass.
+- 2026-07-21T08:14:30Z – codex – shell_pid=1807838 – Started review via action command
+- 2026-07-21T08:27:12Z – user – shell_pid=1807838 – Moved to planned
+- 2026-07-21T08:54:52Z – codex – shell_pid=2266124 – Started implementation via action command
+- 2026-07-21T08:57:56Z – codex – shell_pid=2266124 – RED correction: cd services/api && zig build test-migration-integration exited 1 with 5/6 tests passing. Permanent public-boundary test commit f21afe9 proved history-read checkpoint persistence completion incorrectly returned Ready at migrations_integration_test.zig:193; the clean rerun applied exactly one pending migration with one already-applied bootstrap and no bootstrap DDL replay.
+- 2026-07-21T08:59:51Z – codex – shell_pid=2266124 – RED correction batch: commit 6df2215 extends the public revalidation regression across checkpoint, directory-sync, and unsupported-directory-sync at the first planned migration of a two-migration DAG. cd services/api && zig build test-migration-integration exited 1 with 5/7 passing; both permanent failures show completeDurability incorrectly returns Ready, while each clean rerun applies only the remaining migration and does not replay the durably committed bootstrap.
+- 2026-07-21T09:01:22Z – codex – shell_pid=2266124 – RED correction batch: commit 84064b4 adds public runObserved cases for a nonempty unrelated store, an existing malformed history table, and a previously initialized store with deleted history. cd services/api && zig build test-migration-integration exited 1 with 5/10 passing; each new case observed one bootstrap replacement DDL call where zero is required, proving StatementObjectFailed is incorrectly treated as fresh without WP06 initializeFresh eligibility.
+- 2026-07-21T09:02:14Z – codex – shell_pid=2266124 – RED correction batch: commit 84b9b66 adds public discovery tests for owner-basename binding, normalized lexical aliases, final-root and ancestor symlink escape, and recursive descriptor discovery. cd services/api && zig build test-migration exited 1 with 4/9 passing and no leaks: wrong basenames/aliases/ancestor symlinks were accepted, final symlink mapped DiscoveryFailure instead of SymlinkEscape, and nested descriptor discovery returned DirectoryMismatch.
+- 2026-07-21T09:05:35Z – codex – shell_pid=2266124 – Correction RED checkpoint e0d0ef7: added a green no-op rerun proof (zero migration DDL and byte-identical durable history) plus a public multi-statement partial-DDL recovery characterization. Focused integration gate is intentionally 6/12: the partial-DDL case currently reports DdlFailure instead of LaterMigrationBlocked; the test also permanently requires discard/reopen rollback, unchanged durable bytes, and no later migration effect.
+- 2026-07-21T09:12:34Z – codex – shell_pid=2266124 – Correction RED checkpoint 949a3fe: integration and negative scenarios now compare actual errors from the public runner and assert typed readiness/quarantine/counter consequences; synthetic LaterMigrationBlocked, RecoveryQuarantine, and completion expected-error returns were removed. Current integration is intentionally 4/12 and negative 4/13, adding direct failures for LaterMigrationBlocked and non-ready durability completion.
+- 2026-07-21T09:18:07Z – codex – shell_pid=2266124 – Correction RED checkpoint c009114: public diagnostic assertions now require typed durability boundary, DDL-primary plus later-work consequence, and reopen-primary plus quarantine consequence. Focused integration currently fails compilation only because RunDiagnostic/runWithDiagnostic and Readiness.durability_boundary are intentionally not implemented yet.
+- 2026-07-21T10:04:28Z – codex – shell_pid=2266124 – Correction RED evidence, preserved in chronological test-only commits before product commit efbecdc: f21afe9 through a31b80b locked durability revalidation, ambiguous-history refusal, normalized/no-follow recursive discovery, public primary/consequence diagnostics, partial-DDL rollback, exact OOM/discard recovery, middle-migration continuation, unknown-entry fail-closed behavior, and exhaustive cleanup coverage. The public Debug gates failed at each new boundary before the corresponding production correction; final pre-threshold coverage reports were 534/627 and 567/631 with 36/36 critical branches.
+- 2026-07-21T10:04:30Z – codex – shell_pid=2266124 – GREEN correction at product commit efbecdc with test commits f21afe9..a31b80b: pinned Zig 0.16 formatting; Debug test-migration, test-migration-integration, mandatory npm run migration:negative, coverage-migration, and aggregate coverage all pass. ReleaseSafe test-migration, test-migration-integration, migration-negative, and coverage-migration pass. Exact migration coverage is 571/631 owned production PCs (90.49%), 36/36 critical branches, 38 passed, 0 skipped; aggregate shared 221/243 and persistence 577/641 also pass; diff check is clean.
+- 2026-07-21T10:04:55Z – codex – shell_pid=2266124 – Correction complete at efbecdc; test-first commits f21afe9..a31b80b; Debug and ReleaseSafe WP07 gates pass; exact coverage 571/631 (90.49%) with 36/36 branches; aggregate coverage passes.
+- 2026-07-21T10:06:37Z – reviewer-renata – shell_pid=1807838 – Started review via action command
+- 2026-07-21T10:16:53Z – user – shell_pid=1807838 – Moved to planned
+- 2026-07-21T10:19:52Z – codex – shell_pid=1807838 – Started implementation via action command
+- 2026-07-21T10:20:39Z – codex – shell_pid=1807838 – RED chronology remediation after transparent product revert ce4b886: with correction tests retained and pre-correction migrations.zig restored, cd services/api && zig build test-migration exited 1 (4/10 passed; six public root/discovery assertions failed); zig build test-migration-integration exited 1 on missing RunDiagnostic, durability_boundary, and scheduled application-fault public seams; repository-root npm run migration:negative exited 1 on the same public compile failures; cd services/api && zig build coverage-migration exited 1 with unit/integration/negative failures and missing revalidation/diagnostic public APIs. This evidence is recorded before the final effective correction reapplication.
+- 2026-07-21T10:25:54Z – codex – shell_pid=2491898 – GREEN chronology remediation: after contemporaneous RED commit cbfc861, effective product reapplication 42f375b passes Debug test-migration, test-migration-integration, migration-negative, coverage-migration, repository-root npm run migration:negative, and serial aggregate coverage; ReleaseSafe test-migration, test-migration-integration, migration-negative, and coverage-migration also pass. Exact migration coverage is 571/631 owned production control-flow sites (90.49%), all 36/36 critical branches, 38 tests passed, 0 skipped; aggregate shared 221/243, persistence 577/641, migration 571/631. zig fmt --check and git diff --check pass.
+- 2026-07-21T10:27:05Z – codex – shell_pid=2494830 – Chronology correction complete via transparent revert, contemporaneous RED, effective reapply, and full GREEN verification; ready for independent cycle-3 review.
+- 2026-07-21T10:27:47Z – codex-cycle3-reviewer – shell_pid=1807838 – Started review via action command
+- 2026-07-21T10:37:17Z – user – shell_pid=1807838 – Review passed: cycle 2 chronology blocker closed by transparent ce4b886 revert, contemporaneous RED cbfc861, effective correction 42f375b, and independently verified full GREEN matrix; cycle 3 artifact records zero blockers.
+- 2026-07-21T13:31:41Z – user – shell_pid=1807838 – Moved to for_review
+- 2026-07-21T13:32:18Z – codex-wp07-cycle4-reviewer – shell_pid=1807838 – Started review via action command
+- 2026-07-21T13:37:03Z – user – shell_pid=1807838 – Moved to planned
+- 2026-07-21T13:48:22Z – codex-wp07-fixture-fix – shell_pid=1807838 – Started implementation via action command
+- 2026-07-21T13:57:40Z – codex-wp07-fixture-fix – shell_pid=1807838 – Cycle 4 source-anchored unit and coverage correction 2e478dc ready for review
+- 2026-07-21T13:57:51Z – codex-wp07-cycle5-reviewer – shell_pid=1807838 – Started review via action command
