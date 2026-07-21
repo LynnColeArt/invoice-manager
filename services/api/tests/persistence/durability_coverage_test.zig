@@ -1574,11 +1574,20 @@ test "fresh initialization covers origin denial recovery and durability completi
         error.CheckpointFailed,
         completion_store.initializeFresh(.{ .context = &completion_context, .run = freshCoverage }),
     );
+    try std.testing.expectError(
+        error.StoreQuarantined,
+        completion_store.initializeFresh(.{ .context = &completion_context, .run = freshCoverage }),
+    );
     persistence.testing.setFaults(&completion_store, .{});
     _ = try completion_store.completeDurability();
     try std.testing.expectEqual(@as(usize, 1), completion_context.calls);
     try std.testing.expectError(
         error.NotFresh,
+        completion_store.initializeFresh(.{ .context = &completion_context, .run = freshCoverage }),
+    );
+    try completion_store.shutdown();
+    try std.testing.expectError(
+        error.StoreClosed,
         completion_store.initializeFresh(.{ .context = &completion_context, .run = freshCoverage }),
     );
 }
