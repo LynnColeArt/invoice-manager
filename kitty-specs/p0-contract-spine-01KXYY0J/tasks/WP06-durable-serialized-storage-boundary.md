@@ -28,7 +28,7 @@ phase: Phase 3
 assignee: ''
 agent: "codex"
 history: []
-agent_profile: implementer-ivan
+agent_profile: reviewer-renata
 authoritative_surface: services/api/src/platform/persistence/
 create_intent:
 - services/api/src/platform/persistence/root.zig
@@ -53,7 +53,7 @@ owned_files:
 - services/api/tests/persistence/store*
 - services/api/tests/persistence/durability*
 - services/api/tests/persistence/directory_sync*
-role: implementer
+role: reviewer
 tags: []
 task_type: implement
 shell_pid: "1807838"
