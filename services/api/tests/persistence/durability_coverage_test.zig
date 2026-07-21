@@ -32,6 +32,18 @@ fn startupFailure(_: *anyopaque, executor: persistence.StartupExecutor) !void {
     return error.CoverageCallbackFailure;
 }
 
+const FreshCoverageContext = struct {
+    calls: usize = 0,
+    fail: bool = false,
+};
+
+fn freshCoverage(raw_context: *anyopaque, executor: persistence.StartupExecutor) !void {
+    const context: *FreshCoverageContext = @ptrCast(@alignCast(raw_context));
+    context.calls += 1;
+    _ = try executor.execute("CREATE TABLE coverage_fresh (body TEXT);");
+    if (context.fail) return error.CoverageFreshFailure;
+}
+
 fn insert(_: *anyopaque, executor: persistence.Executor) !void {
     _ = try executor.executeText("INSERT INTO coverage_probe VALUES (", "coverage", ");");
 }
@@ -1510,6 +1522,65 @@ test "executor admission barrier has a bounded unreleased deadline" {
     _ = try store.mutate(.{ .context = &unused, .run = success });
     try std.testing.expect(barrier.hasAdmitted());
     try std.testing.expect(barrier.hasClosing());
+}
+
+test "fresh initialization covers origin denial recovery and durability completion" {
+    const allocator = std.testing.allocator;
+
+    var existing_tmp = std.testing.tmpDir(.{});
+    defer existing_tmp.cleanup();
+    const existing_path = try path(allocator, &existing_tmp, "fresh-existing");
+    defer allocator.free(existing_path);
+    var creator = try persistence.Store.open(allocator, std.testing.io, existing_path);
+    try creator.shutdown();
+    var existing = try persistence.Store.open(allocator, std.testing.io, existing_path);
+    defer existing.shutdown() catch {};
+    var denied_context = FreshCoverageContext{};
+    try std.testing.expectError(
+        error.NotFresh,
+        existing.initializeFresh(.{ .context = &denied_context, .run = freshCoverage }),
+    );
+    try std.testing.expectEqual(@as(usize, 0), denied_context.calls);
+    try std.testing.expectEqual(persistence.DiagnosticCategory.not_fresh, existing.lastDiagnostic().?.category);
+
+    var retry_tmp = std.testing.tmpDir(.{});
+    defer retry_tmp.cleanup();
+    const retry_path = try path(allocator, &retry_tmp, "fresh-retry");
+    defer allocator.free(retry_path);
+    var retry_store = try persistence.Store.open(allocator, std.testing.io, retry_path);
+    defer retry_store.shutdown() catch {};
+    var retry_context = FreshCoverageContext{ .fail = true };
+    try std.testing.expectError(
+        error.StartupWriteFailed,
+        retry_store.initializeFresh(.{ .context = &retry_context, .run = freshCoverage }),
+    );
+    retry_context.fail = false;
+    _ = try retry_store.initializeFresh(.{ .context = &retry_context, .run = freshCoverage });
+    try std.testing.expectEqual(@as(usize, 2), retry_context.calls);
+
+    var completion_tmp = std.testing.tmpDir(.{});
+    defer completion_tmp.cleanup();
+    const completion_path = try path(allocator, &completion_tmp, "fresh-completion");
+    defer allocator.free(completion_path);
+    var completion_store = try persistence.testing.openWithFaults(
+        allocator,
+        std.testing.io,
+        completion_path,
+        .{ .checkpoint = true },
+    );
+    defer completion_store.shutdown() catch {};
+    var completion_context = FreshCoverageContext{};
+    try std.testing.expectError(
+        error.CheckpointFailed,
+        completion_store.initializeFresh(.{ .context = &completion_context, .run = freshCoverage }),
+    );
+    persistence.testing.setFaults(&completion_store, .{});
+    _ = try completion_store.completeDurability();
+    try std.testing.expectEqual(@as(usize, 1), completion_context.calls);
+    try std.testing.expectError(
+        error.NotFresh,
+        completion_store.initializeFresh(.{ .context = &completion_context, .run = freshCoverage }),
+    );
 }
 
 test "critical branch: canonicalization_failure" {
