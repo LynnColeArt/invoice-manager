@@ -27,7 +27,7 @@ subtasks:
 - T036
 phase: Phase 4
 assignee: ''
-agent: codex
+agent: "codex"
 history: []
 agent_profile: implementer-ivan
 authoritative_surface: services/api/src/platform/persistence/migrations
@@ -49,6 +49,7 @@ owned_files:
 role: implementer
 tags: []
 task_type: implement
+shell_pid: "1807838"
 ---
 
 # Work Package Prompt: WP07 – Parallel-Safe Migration Runner
@@ -508,3 +509,10 @@ root scripts, or WP06 internals; missing stable wiring is an upstream WP04 failu
   integrity, deterministic planning, durable application, and negative evidence.
 - 2026-07-20T16:05:56Z – system – Prompt remapped to WP07 and constrained to
   WP06's public durability/recovery seam and WP04's mandatory negative gate.
+- 2026-07-21T06:52:36Z – codex – shell_pid=1807838 – Assigned agent via action command
+- 2026-07-21T06:56:06Z – codex – shell_pid=1807838 – RED: cd services/api && zig build test-migration exited 1; public @import("migrations") bootstrap discovery/digest test failed at migrations.discover because root module migrations has no member named discover.
+- 2026-07-21T06:59:17Z – codex – shell_pid=1807838 – RED correction: after additive test-only commit 645b631 changed both expected digests to canonical sha256: wire values, cd services/api && zig build test-migration still exited 1 at the public boundary: migrations has no member named discover. No migration production implementation had been committed.
+- 2026-07-21T07:04:46Z – codex – shell_pid=1807838 – RED: cd services/api && zig build test-migration-integration exited 1; public bootstrap durable-apply/reopen/no-op test failed because @import("migrations") has no member named run. Discovery code exists in the working tree, but no application runner implementation or product commit exists.
+- 2026-07-21T07:12:41Z – codex – shell_pid=1807838 – RED package (isolated from all uncommitted product via git stash --keep-index -u): test-migration exited 1 missing public discover/canonicalProjection/Descriptor; test-migration-integration exited 1 missing testing/CriticalCategory/run; migration-negative exited 1 missing CriticalCategory; coverage-migration exited 1 because canonical production probe implementation was absent. Tests cover DAG/JCS/bootstrap, durable apply/no-op, history drift, failure recovery/no-replay, nonempty negative matrix, and all 36 exact critical branches.
+- 2026-07-21T08:05:00Z – codex – shell_pid=1807838 – GREEN: test commit 6d959bd and product/bootstrap commit 64524c3 implement the public migration boundary. From services/api, `zig build test-migration`, `zig build test-migration-integration`, `zig build migration-negative`, and `zig build coverage-migration` passed; exact source coverage measured 488/542 owned production control-flow sites (90.04%), all 36/36 critical branch tests passed, 37 coverage tests passed, and zero were skipped.
+- 2026-07-21T08:12:06Z – codex – shell_pid=1807838 – GREEN after approved WP04 composition merge 6b5112a: Debug and ReleaseSafe `test-migration` passed 4/4, `test-migration-integration` passed 5/5, `migration-negative` passed 6/6, `coverage-migration` remained 488/542 with 36/36 critical branches, and aggregate `coverage` passed shared 221/243, persistence 562/624, and migration 488/542. Exact bootstrap bytes recomputed to script sha256:68dff6daa265a0c0c6d603994438c43a0af3228fff72e677d9dcd0cd60b1fbd3 and 224-byte JCS descriptor sha256:0b5af56a66a73c1f0f96b76ad4307a6e3a76f3cd34cb0ba71197a5e90d4e7877; lane-g is clean.
