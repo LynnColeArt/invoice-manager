@@ -9,6 +9,8 @@ extern fn invoice_manager_migration_coverage_required_bits() u64;
 const Config = struct {
     pub const contract = @import("shovelerdb_coverage_contract.zig");
     pub const label = "migration";
+    pub const owning_wp = "WP07";
+    pub const expected_source_pattern = "src/platform/persistence/migrations*.zig";
     pub fn reset() void {
         invoice_manager_migration_coverage_reset();
     }
@@ -18,11 +20,21 @@ const Config = struct {
     pub fn requiredBits() u64 {
         return invoice_manager_migration_coverage_required_bits();
     }
+    pub fn ownsSourcePath(path: []const u8) bool {
+        const relative = runner.sourceRelativePath(
+            path,
+            "src/platform/persistence/",
+            "src\\platform\\persistence\\",
+        ) orelse return false;
+        return std.mem.indexOfAny(u8, relative, "/\\") == null and
+            std.mem.startsWith(u8, relative, "migrations") and
+            std.mem.endsWith(u8, relative, ".zig");
+    }
 };
 
 pub const std_options: std.Options = .{ .logFn = runner.log };
-pub fn main(init: std.process.Init.Minimal) !void {
-    try runner.run(Config, init);
+pub fn main(init: std.process.Init.Minimal) void {
+    runner.runMain(Config, init);
 }
 
 export fn runner_test_run(_: u32) void {}

@@ -9,6 +9,8 @@ extern fn invoice_manager_persistence_coverage_required_bits() u64;
 const Config = struct {
     pub const contract = @import("shovelerdb_persistence_coverage_contract.zig");
     pub const label = "persistence";
+    pub const owning_wp = "WP06";
+    pub const expected_source_pattern = "src/platform/persistence/{root.zig,store*,durability*,directory_sync*,diagnostic*}";
     pub fn reset() void {
         invoice_manager_persistence_coverage_reset();
     }
@@ -18,11 +20,24 @@ const Config = struct {
     pub fn requiredBits() u64 {
         return invoice_manager_persistence_coverage_required_bits();
     }
+    pub fn ownsSourcePath(path: []const u8) bool {
+        const relative = runner.sourceRelativePath(
+            path,
+            "src/platform/persistence/",
+            "src\\platform\\persistence\\",
+        ) orelse return false;
+        if (std.mem.indexOfAny(u8, relative, "/\\") != null) return false;
+        return std.mem.eql(u8, relative, "root.zig") or
+            std.mem.startsWith(u8, relative, "store") or
+            std.mem.startsWith(u8, relative, "durability") or
+            std.mem.startsWith(u8, relative, "directory_sync") or
+            std.mem.startsWith(u8, relative, "diagnostic");
+    }
 };
 
 pub const std_options: std.Options = .{ .logFn = runner.log };
-pub fn main(init: std.process.Init.Minimal) !void {
-    try runner.run(Config, init);
+pub fn main(init: std.process.Init.Minimal) void {
+    runner.runMain(Config, init);
 }
 
 export fn runner_test_run(_: u32) void {}

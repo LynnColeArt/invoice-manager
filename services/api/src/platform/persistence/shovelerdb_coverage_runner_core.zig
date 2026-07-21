@@ -20,6 +20,7 @@ pub fn run(comptime Config: type, init: std.process.Init.Minimal) !void {
     var critical_tests_seen: u64 = 0;
     var passed: usize = 0;
     var skipped: usize = 0;
+    var ownership_validated = false;
     for (builtin.test_functions) |test_fn| {
         @memset(counters, 0);
         Config.reset();
@@ -29,6 +30,10 @@ pub fn run(comptime Config: type, init: std.process.Init.Minimal) !void {
             .argv0 = .init(init.args),
             .environ = init.environ,
         });
+        if (!ownership_validated) {
+            try validatePcOwnership(Config, pcs);
+            ownership_validated = true;
+        }
         testing.environ = init.environ;
         testing.log_level = .warn;
         const result = test_fn.func();
@@ -84,6 +89,72 @@ pub fn run(comptime Config: type, init: std.process.Init.Minimal) !void {
         "[coverage-{s}] measured {d}/{d} owned production control-flow sites ({d}% minimum); {d}/{d} critical branch tests passed; {d} tests passed; {d} skipped\n",
         .{ Config.label, seen_sites, counters.len, Config.contract.minimum_percent, @popCount(critical_tests_seen), Config.contract.critical_branch_count, passed, skipped },
     );
+}
+
+pub fn runMain(comptime Config: type, init: std.process.Init.Minimal) void {
+    @disableInstrumentation();
+    run(Config, init) catch |err| {
+        std.debug.print("[coverage-{s}:failure] {s}\n", .{ Config.label, @errorName(err) });
+        std.process.exit(1);
+    };
+}
+
+fn validatePcOwnership(comptime Config: type, pcs: []const usize) !void {
+    @disableInstrumentation();
+    const allocator = std.heap.page_allocator;
+    var self_info: std.debug.SelfInfo = .init;
+    defer self_info.deinit(testing.io);
+    var text_arena = std.heap.ArenaAllocator.init(allocator);
+    defer text_arena.deinit();
+    var symbols: std.ArrayList(std.debug.Symbol) = .empty;
+    defer symbols.deinit(allocator);
+
+    for (pcs, 0..) |pc, index| {
+        symbols.clearRetainingCapacity();
+        _ = text_arena.reset(.retain_capacity);
+        try self_info.getSymbols(
+            testing.io,
+            allocator,
+            text_arena.allocator(),
+            pc,
+            false,
+            &symbols,
+        );
+
+        var source_path: ?[]const u8 = null;
+        for (symbols.items) |symbol| {
+            const location = symbol.source_location orelse continue;
+            source_path = location.file_name;
+            if (Config.ownsSourcePath(location.file_name)) break;
+        } else {
+            const observed_source = if (source_path) |path|
+                sourceBasename(path)
+            else
+                "<missing-debug-source>";
+            std.debug.print(
+                "[coverage-{s}:error] owning {s}; expected sanitizer PC source matching {s}; observed out-of-scope PC {d}/{d} at {s}\n",
+                .{ Config.label, Config.owning_wp, Config.expected_source_pattern, index + 1, pcs.len, observed_source },
+            );
+            return error.OutOfScopeCoverageSite;
+        }
+    }
+}
+
+pub fn sourceBasename(path: []const u8) []const u8 {
+    @disableInstrumentation();
+    const separator = std.mem.lastIndexOfAny(u8, path, "/\\") orelse return path;
+    return path[separator + 1 ..];
+}
+
+pub fn sourceRelativePath(path: []const u8, unix_scope: []const u8, windows_scope: []const u8) ?[]const u8 {
+    @disableInstrumentation();
+    if (std.mem.lastIndexOf(u8, path, unix_scope)) |index| {
+        return path[index + unix_scope.len ..];
+    }
+    if (std.mem.lastIndexOf(u8, path, windows_scope)) |index| {
+        return path[index + windows_scope.len ..];
+    }
+    return null;
 }
 
 pub fn log(
