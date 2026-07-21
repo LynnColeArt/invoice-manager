@@ -22,7 +22,7 @@ subtasks:
 - T024
 phase: Phase 2 - Canonical Contract Foundation
 assignee: ''
-agent: "codex"
+agent: "wp05-cycle2-review"
 history: []
 agent_profile: implementer-ivan
 authoritative_surface: services/api/src/shared/
@@ -51,7 +51,7 @@ owned_files:
 role: implementer
 tags: []
 task_type: implement
-shell_pid: "1417471"
+shell_pid: "1807838"
 ---
 
 # Work Package Prompt: WP05 – Zig Shared Value Implementations
@@ -488,3 +488,7 @@ logs or frontmatter state by hand.
 - 2026-07-21T02:58:50Z – codex – shell_pid=1807838 – Started review via action command
 - 2026-07-21T03:06:13Z – user – shell_pid=1807838 – Moved to planned
 - 2026-07-21T03:32:53Z – codex – shell_pid=1417471 – Started implementation via action command
+- 2026-07-21T03:35:50Z – codex – shell_pid=1417471 – RED: WP05-ENTITY-ID-HYPHEN-002; added permanent public EntityId regression for exact 01890f3e-2c4a-7d5e-8abc-0123456789-b plus every noncanonical hyphen offset; cd services/api && zig build test-shared aborted at entity_id.zig:37 with index 36/len36, reproducing review-cycle-1 before production correction.
+- 2026-07-21T03:35:51Z – codex – shell_pid=1417471 – GREEN: WP05-ENTITY-ID-HYPHEN-002; implementation 610c72c decodes the fixed 36-byte layout in one bounds-safe pass and rejects every wrong hyphen/non-hex byte as InvalidSyntax. After merging approved WP04, America/Chicago Debug 41/41, Pacific/Auckland Debug 41/41, ReleaseSafe 41/41, and Debug/ReleaseSafe coverage-shared all pass at 221/243 owned PCs with 24/24 probes; fixtures and formatting remain green.
+- 2026-07-21T03:37:06Z – codex – shell_pid=1417471 – Cycle 1 corrected: every misplaced UUID hyphen returns InvalidSyntax; 221/243 and 24/24
+- 2026-07-21T03:37:45Z – wp05-cycle2-review – shell_pid=1807838 – Started review via action command
