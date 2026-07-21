@@ -19,7 +19,7 @@ subtasks:
 - T059
 phase: Phase 3
 assignee: ''
-agent: "codex-wp09-config-fix"
+agent: "codex-wp09-review"
 history: []
 agent_profile: frontend-freddy
 authoritative_surface: apps/web/
@@ -283,3 +283,6 @@ Run validation without installing packages or importing config modules through d
 - 2026-07-20T23:44:31Z – user – shell_pid=1807838 – Review passed: five unchanged configs pass static Node24, exact 20-declaration canonical-lock, workspace-export, strictness, and server-only policy re-attestation without package execution
 - 2026-07-21T15:01:13Z – codex-wp09-lock-review – shell_pid=1807838 – Moved to planned
 - 2026-07-21T15:26:51Z – codex-wp09-config-fix – shell_pid=1807838 – Started implementation via action command
+- 2026-07-21T15:33:01Z – codex-wp09-config-fix – shell_pid=1807838 – Corrective T059 complete at 50295b8 after dependency sync merge 9f7403f (approved WP01 e89d3bb is an ancestor). Genuine static RED exited 1 on API_ORIGIN_ENVIRONMENT_VARIABLE, readApiOrigin, const apiOrigin, and rewrites(). GREEN used Node 24.18.0 only: all four executable configs passed syntax checks; all 20 exact app declarations mapped to the canonical lock with public-registry SHA-512 integrity or the WP03 workspace link/export; config imports, CLIs, jsdom, strict TypeScript, and deterministic ESLint/Vitest/Playwright policy passed. SHA-256 package=816264f8, web=f31c4513, contracts=ee7fcc2f, lock=6ea2ffb8, corrected next=413cf432; other four configs remain e2f1172b/0a03c8db/355efc23/355f2255. Substantive diff from synced base is only apps/web/next.config.ts; git diff --check and artifact checks pass; ruff diff-scoped check not applicable (no Python changes), exit 0. No npm/package execution, Next/typecheck/test/build/proxy gate, install, generation, cache, or runtime acceptance claim. Runtime evidence remains WP10-owned.
+- 2026-07-21T15:33:11Z – codex-wp09-config-fix – shell_pid=1807838 – Ready for independent review: 50295b8 removes only the eager origin/rewrite boundary after approved WP01 dependency sync; exact static RED/GREEN, lock inventory, hashes, scope, and no-artifact evidence are recorded.
+- 2026-07-21T15:34:24Z – codex-wp09-review – shell_pid=1807838 – Started review via action command
