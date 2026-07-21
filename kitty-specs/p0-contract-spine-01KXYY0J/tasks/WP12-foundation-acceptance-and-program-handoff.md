@@ -45,7 +45,7 @@ subtasks:
 - T057
 phase: Phase 6
 assignee: ''
-agent: codex
+agent: "codex-wp12-implementer"
 scope: codebase-wide
 history: []
 agent_profile: implementer-ivan
@@ -67,6 +67,7 @@ owned_files:
 role: implementer
 tags: []
 task_type: implement
+shell_pid: "1807838"
 ---
 
 # Work Package Prompt: WP12 – Foundation Acceptance and Program Handoff
@@ -487,3 +488,4 @@ documents it covers are still current, and make every next program action or blo
 - 2026-07-20T07:15:58Z – system – WP12 prompt adapted from the original closure package,
   remapped to T051-T057, and tightened for immutable conformance, real combined proxy timing,
   exact migration-negative, deterministic licensing, governed-doc sync, and manifest ownership.
+- 2026-07-21T18:46:39Z – codex-wp12-implementer – shell_pid=1807838 – Assigned agent via action command
