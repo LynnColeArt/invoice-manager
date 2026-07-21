@@ -148,19 +148,12 @@ pub const Plan = struct {
 pub const ReadinessStatus = enum {
     ready,
     durability_unconfirmed,
-    revalidation_required,
     recovery_quarantine,
-};
-
-pub const RunDiagnostic = struct {
-    primary: ?CriticalCategory = null,
-    consequence: ?CriticalCategory = null,
 };
 
 pub const Readiness = struct {
     status: ReadinessStatus,
     category: ?CriticalCategory = null,
-    durability_boundary: ?CriticalCategory = null,
     discovered_count: usize,
     applied_count: usize,
     already_applied_count: usize,
@@ -218,128 +211,38 @@ fn discoverRoot(
     descriptors: *std.ArrayList(Descriptor),
 ) MigrationError!void {
     if (!validOwner(root.owner)) return criticalError(.owner_mismatch);
-    const normalized_root = try normalizeRootPath(allocator, root);
-    defer allocator.free(normalized_root);
-    var directory = try openRootNoFollow(io, normalized_root);
-    defer directory.close(io);
-    var missing_manifest_found = false;
-    try scanDirectory(
-        allocator,
-        io,
-        directory,
-        root.owner,
-        normalized_root,
-        "",
-        descriptors,
-        &missing_manifest_found,
-    );
-    if (missing_manifest_found) return criticalError(.missing_manifest);
-}
-
-fn normalizeRootPath(allocator: std.mem.Allocator, root: OwnerRoot) MigrationError![]u8 {
-    if (root.path.len == 0 or std.fs.path.isAbsolute(root.path) or
-        std.mem.indexOfScalar(u8, root.path, '\\') != null)
-    {
+    if (std.fs.path.isAbsolute(root.path) or containsTraversal(root.path)) {
         return criticalError(.path_traversal);
     }
-    var normalized: std.ArrayList(u8) = .empty;
-    errdefer normalized.deinit(allocator);
-    var components = std.mem.splitScalar(u8, root.path, std.fs.path.sep);
-    while (components.next()) |component| {
-        if (component.len == 0 or std.mem.eql(u8, component, ".")) continue;
-        if (std.mem.eql(u8, component, "..")) return criticalError(.path_traversal);
-        if (normalized.items.len != 0) normalized.append(allocator, std.fs.path.sep) catch return allocationFailure();
-        normalized.appendSlice(allocator, component) catch return allocationFailure();
+    var directory = std.Io.Dir.openDir(.cwd(), io, root.path, .{
+        .iterate = true,
+        .follow_symlinks = false,
+    }) catch return criticalError(.discovery_failure);
+    defer directory.close(io);
+    var walker = directory.walk(allocator) catch return allocationFailure();
+    defer walker.deinit();
+    var candidate_ids: std.ArrayList([]u8) = .empty;
+    defer {
+        for (candidate_ids.items) |candidate| allocator.free(candidate);
+        candidate_ids.deinit(allocator);
     }
-    if (normalized.items.len == 0) return criticalError(.path_traversal);
-    if (!std.mem.eql(u8, std.fs.path.basename(normalized.items), root.owner)) {
-        return criticalError(.owner_mismatch);
-    }
-    return normalized.toOwnedSlice(allocator) catch return allocationFailure();
-}
-
-fn openRootNoFollow(io: std.Io, normalized_root: []const u8) MigrationError!std.Io.Dir {
-    var current = std.Io.Dir.cwd();
-    var current_owned = false;
-    errdefer if (current_owned) current.close(io);
-    var components = std.mem.splitScalar(u8, normalized_root, std.fs.path.sep);
-    while (components.next()) |component| {
-        const component_stat = current.statFile(io, component, .{ .follow_symlinks = false }) catch
-            return criticalError(.discovery_failure);
-        if (component_stat.kind == .sym_link) return criticalError(.symlink_escape);
-        if (component_stat.kind != .directory) return criticalError(.discovery_failure);
-        const next = current.openDir(io, component, .{
-            .iterate = true,
-            .follow_symlinks = false,
-        }) catch |err| switch (err) {
-            error.SymLinkLoop, error.NotDir => return criticalError(.symlink_escape),
-            else => return criticalError(.discovery_failure),
-        };
-        if (current_owned) current.close(io);
-        current = next;
-        current_owned = true;
-    }
-    return current;
-}
-
-fn scanDirectory(
-    allocator: std.mem.Allocator,
-    io: std.Io,
-    directory: std.Io.Dir,
-    owner: []const u8,
-    normalized_root: []const u8,
-    relative_directory: []const u8,
-    descriptors: *std.ArrayList(Descriptor),
-    missing_manifest_found: *bool,
-) MigrationError!void {
-    var manifest_found = false;
-    var iterator = directory.iterate();
-    while (iterator.next(io) catch return criticalError(.discovery_failure)) |entry| {
-        const kind = if (entry.kind == .unknown)
-            (directory.statFile(io, entry.name, .{ .follow_symlinks = false }) catch
-                return criticalError(.discovery_failure)).kind
-        else
-            entry.kind;
-        if (kind == .sym_link) return criticalError(.symlink_escape);
-        if (kind == .directory) {
-            const child_relative = if (relative_directory.len == 0)
-                allocator.dupe(u8, entry.name) catch return allocationFailure()
-            else
-                std.fmt.allocPrint(allocator, "{s}{c}{s}", .{ relative_directory, std.fs.path.sep, entry.name }) catch return allocationFailure();
-            defer allocator.free(child_relative);
-            var child = directory.openDir(io, entry.name, .{
-                .iterate = true,
-                .follow_symlinks = false,
-            }) catch |err| switch (err) {
-                error.SymLinkLoop, error.NotDir => return criticalError(.symlink_escape),
-                else => return criticalError(.discovery_failure),
+    while (walker.next(io) catch return criticalError(.discovery_failure)) |entry| {
+        if (entry.kind == .sym_link) return criticalError(.symlink_escape);
+        if (entry.kind == .directory and entry.depth() == 1 and looksLikeUuid(entry.path)) {
+            const candidate = allocator.dupe(u8, entry.path) catch return allocationFailure();
+            candidate_ids.append(allocator, candidate) catch {
+                allocator.free(candidate);
+                return allocationFailure();
             };
-            defer child.close(io);
-            try scanDirectory(
-                allocator,
-                io,
-                child,
-                owner,
-                normalized_root,
-                child_relative,
-                descriptors,
-                missing_manifest_found,
-            );
             continue;
         }
-        if (kind == .file and !std.mem.eql(u8, entry.name, "manifest.json")) continue;
-        if (kind != .file) return criticalError(.discovery_failure);
-        if (relative_directory.len == 0 or !looksLikeUuid(std.fs.path.basename(relative_directory))) {
+        if (entry.kind != .file or !std.mem.eql(u8, entry.basename, "manifest.json")) continue;
+        if (entry.depth() != 2) return criticalError(.directory_mismatch);
+        const directory_name = std.fs.path.dirname(entry.path) orelse return criticalError(.directory_mismatch);
+        if (std.mem.indexOfScalar(u8, directory_name, std.fs.path.sep) != null) {
             return criticalError(.directory_mismatch);
         }
-        var descriptor = try parseDescriptor(
-            allocator,
-            io,
-            directory,
-            owner,
-            normalized_root,
-            relative_directory,
-        );
+        var descriptor = try parseDescriptor(allocator, io, directory, root, directory_name, entry.path);
         errdefer descriptor.deinit(allocator);
         for (descriptors.items) |existing| {
             if (std.mem.eql(u8, existing.source_path, descriptor.source_path)) {
@@ -347,13 +250,16 @@ fn scanDirectory(
             }
         }
         descriptors.append(allocator, descriptor) catch return allocationFailure();
-        manifest_found = true;
     }
-    if (relative_directory.len != 0 and
-        looksLikeUuid(std.fs.path.basename(relative_directory)) and
-        !manifest_found)
-    {
-        missing_manifest_found.* = true;
+    for (candidate_ids.items) |candidate| {
+        var found = false;
+        for (descriptors.items) |descriptor| {
+            if (std.mem.eql(u8, descriptor.id, candidate) and std.mem.eql(u8, descriptor.owner, root.owner)) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) return criticalError(.missing_manifest);
     }
 }
 
@@ -361,22 +267,15 @@ fn parseDescriptor(
     allocator: std.mem.Allocator,
     io: std.Io,
     directory: std.Io.Dir,
-    expected_owner: []const u8,
-    normalized_root: []const u8,
-    relative_directory: []const u8,
+    root: OwnerRoot,
+    directory_name: []const u8,
+    manifest_path: []const u8,
 ) MigrationError!Descriptor {
-    const manifest_bytes = try readFileNoFollow(
-        allocator,
-        io,
-        directory,
-        "manifest.json",
-        .missing_manifest,
-    );
+    const manifest_bytes = directory.readFileAlloc(io, manifest_path, allocator, .limited(maximum_file_bytes)) catch
+        return criticalError(.missing_manifest);
     defer allocator.free(manifest_bytes);
-    var dynamic = std.json.parseFromSlice(std.json.Value, allocator, manifest_bytes, .{}) catch |err| switch (err) {
-        error.OutOfMemory => return allocationFailure(),
-        else => return criticalError(.malformed_manifest),
-    };
+    var dynamic = std.json.parseFromSlice(std.json.Value, allocator, manifest_bytes, .{}) catch
+        return criticalError(.malformed_manifest);
     defer dynamic.deinit();
     const object = switch (dynamic.value) {
         .object => |object| object,
@@ -386,22 +285,27 @@ fn parseDescriptor(
     while (object_iterator.next()) |entry| {
         if (!knownManifestField(entry.key_ptr.*)) return criticalError(.unknown_descriptor_field);
     }
-    var parsed = std.json.parseFromSlice(ManifestWire, allocator, manifest_bytes, .{ .allocate = .alloc_always }) catch |err| switch (err) {
-        error.OutOfMemory => return allocationFailure(),
-        else => return criticalError(.malformed_manifest),
-    };
+    var parsed = std.json.parseFromSlice(ManifestWire, allocator, manifest_bytes, .{ .allocate = .alloc_always }) catch
+        return criticalError(.malformed_manifest);
     defer parsed.deinit();
     const wire = parsed.value;
     _ = shared.EntityId.parse(wire.id) catch return criticalError(.invalid_uuid);
-    if (!std.mem.eql(u8, wire.id, std.fs.path.basename(relative_directory))) return criticalError(.directory_mismatch);
-    if (!std.mem.eql(u8, wire.owner, expected_owner)) return criticalError(.owner_mismatch);
+    if (!std.mem.eql(u8, wire.id, directory_name)) return criticalError(.directory_mismatch);
+    if (!std.mem.eql(u8, wire.owner, root.owner)) return criticalError(.owner_mismatch);
     if (!validName(wire.name)) return criticalError(.malformed_manifest);
     if (!std.mem.eql(u8, wire.script_path, "up.sql")) return criticalError(.path_traversal);
     if (!dependenciesCanonical(wire.depends_on)) return criticalError(.noncanonical_dependencies);
     _ = shared.Sha256Digest.parse(wire.script_digest) catch return criticalError(.script_digest_mismatch);
     _ = shared.Sha256Digest.parse(wire.descriptor_digest) catch return criticalError(.descriptor_digest_mismatch);
 
-    const script = try readFileNoFollow(allocator, io, directory, "up.sql", .missing_script);
+    const script_relative = std.fmt.allocPrint(allocator, "{s}/up.sql", .{directory_name}) catch return allocationFailure();
+    defer allocator.free(script_relative);
+    const script_stat = directory.statFile(io, script_relative, .{ .follow_symlinks = false }) catch
+        return criticalError(.missing_script);
+    if (script_stat.kind == .sym_link) return criticalError(.symlink_escape);
+    if (script_stat.kind != .file) return criticalError(.missing_script);
+    const script = directory.readFileAlloc(io, script_relative, allocator, .limited(maximum_file_bytes)) catch
+        return criticalError(.missing_script);
     errdefer allocator.free(script);
     var script_digest_buffer: [71]u8 = undefined;
     const computed_script_digest = sha256Wire(script, &script_digest_buffer);
@@ -427,11 +331,7 @@ fn parseDescriptor(
         dependencies[dependency_count] = allocator.dupe(u8, dependency) catch return allocationFailure();
         dependency_count += 1;
     }
-    const source_path = std.fmt.allocPrint(
-        allocator,
-        "{s}{c}{s}{c}manifest.json",
-        .{ normalized_root, std.fs.path.sep, relative_directory, std.fs.path.sep },
-    ) catch return allocationFailure();
+    const source_path = std.fmt.allocPrint(allocator, "{s}/{s}", .{ root.path, manifest_path }) catch return allocationFailure();
     errdefer allocator.free(source_path);
     const id = allocator.dupe(u8, wire.id) catch return allocationFailure();
     errdefer allocator.free(id);
@@ -455,28 +355,6 @@ fn parseDescriptor(
         .descriptor_digest = descriptor_digest,
         .script = script,
         .source_path = source_path,
-    };
-}
-
-fn readFileNoFollow(
-    allocator: std.mem.Allocator,
-    io: std.Io,
-    directory: std.Io.Dir,
-    name: []const u8,
-    comptime missing_category: CriticalCategory,
-) MigrationError![]u8 {
-    var file = directory.openFile(io, name, .{
-        .follow_symlinks = false,
-        .resolve_beneath = true,
-    }) catch |err| switch (err) {
-        error.SymLinkLoop => return criticalError(.symlink_escape),
-        else => return criticalError(missing_category),
-    };
-    defer file.close(io);
-    var reader = file.reader(io, &.{});
-    return reader.interface.allocRemaining(allocator, .limited(maximum_file_bytes)) catch |err| switch (err) {
-        error.OutOfMemory => return allocationFailure(),
-        else => return criticalError(missing_category),
     };
 }
 
@@ -730,11 +608,6 @@ const ApplyContext = struct {
     application_calls: *usize,
 };
 
-const BeforeApplication = struct {
-    context: *anyopaque,
-    run: *const fn (*anyopaque, *persistence.Store, usize) void,
-};
-
 fn applyCallback(raw_context: *anyopaque, executor: persistence.StartupExecutor) !void {
     const context: *ApplyContext = @ptrCast(@alignCast(raw_context));
     context.application_calls.* += 1;
@@ -772,20 +645,7 @@ pub fn run(
     applied_at: []const u8,
 ) MigrationError!Readiness {
     var ignored_calls: usize = 0;
-    var diagnostic = RunDiagnostic{};
-    return migrationRunObserved(allocator, io, store, roots, applied_at, &ignored_calls, &diagnostic, null);
-}
-
-pub fn runWithDiagnostic(
-    allocator: std.mem.Allocator,
-    io: std.Io,
-    store: *persistence.Store,
-    roots: []const OwnerRoot,
-    applied_at: []const u8,
-    diagnostic: *RunDiagnostic,
-) MigrationError!Readiness {
-    var ignored_calls: usize = 0;
-    return migrationRunObserved(allocator, io, store, roots, applied_at, &ignored_calls, diagnostic, null);
+    return migrationRunObserved(allocator, io, store, roots, applied_at, &ignored_calls);
 }
 
 fn migrationRunObserved(
@@ -795,21 +655,11 @@ fn migrationRunObserved(
     roots: []const OwnerRoot,
     applied_at: []const u8,
     application_calls: *usize,
-    diagnostic: *RunDiagnostic,
-    before_application: ?BeforeApplication,
 ) MigrationError!Readiness {
-    diagnostic.* = .{};
-    _ = shared.UtcInstant.parse(applied_at) catch
-        return diagnosedError(diagnostic, .corrupt_applied_history, null);
-    var discovered = discover(allocator, io, roots) catch |err| {
-        recordError(diagnostic, err);
-        return err;
-    };
+    _ = shared.UtcInstant.parse(applied_at) catch return criticalError(.corrupt_applied_history);
+    var discovered = try discover(allocator, io, roots);
     defer discovered.deinit();
-    var ordered = plan(allocator, discovered.descriptors) catch |err| {
-        recordError(diagnostic, err);
-        return err;
-    };
+    var ordered = try plan(allocator, discovered.descriptors);
     defer ordered.deinit();
 
     var history = HistoryContext{ .allocator = allocator };
@@ -819,34 +669,26 @@ fn migrationRunObserved(
         .run = readHistoryCallback,
     }) catch |err| {
         if (err != error.StartupWriteFailed) {
-            return mapStoreFailure(store, err, discovered.descriptors.len, 0, 0, false, diagnostic);
+            return mapStoreFailure(store, err, discovered.descriptors.len, 0, 0);
         }
-        if (history.callback_error) |callback_error| {
-            if (callback_error == error.OutOfMemory) {
-                return diagnosedError(diagnostic, .allocation_failure_cleanup, null);
-            }
-            if (callback_error == error.StatementObjectFailed) {
-                return applyFresh(
-                    store,
-                    discovered.descriptors,
-                    ordered.order,
-                    applied_at,
-                    application_calls,
-                    diagnostic,
-                    before_application,
-                );
-            }
-            return diagnosedError(diagnostic, .corrupt_applied_history, null);
+        if (history.callback_error != null and history.callback_error.? == error.StatementObjectFailed and hasExactBootstrap(discovered.descriptors)) {
+            history.callback_error = null;
+        } else {
+            return mapStoreFailure(store, err, discovered.descriptors.len, 0, 0);
         }
-        return mapStoreFailure(store, err, discovered.descriptors.len, 0, 0, false, diagnostic);
+        return applyPending(
+            store,
+            discovered.descriptors,
+            ordered.order,
+            history.rows.items,
+            applied_at,
+            application_calls,
+        );
     };
     if (history_receipt.durability != .directory_synchronized or store.state() != .ready) {
-        return diagnosedError(diagnostic, .durability_unconfirmed, null);
+        return criticalError(.durability_unconfirmed);
     }
-    validateAppliedHistory(discovered.descriptors, history.rows.items) catch |err| {
-        recordError(diagnostic, err);
-        return err;
-    };
+    try validateAppliedHistory(discovered.descriptors, history.rows.items);
     return applyPending(
         store,
         discovered.descriptors,
@@ -854,50 +696,6 @@ fn migrationRunObserved(
         history.rows.items,
         applied_at,
         application_calls,
-        diagnostic,
-        0,
-        before_application,
-    );
-}
-
-fn applyFresh(
-    store: *persistence.Store,
-    descriptors: []const Descriptor,
-    order: []const usize,
-    applied_at: []const u8,
-    application_calls: *usize,
-    diagnostic: *RunDiagnostic,
-    before_application: ?BeforeApplication,
-) MigrationError!Readiness {
-    if (order.len == 0 or !isExactBootstrap(&descriptors[order[0]])) {
-        return diagnosedError(diagnostic, .corrupt_applied_history, null);
-    }
-    var context = ApplyContext{
-        .descriptor = &descriptors[order[0]],
-        .applied_at = applied_at,
-        .application_calls = application_calls,
-    };
-    if (before_application) |hook| hook.run(hook.context, store, application_calls.*);
-    const receipt = store.initializeFresh(.{ .context = &context, .run = applyCallback }) catch |err| {
-        if (err == error.NotFresh) return diagnosedError(diagnostic, .corrupt_applied_history, null);
-        if (context.callback_error != null) {
-            return applicationFailure(store, order.len > 1, diagnostic, context.callback_error);
-        }
-        return mapStoreFailure(store, err, descriptors.len, 0, 0, order.len == 1, diagnostic);
-    };
-    if (receipt.durability != .directory_synchronized or store.state() != .ready) {
-        return diagnosedError(diagnostic, .durability_unconfirmed, null);
-    }
-    return applyPending(
-        store,
-        descriptors,
-        order[1..],
-        &.{},
-        applied_at,
-        application_calls,
-        diagnostic,
-        1,
-        before_application,
     );
 }
 
@@ -908,12 +706,9 @@ fn applyPending(
     applied: []const AppliedMigration,
     applied_at: []const u8,
     application_calls: *usize,
-    diagnostic: *RunDiagnostic,
-    initial_applied_count: usize,
-    before_application: ?BeforeApplication,
 ) MigrationError!Readiness {
     var already_applied: usize = 0;
-    var applied_count = initial_applied_count;
+    var applied_count: usize = 0;
     for (order, 0..) |descriptor_index, order_index| {
         const descriptor = &descriptors[descriptor_index];
         if (findApplied(applied, descriptor.id)) |row| {
@@ -926,28 +721,19 @@ fn applyPending(
             .applied_at = applied_at,
             .application_calls = application_calls,
         };
-        if (before_application) |hook| hook.run(hook.context, store, application_calls.*);
         const receipt = store.startupWrite(.{ .context = &context, .run = applyCallback }) catch |err| {
+            if (order_index + 1 < order.len) hitCritical(.later_migration_blocked);
             if (context.callback_error != null) {
-                return applicationFailure(
-                    store,
-                    hasPendingAfter(descriptors, order[order_index + 1 ..], applied),
-                    diagnostic,
-                    context.callback_error,
-                );
+                if (store.state() == .quarantined) {
+                    hitCritical(.recovery_quarantine);
+                    return criticalError(.reopen_failure);
+                }
+                return criticalError(.ddl_failure);
             }
-            return mapStoreFailure(
-                store,
-                err,
-                descriptors.len,
-                applied_count,
-                already_applied,
-                !hasPendingAfter(descriptors, order[order_index + 1 ..], applied),
-                diagnostic,
-            );
+            return mapStoreFailure(store, err, descriptors.len, applied_count, already_applied);
         };
         if (receipt.durability != .directory_synchronized or store.state() != .ready) {
-            return diagnosedError(diagnostic, .durability_unconfirmed, null);
+            return criticalError(.durability_unconfirmed);
         }
         applied_count += 1;
     }
@@ -961,46 +747,6 @@ fn applyPending(
         .directory_sync_complete = true,
         .durable_reopen_complete = true,
     };
-}
-
-fn applicationFailure(
-    store: *persistence.Store,
-    later_pending: bool,
-    diagnostic: *RunDiagnostic,
-    callback_error: ?anyerror,
-) MigrationError {
-    if (store.state() == .quarantined) {
-        if (store.lastDiagnostic()) |store_diagnostic| {
-            if (store_diagnostic.category == .dirty_discard_failure) {
-                return diagnosedError(diagnostic, .recovery_quarantine, null);
-            }
-        }
-        hitCritical(.reopen_failure);
-        hitCritical(.recovery_quarantine);
-        diagnostic.* = .{ .primary = .reopen_failure, .consequence = .recovery_quarantine };
-        return error.ReopenFailure;
-    }
-    if (callback_error != null and callback_error.? == error.OutOfMemory) {
-        return diagnosedError(diagnostic, .allocation_failure_cleanup, null);
-    }
-    hitCritical(.ddl_failure);
-    diagnostic.primary = .ddl_failure;
-    if (later_pending) {
-        hitCritical(.later_migration_blocked);
-        diagnostic.consequence = .later_migration_blocked;
-    }
-    return error.DdlFailure;
-}
-
-fn hasPendingAfter(
-    descriptors: []const Descriptor,
-    remaining_order: []const usize,
-    applied: []const AppliedMigration,
-) bool {
-    for (remaining_order) |descriptor_index| {
-        if (findApplied(applied, descriptors[descriptor_index].id) == null) return true;
-    }
-    return false;
 }
 
 fn validateAppliedHistory(descriptors: []const Descriptor, applied: []const AppliedMigration) MigrationError!void {
@@ -1028,11 +774,14 @@ fn findApplied(applied: []const AppliedMigration, id: []const u8) ?AppliedMigrat
     return null;
 }
 
-fn isExactBootstrap(descriptor: *const Descriptor) bool {
-    return std.mem.eql(u8, descriptor.id, bootstrap_id) and
-        std.mem.eql(u8, descriptor.owner, "p0") and
-        std.mem.eql(u8, descriptor.script_digest, bootstrap_script_digest) and
-        std.mem.eql(u8, descriptor.descriptor_digest, bootstrap_descriptor_digest);
+fn hasExactBootstrap(descriptors: []const Descriptor) bool {
+    for (descriptors) |descriptor| {
+        if (std.mem.eql(u8, descriptor.id, bootstrap_id) and
+            std.mem.eql(u8, descriptor.owner, "p0") and
+            std.mem.eql(u8, descriptor.script_digest, bootstrap_script_digest) and
+            std.mem.eql(u8, descriptor.descriptor_digest, bootstrap_descriptor_digest)) return true;
+    }
+    return false;
 }
 
 fn mapStoreFailure(
@@ -1041,37 +790,18 @@ fn mapStoreFailure(
     discovered_count: usize,
     applied_count: usize,
     already_applied_count: usize,
-    application_complete: bool,
-    diagnostic: ?*RunDiagnostic,
 ) MigrationError!Readiness {
-    if (store_error == error.OutOfMemory) {
-        return optionalDiagnosedError(diagnostic, .allocation_failure_cleanup, null);
-    }
-    if (store_error == error.StartupWriteFailed) {
-        if (store.lastDiagnostic()) |store_diagnostic| {
-            if (store_diagnostic.category == .callback_failure and store_diagnostic.cause == .allocation) {
-                return optionalDiagnosedError(diagnostic, .allocation_failure_cleanup, null);
-            }
-        }
-    }
     return switch (store_error) {
-        error.CheckpointFailed => durabilityFailure(.checkpoint_failure, .committed_not_durable, discovered_count, applied_count, already_applied_count, application_complete, diagnostic),
-        error.DirectoryOpenFailed, error.DirectorySyncFailed, error.DirectoryCloseFailed => durabilityFailure(.directory_sync_failure, .checkpointed_not_durable, discovered_count, applied_count, already_applied_count, application_complete, diagnostic),
-        error.UnsupportedDirectorySync => durabilityFailure(.unsupported_directory_sync, .checkpointed_not_durable, discovered_count, applied_count, already_applied_count, application_complete, diagnostic),
+        error.CheckpointFailed => durabilityFailure(.checkpoint_failure, .committed_not_durable, discovered_count, applied_count, already_applied_count),
+        error.DirectoryOpenFailed, error.DirectorySyncFailed, error.DirectoryCloseFailed => durabilityFailure(.directory_sync_failure, .checkpointed_not_durable, discovered_count, applied_count, already_applied_count),
+        error.UnsupportedDirectorySync => durabilityFailure(.unsupported_directory_sync, .checkpointed_not_durable, discovered_count, applied_count, already_applied_count),
         error.ReopenFailed => {
-            if (diagnostic) |value| value.* = .{ .primary = .reopen_failure, .consequence = .recovery_quarantine };
-            hitCritical(.reopen_failure);
+            _ = store;
             hitCritical(.recovery_quarantine);
-            return error.ReopenFailure;
+            return criticalError(.reopen_failure);
         },
-        error.DirtyDiscardFailed => {
-            if (diagnostic) |value| value.* = .{ .primary = .recovery_quarantine };
-            return criticalError(.recovery_quarantine);
-        },
-        else => {
-            if (diagnostic) |value| value.* = .{ .primary = .corrupt_applied_history };
-            return criticalError(.corrupt_applied_history);
-        },
+        error.DirtyDiscardFailed => criticalError(.recovery_quarantine),
+        else => criticalError(.corrupt_applied_history),
     };
 }
 
@@ -1081,21 +811,17 @@ fn durabilityFailure(
     discovered_count: usize,
     applied_count: usize,
     already_applied_count: usize,
-    application_complete: bool,
-    diagnostic: ?*RunDiagnostic,
 ) Readiness {
     hitCritical(category);
     hitCritical(boundary);
     hitCritical(.durability_unconfirmed);
-    if (diagnostic) |value| value.* = .{ .primary = category, .consequence = boundary };
     return .{
         .status = .durability_unconfirmed,
         .category = category,
-        .durability_boundary = boundary,
         .discovered_count = discovered_count,
         .applied_count = applied_count,
         .already_applied_count = already_applied_count,
-        .application_complete = application_complete,
+        .application_complete = true,
         .checkpoint_complete = boundary == .checkpointed_not_durable,
         .directory_sync_complete = false,
         .durable_reopen_complete = true,
@@ -1109,18 +835,16 @@ pub fn completeDurability(store: *persistence.Store, prior: Readiness) Migration
         prior.discovered_count,
         prior.applied_count,
         prior.already_applied_count,
-        prior.application_complete,
-        null,
     );
     if (receipt.durability != .directory_synchronized or store.state() != .ready) {
         return criticalError(.durability_unconfirmed);
     }
     return .{
-        .status = .revalidation_required,
+        .status = .ready,
         .discovered_count = prior.discovered_count,
         .applied_count = prior.applied_count,
         .already_applied_count = prior.already_applied_count,
-        .application_complete = false,
+        .application_complete = true,
         .checkpoint_complete = true,
         .directory_sync_complete = true,
         .durable_reopen_complete = true,
@@ -1176,72 +900,6 @@ fn sha256Wire(bytes: []const u8, output: *[71]u8) []const u8 {
 
 fn allocationFailure() MigrationError {
     return criticalError(.allocation_failure_cleanup);
-}
-
-fn diagnosedError(
-    diagnostic: *RunDiagnostic,
-    comptime primary: CriticalCategory,
-    comptime consequence: ?CriticalCategory,
-) MigrationError {
-    diagnostic.* = .{ .primary = primary, .consequence = consequence };
-    if (consequence) |category| hitCritical(category);
-    return criticalError(primary);
-}
-
-fn optionalDiagnosedError(
-    diagnostic: ?*RunDiagnostic,
-    comptime primary: CriticalCategory,
-    comptime consequence: ?CriticalCategory,
-) MigrationError {
-    if (diagnostic) |value| return diagnosedError(value, primary, consequence);
-    if (consequence) |category| hitCritical(category);
-    return criticalError(primary);
-}
-
-fn recordError(diagnostic: *RunDiagnostic, err: anyerror) void {
-    diagnostic.* = .{ .primary = categoryForError(err) };
-}
-
-fn categoryForError(err: anyerror) ?CriticalCategory {
-    return switch (err) {
-        error.DiscoveryFailure => .discovery_failure,
-        error.MissingManifest => .missing_manifest,
-        error.MissingScript => .missing_script,
-        error.MalformedManifest => .malformed_manifest,
-        error.UnknownDescriptorField => .unknown_descriptor_field,
-        error.InvalidUuid => .invalid_uuid,
-        error.OwnerMismatch => .owner_mismatch,
-        error.DirectoryMismatch => .directory_mismatch,
-        error.PathTraversal => .path_traversal,
-        error.SymlinkEscape => .symlink_escape,
-        error.NoncanonicalDependencies => .noncanonical_dependencies,
-        error.ScriptDigestMismatch => .script_digest_mismatch,
-        error.DescriptorDigestMismatch => .descriptor_digest_mismatch,
-        error.DuplicateMigrationId => .duplicate_migration_id,
-        error.DuplicateDescriptorPath => .duplicate_descriptor_path,
-        error.MissingDependency => .missing_dependency,
-        error.SelfDependency => .self_dependency,
-        error.DependencyCycle => .dependency_cycle,
-        error.GraphCapacityExceeded => .graph_capacity_exceeded,
-        error.CorruptAppliedHistory => .corrupt_applied_history,
-        error.DuplicateAppliedHistory => .duplicate_applied_history,
-        error.AppliedIdDrift => .applied_id_drift,
-        error.AppliedOwnerDrift => .applied_owner_drift,
-        error.AppliedDescriptorDrift => .applied_descriptor_drift,
-        error.AppliedScriptDrift => .applied_script_drift,
-        error.DdlFailure => .ddl_failure,
-        error.CheckpointFailure => .checkpoint_failure,
-        error.DirectorySyncFailure => .directory_sync_failure,
-        error.ReopenFailure => .reopen_failure,
-        error.RecoveryQuarantine => .recovery_quarantine,
-        error.DurabilityUnconfirmed => .durability_unconfirmed,
-        error.UnsupportedDirectorySync => .unsupported_directory_sync,
-        error.CommittedNotDurable => .committed_not_durable,
-        error.CheckpointedNotDurable => .checkpointed_not_durable,
-        error.LaterMigrationBlocked => .later_migration_blocked,
-        error.OutOfMemory, error.AllocationFailureCleanup => .allocation_failure_cleanup,
-        else => null,
-    };
 }
 
 fn criticalError(comptime category: CriticalCategory) MigrationError {
@@ -1350,56 +1008,6 @@ pub const testing = if (builtin.is_test) struct {
         applied_at: []const u8,
         application_calls: *usize,
     ) MigrationError!Readiness {
-        var diagnostic = RunDiagnostic{};
-        return migrationRunObserved(allocator, io, store, roots, applied_at, application_calls, &diagnostic, null);
-    }
-
-    pub fn runObservedWithDiagnostic(
-        allocator: std.mem.Allocator,
-        io: std.Io,
-        store: *Store,
-        roots: []const OwnerRoot,
-        applied_at: []const u8,
-        application_calls: *usize,
-        diagnostic: *RunDiagnostic,
-    ) MigrationError!Readiness {
-        return migrationRunObserved(allocator, io, store, roots, applied_at, application_calls, diagnostic, null);
-    }
-
-    pub const ApplicationFault = struct {
-        at_call: usize,
-        faults: Faults,
-    };
-
-    const ApplicationFaultContext = struct {
-        schedule: ApplicationFault,
-    };
-
-    fn applyScheduledFault(raw_context: *anyopaque, store: *Store, application_calls: usize) void {
-        const context: *ApplicationFaultContext = @ptrCast(@alignCast(raw_context));
-        if (application_calls == context.schedule.at_call) setFaults(store, context.schedule.faults);
-    }
-
-    pub fn runObservedWithApplicationFault(
-        allocator: std.mem.Allocator,
-        io: std.Io,
-        store: *Store,
-        roots: []const OwnerRoot,
-        applied_at: []const u8,
-        application_calls: *usize,
-        schedule: ApplicationFault,
-    ) MigrationError!Readiness {
-        var diagnostic = RunDiagnostic{};
-        var context = ApplicationFaultContext{ .schedule = schedule };
-        return migrationRunObserved(
-            allocator,
-            io,
-            store,
-            roots,
-            applied_at,
-            application_calls,
-            &diagnostic,
-            .{ .context = &context, .run = applyScheduledFault },
-        );
+        return migrationRunObserved(allocator, io, store, roots, applied_at, application_calls);
     }
 } else struct {};
