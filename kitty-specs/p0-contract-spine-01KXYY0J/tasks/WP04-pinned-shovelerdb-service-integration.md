@@ -552,3 +552,4 @@ Review `THIRD_PARTY_NOTICES.md` and the complete upstream license as acceptance-
 - 2026-07-21T02:34:18Z – codex – GREEN: WP04-PERSISTENCE-INDEPENDENCE-001; implementation 44d6111 makes shared an optional createPersistenceModule dependency, passes null from focused WP06 hooks, retains shared only in WP07 migration wiring, rejects named/relative shared imports in WP06 coverage source, and raises discovery to 17/17. A source-only fixture with no src/shared compiled and ran all WP06 roots; after the WP06-owned allocator fix, focused unit, 20-cycle real integration, and four child-process crash gates pass. WP04 build, adapter 4/4, real ABI 3/3 Debug and ReleaseSafe remain green.
 - 2026-07-21T02:35:28Z – codex – shell_pid=1807838 – Cycle 4 dependency-clean persistence seam ready for review
 - 2026-07-21T02:37:19Z – codex – shell_pid=1807838 – Started review via action command
+- 2026-07-21T02:51:36Z – user – shell_pid=1807838 – Moved to planned
