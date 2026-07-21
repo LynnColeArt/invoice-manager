@@ -20,7 +20,7 @@ subtasks:
 - T060
 phase: Phase 3
 assignee: ''
-agent: "codex-wp09-review"
+agent: "codex-wp09-clean-typecheck-review"
 history: []
 agent_profile: frontend-freddy
 authoritative_surface: apps/web/
@@ -204,10 +204,12 @@ production probe without expanding into WP10 application behavior:
    trailing-slash request instead of receiving a framework-owned redirect.
 2. In `tsconfig.json`, retain every accepted strictness option while changing the library from
    `ES2023` to `ES2024`, changing `jsx` from `preserve` to `react-jsx`, adding
-   `incremental: true`, and adding `.next/dev/types/**/*.ts` to `include`.
+   `incremental: true`, adding `.next/dev/types/**/*.ts` to `include`, and setting
+   `noUncheckedSideEffectImports: false` so a clean pre-build typecheck accepts locked Next.js
+   16.2.10's deterministic route-type side-effect import before `.next/types` exists.
 3. Format the corrected `tsconfig.json` with the accepted repository style so locked Next.js
    does not rewrite it. The expected SHA-256 is
-   `edd7c53f09f208e547ecb9f5fae6b8dbe60298b08d6e3ab52112a3942e95392c`.
+   `c36224bb0c4a2546c56709a2bfbca4c39b6c73f8945569fcd18c33e3e75b43f8`.
 4. Require corrected `next.config.ts` SHA-256
    `a6fbd459fab2c5103b177f0d50d19e7941e006a91a7aece417be37ecd6319496`.
 5. Create and commit locked Next.js 16.2.10's deterministic `apps/web/next-env.d.ts` with only
@@ -328,3 +330,12 @@ Run validation without installing packages or importing config modules through d
 - 2026-07-21T15:33:11Z – codex-wp09-config-fix – shell_pid=1807838 – Ready for independent review: 50295b8 removes only the eager origin/rewrite boundary after approved WP01 dependency sync; exact static RED/GREEN, lock inventory, hashes, scope, and no-artifact evidence are recorded.
 - 2026-07-21T15:34:24Z – codex-wp09-review – shell_pid=1807838 – Started review via action command
 - 2026-07-21T15:50:58Z – codex-wp09-review – shell_pid=1807838 – Review rejected: exact locked build mutates/fails accepted config; framework pre-routing and generated-file ownership require correction; see cycle 4
+- 2026-07-21T16:02:39Z – codex-wp09-build-stability-fix – shell_pid=1807838 – Started implementation via action command
+- 2026-07-21T16:09:49Z – codex-wp09-build-stability-fix – shell_pid=1807838 – T060 complete at 0b27389 against corrected artifacts 535f63f/analysis e09d9f7. Genuine Node 24.18.0 static RED exited 1 for missing skipTrailingSlashRedirect, ES2024, react-jsx, incremental, .next/dev/types include, and next-env.d.ts. GREEN verified exact hashes next=a6fbd459, tsconfig=edd7c53f, next-env=7b550dda; all retained strict TypeScript settings; exact deterministic Next 16.2.10 references/import/note; T059 no-origin/no-rewrite policy; all four executable configs passed Node24 syntax. All 20 exact app declarations map to the canonical lock with public-registry SHA-512 integrity or WP03 workspace link/export. Approved WP01 e89d3bb remains an ancestor and immutable hashes remain package=816264f8, web=f31c4513, contracts=ee7fcc2f, lock=6ea2ffb8; eslint/vitest/playwright stay 0a03c8db/355efc23/355f2255. Diff from corrected pre-edit base is exactly next.config.ts, tsconfig.json, next-env.d.ts; git diff --check and artifact checks pass; ruff diff-scoped check not applicable (no Python), exit 0. No npm/package execution, Next/build/typecheck/test/proxy/install/generation/cache or runtime acceptance claim; WP10 retains runtime build-byte-stability proof.
+- 2026-07-21T16:09:58Z – codex-wp09-build-stability-fix – shell_pid=1807838 – Ready for independent review: 0b27389 implements exact T060 three-file build-stable contract with proven hashes, preserves T059 and immutable WP01 inputs, and records static-only RED/GREEN evidence.
+- 2026-07-21T16:11:00Z – codex-wp09-t060-review – shell_pid=1807838 – Started review via action command
+- 2026-07-21T16:16:58Z – user – shell_pid=1807838 – Arbiter override: approved review-cycle-6.md at 755ef78 supersedes historical rejected cycle 5 after T060 commit 0b27389 independently resolved all five blockers with exact static evidence; WP10 retains runtime proof
+- 2026-07-21T16:57:39Z – codex-wp09-clean-typecheck-fix – shell_pid=1807838 – Started implementation via action command
+- 2026-07-21T17:04:44Z – codex-wp09-clean-typecheck-fix – shell_pid=1807838 – Ready for independent review: ac4b0d2 fixes clean Next route type import; exact Node 24.18 typecheck and production build pass with immutable hashes
+- 2026-07-21T17:07:04Z – codex-wp09-clean-typecheck-review – shell_pid=1807838 – Started review via action command
+- 2026-07-21T17:14:39Z – codex-wp09-clean-typecheck-review – Restored commit 9bb096d's clean-typecheck authority after the review-start status sync clobbered it; independent exact Node 24.18.0 RED/GREEN and current-WP10 production-build stability evidence is recorded in review cycle 7.
