@@ -31,7 +31,7 @@ subtasks:
 - T047
 phase: Phase 3
 assignee: ''
-agent: "codex-wp10-independent-review"
+agent: "codex-wp10-dead-facade-fix"
 history: []
 agent_profile: node-norris
 authoritative_surface: apps/web/
@@ -463,3 +463,5 @@ build, or aggregate check; a stale prior output does not satisfy this ordering.
 - 2026-07-21T17:25:44Z – codex-wp10-implementation – shell_pid=1807838 – GREEN final evidence on exact WP10 commit 170d25364b9d2055f1d2d3f68f73d84436295ce9: literal bare npm run http:smoke passed production build, real Zig Ready, stopped/missing/invalid config, canonical 503, redirect, slow/slow-non-json, declared/streamed oversize, non-JSON, media-type spoof, malformed JSON/envelope, unexpected status, header leak, live same-origin shell, Axe/responsive/dark/forced-color checks, and failure/timeout/signal cleanup probes. Candidate index tree 82ba874b30a55652bd391bce8eeb881fe9616ad0; tracked_clean=true. NFR-007 100 sequential complete-body samples after 10 warmups: min=2.063ms median=2.373ms p99_sample_99=7.735ms max=8.536ms slow=0 invalid=0. Clean no-.next bare npm run web:check also passed format, lint, typecheck, 24 Vitest tests, and production build after approved WP09 correction; config hashes package=816264f8 tools=ee7fcc2f web=f31c4513 lock=6ea2ffb8 next=a6fbd459 tsconfig=c36224bb next-env=7b550dda.
 - 2026-07-21T17:26:01Z – codex-wp10-implementation – shell_pid=1807838 – Ready for independent review: exact commit 170d253; clean web:check and full http:smoke green
 - 2026-07-21T17:27:05Z – codex-wp10-independent-review – shell_pid=1807838 – Started review via action command
+- 2026-07-21T17:38:21Z – user – shell_pid=1807838 – Moved to planned
+- 2026-07-21T17:43:37Z – codex-wp10-dead-facade-fix – shell_pid=1807838 – Started implementation via action command
