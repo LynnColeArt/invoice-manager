@@ -303,7 +303,10 @@ test "isolated HTTP roots compile against the complete service graph and emitted
             "    const result = try std.process.run(std.testing.allocator, std.testing.io, .{ .argv = &.{http_test_config.api_executable_path} });\n" ++
             "    defer std.testing.allocator.free(result.stdout);\n" ++
             "    defer std.testing.allocator.free(result.stderr);\n" ++
-            "    try std.testing.expectEqual(.{ .exited = 0 }, result.term);\n" ++
+            "    switch (result.term) {\n" ++
+            "        .exited => |code| try std.testing.expectEqual(@as(u8, 0), code),\n" ++
+            "        else => return error.UnexpectedApiTermination,\n" ++
+            "    }\n" ++
             "}\n",
     );
     defer fixture.deinit(allocator);
