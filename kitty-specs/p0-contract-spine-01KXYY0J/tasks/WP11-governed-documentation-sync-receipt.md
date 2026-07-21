@@ -26,7 +26,7 @@ subtasks:
 - T050
 phase: Phase 5
 assignee: ''
-agent: "codex-wp11-reviewer"
+agent: "codex"
 history: []
 agent_profile: curator-carla
 authoritative_surface: docs/governance/
@@ -342,3 +342,4 @@ No implementation entries yet.
 - 2026-07-21T18:22:46Z – codex-wp11-reviewer – shell_pid=1807838 – Started review via action command
 - 2026-07-21T18:43:15Z – user – shell_pid=1807838 – Review passed: immutable receipt 83820584b5f22e4be061e53d16d839856edfef92 independently verified against producer 263b8a25190775f54b280788da0135a7862d2b4e and sync 03818d8573ce50443a863d6ed9fdcc5b0cd1b921; exact topology, 7-path sync, receipt-only diff, Draft 2020-12 schema, 18 digests/statuses/rationales, 8 mappings, dispositions, command constants, deterministic JSON/LF, synthetic safety, and explicitly bound drift all pass. Anti-patterns: dead code N/A; synthetic fixture N/A; silent empty return N/A; FR coverage PASS; frozen surface PASS; locked decision PASS; shared ownership PASS; production fragility N/A.
 - 2026-07-21T20:27:59Z – codex-wp11-reviewer – shell_pid=1807838 – Moved to planned
+- 2026-07-21T22:28:00Z – codex – shell_pid=1807838 – Started implementation via action command
