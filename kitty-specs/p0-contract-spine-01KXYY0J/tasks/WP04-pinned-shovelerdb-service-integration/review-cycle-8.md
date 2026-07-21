@@ -61,9 +61,10 @@ startup-only executor; it is not a general domain-mutation API.
 6. Add red-first adapter tests that insert and query at least five independently
    bound values, including quotes and empty text, and prove malformed arity,
    embedded NUL, allocation cleanup, and SQL-injection-shaped values are safe.
-7. Add an exact-script regression that executes multi-statement synthetic DDL,
-   rejects embedded NUL, and proves the byte sequence is neither trimmed nor
-   newline-normalized.
+7. Add an exact-script regression that executes one synthetic DDL statement,
+   rejects embedded NUL and a second trailing statement, and proves leading
+   and trailing whitespace remain accepted. The pinned engine parses exactly
+   one statement per call; WP04 must not invent an unreviewed SQL splitter.
 8. Keep ShovelerDB C handles and unrestricted runtime SQL absent from every downstream
    public signature. WP06 will translate the internal `OwnedResult` into
    application-neutral persistence rows and a startup-only validated-script
