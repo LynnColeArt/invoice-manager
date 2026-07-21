@@ -3,6 +3,116 @@ pub const migration_coverage_contract = @import("src/platform/persistence/shovel
 pub const shared_coverage_contract = @import("src/platform/persistence/shovelerdb_shared_coverage_contract.zig");
 pub const persistence_coverage_contract = @import("src/platform/persistence/shovelerdb_persistence_coverage_contract.zig");
 
+pub const shovelerdb_expected_files = [_][]const u8{
+    "LICENSE",
+    "NOTICE",
+    "build.zig",
+    "include/shovelerdb.h",
+    "src/abi/c_api.zig",
+    "src/abi/diagnostics.zig",
+    "src/abi/handles.zig",
+    "src/abi/result.zig",
+    "src/abi/value_access.zig",
+    "src/cli/benchmark.zig",
+    "src/cli/benchmark_metrics.zig",
+    "src/cli/benchmark_workloads.zig",
+    "src/cli/commands.zig",
+    "src/db/aggregate.zig",
+    "src/db/backpressure.zig",
+    "src/db/catalog.zig",
+    "src/db/checkpoint_worker.zig",
+    "src/db/commit_queue.zig",
+    "src/db/concurrency.zig",
+    "src/db/database.zig",
+    "src/db/ddl.zig",
+    "src/db/executor.zig",
+    "src/db/persistence.zig",
+    "src/db/procedure.zig",
+    "src/db/query_source.zig",
+    "src/db/row_store.zig",
+    "src/db/snapshot.zig",
+    "src/db/transaction.zig",
+    "src/db/value.zig",
+    "src/db/view.zig",
+    "src/lib.zig",
+    "src/main.zig",
+    "src/mariadb/mtr_lite.zig",
+    "src/mariadb/test_analyzer.zig",
+    "src/mariadb/test_classifier.zig",
+    "src/sql/ast.zig",
+    "src/sql/parser.zig",
+    "src/sql/policy.zig",
+    "src/sql/procedure_body.zig",
+    "src/sql/tokenizer.zig",
+    "src/vector/distance.zig",
+    "src/vector/overlay.zig",
+    "src/vector/search.zig",
+};
+
+const shovelerdb_expected_directories = [_][]const u8{
+    "include",
+    "src",
+    "src/abi",
+    "src/cli",
+    "src/db",
+    "src/mariadb",
+    "src/sql",
+    "src/vector",
+};
+
+pub const ShovelerDbCandidateEntry = struct {
+    path: []const u8,
+    kind: std.Io.File.Kind,
+    sha256: []const u8,
+};
+
+pub const ShovelerDbCandidateError = error{
+    DuplicateEnginePath,
+    InvalidEngineDigest,
+    MissingEngineFile,
+    NonRegularEnginePath,
+    UnexpectedEnginePath,
+};
+
+pub const shovelerdb_required_provenance_lines = [_][]const u8{
+    "component=ShovelerDB",
+    "source_url=https://github.com/LynnColeArt/ShovelerDB.git",
+    "commit=20dced69738bfce08f94368b8d017cfc283747fe",
+    "engine_license=GPL-3.0-only",
+    "abi_version=0.1.0",
+    "export_method=git archive <commit> LICENSE NOTICE build.zig include src",
+    "included_paths=LICENSE,NOTICE,build.zig,include/**,src/**",
+    "excluded_paths=all paths outside LICENSE,NOTICE,build.zig,include/**,src/**; references/mariadb/**; tests/fixtures/mariadb-adapted/**; nested Git metadata; generated outputs; caches",
+    "digest_algorithm=sha256 over sorted lines of \"<file-sha256><two spaces><repository-relative-path>\" for LICENSE,NOTICE,build.zig,include/**,src/**",
+    "source_file_count=43",
+    "source_tree_sha256=681d76ebe2ab6b05b3a94c7ab86749e5c3013520adb7c84f83dabfd15b2a544c",
+    "code_tree_sha256=1fbc377ac6b54f105af3d09a627c2a7896c68626c8b03dfbdffbbe5c3204f782",
+    "license_sha256=3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+    "notice_sha256=59936d400c1c13e6a7e35aa1711277e695a94c50c2472fcbc01368a11b171283",
+    "build_zig_sha256=a69e8d470cf1db44d0469e00e7db089b6ad7ca2e62b7607c03ac964843b483cc",
+    "abi_header_sha256=177535ee08de90ee3f68f708046f19815e283f1072102afb594f6697708f676a",
+    "source_modifications=none",
+};
+
+pub const shovelerdb_expected_provenance =
+    "component=ShovelerDB\n" ++
+    "source_url=https://github.com/LynnColeArt/ShovelerDB.git\n" ++
+    "commit=20dced69738bfce08f94368b8d017cfc283747fe\n" ++
+    "engine_license=GPL-3.0-only\n" ++
+    "abi_version=0.1.0\n" ++
+    "export_method=git archive <commit> LICENSE NOTICE build.zig include src\n" ++
+    "included_paths=LICENSE,NOTICE,build.zig,include/**,src/**\n" ++
+    "excluded_paths=all paths outside LICENSE,NOTICE,build.zig,include/**,src/**; references/mariadb/**; tests/fixtures/mariadb-adapted/**; nested Git metadata; generated outputs; caches\n" ++
+    "digest_algorithm=sha256 over sorted lines of \"<file-sha256><two spaces><repository-relative-path>\" for LICENSE,NOTICE,build.zig,include/**,src/**\n" ++
+    "source_file_count=43\n" ++
+    "source_tree_sha256=681d76ebe2ab6b05b3a94c7ab86749e5c3013520adb7c84f83dabfd15b2a544c\n" ++
+    "code_tree_sha256=1fbc377ac6b54f105af3d09a627c2a7896c68626c8b03dfbdffbbe5c3204f782\n" ++
+    "license_sha256=3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986\n" ++
+    "notice_sha256=59936d400c1c13e6a7e35aa1711277e695a94c50c2472fcbc01368a11b171283\n" ++
+    "build_zig_sha256=a69e8d470cf1db44d0469e00e7db089b6ad7ca2e62b7607c03ac964843b483cc\n" ++
+    "abi_header_sha256=177535ee08de90ee3f68f708046f19815e283f1072102afb594f6697708f676a\n" ++
+    "source_modifications=none\n";
+
 pub const stable_step_names = [_][]const u8{
     "test-shovelerdb-adapter",
     "test-shovelerdb-integration",
@@ -245,9 +355,85 @@ fn rootContains(root: []const u8, path: []const u8) bool {
 pub fn noticeValid(notice: []const u8, license_present: bool) bool {
     return license_present and
         std.mem.indexOf(u8, notice, "https://github.com/LynnColeArt/ShovelerDB.git") != null and
-        std.mem.indexOf(u8, notice, "021e3b3d9247a181252329d6ba7ec8d2ed943a97") != null and
+        std.mem.indexOf(u8, notice, "20dced69738bfce08f94368b8d017cfc283747fe") != null and
         std.mem.indexOf(u8, notice, "deps/shovelerdb/LICENSE") != null and
-        std.mem.indexOf(u8, notice, "GPL-2.0-only") != null;
+        std.mem.indexOf(u8, notice, "deps/shovelerdb/NOTICE") != null and
+        std.mem.indexOf(u8, notice, "deps/shovelerdb/PROVENANCE") != null and
+        std.mem.indexOf(u8, notice, "references/mariadb/**") != null and
+        std.mem.indexOf(u8, notice, "tests/fixtures/mariadb-adapted/**") != null and
+        std.mem.indexOf(u8, notice, "GPL-3.0-only") != null;
+}
+
+pub fn shovelerDbProvenanceValid(provenance: []const u8) bool {
+    return std.mem.eql(u8, provenance, shovelerdb_expected_provenance);
+}
+
+fn shovelerDbExpectedFile(path: []const u8) bool {
+    for (shovelerdb_expected_files) |expected| {
+        if (std.mem.eql(u8, path, expected)) return true;
+    }
+    return false;
+}
+
+fn shovelerDbExpectedDirectory(path: []const u8) bool {
+    for (shovelerdb_expected_directories) |expected| {
+        if (std.mem.eql(u8, path, expected)) return true;
+    }
+    return false;
+}
+
+fn validSha256Hex(digest: []const u8) bool {
+    if (digest.len != 64) return false;
+    for (digest) |byte| {
+        if (!std.ascii.isDigit(byte) and !(byte >= 'a' and byte <= 'f')) return false;
+    }
+    return true;
+}
+
+pub fn validateShovelerDbCandidate(entries: []const ShovelerDbCandidateEntry) ShovelerDbCandidateError!void {
+    for (entries, 0..) |entry, index| {
+        if (!shovelerDbExpectedFile(entry.path)) return error.UnexpectedEnginePath;
+        if (entry.kind != .file) return error.NonRegularEnginePath;
+        if (!validSha256Hex(entry.sha256)) return error.InvalidEngineDigest;
+        for (entries[0..index]) |prior| {
+            if (std.mem.eql(u8, entry.path, prior.path)) return error.DuplicateEnginePath;
+        }
+    }
+    for (shovelerdb_expected_files) |expected| {
+        var found = false;
+        for (entries) |entry| {
+            if (std.mem.eql(u8, entry.path, expected)) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) return error.MissingEngineFile;
+    }
+}
+
+pub fn shovelerDbManifestDigest(
+    allocator: std.mem.Allocator,
+    entries: []const ShovelerDbCandidateEntry,
+) (ShovelerDbCandidateError || std.mem.Allocator.Error)![64]u8 {
+    try validateShovelerDbCandidate(entries);
+    const ordered = try allocator.dupe(ShovelerDbCandidateEntry, entries);
+    defer allocator.free(ordered);
+    std.mem.sort(ShovelerDbCandidateEntry, ordered, {}, struct {
+        fn lessThan(_: void, left: ShovelerDbCandidateEntry, right: ShovelerDbCandidateEntry) bool {
+            return std.mem.lessThan(u8, left.path, right.path);
+        }
+    }.lessThan);
+
+    var aggregate = std.crypto.hash.sha2.Sha256.init(.{});
+    for (ordered) |entry| {
+        aggregate.update(entry.sha256);
+        aggregate.update("  ");
+        aggregate.update(entry.path);
+        aggregate.update("\n");
+    }
+    var result: [32]u8 = undefined;
+    aggregate.final(&result);
+    return std.fmt.bytesToHex(result, .lower);
 }
 
 const Snapshot = struct {
@@ -1486,6 +1672,8 @@ fn requireDependencyFiles(b: *std.Build) void {
     const required = [_][]const u8{
         "../../deps/shovelerdb/PROVENANCE",
         "../../deps/shovelerdb/LICENSE",
+        "../../deps/shovelerdb/NOTICE",
+        "../../deps/shovelerdb/build.zig",
         "../../deps/shovelerdb/include/shovelerdb.h",
         "../../deps/shovelerdb/src/lib.zig",
         "../../deps/shovelerdb/src/abi/c_api.zig",
@@ -1498,9 +1686,11 @@ fn requireDependencyFiles(b: *std.Build) void {
 }
 
 fn requireProvenance(b: *std.Build) void {
-    const expected_commit = "021e3b3d9247a181252329d6ba7ec8d2ed943a97";
-    const expected_tree = "6bb2b4215aa50a8ffbbff3278aea4f32c4fc0f906da817037c44095cfd19480b";
-    const expected_license = "240a15a1d0f34d3abca462cdb7e5fb89470967563f16b0e71169e51c1e74cf2b";
+    const expected_tree = "681d76ebe2ab6b05b3a94c7ab86749e5c3013520adb7c84f83dabfd15b2a544c";
+    const expected_code_tree = "1fbc377ac6b54f105af3d09a627c2a7896c68626c8b03dfbdffbbe5c3204f782";
+    const expected_license = "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986";
+    const expected_notice = "59936d400c1c13e6a7e35aa1711277e695a94c50c2472fcbc01368a11b171283";
+    const expected_build = "a69e8d470cf1db44d0469e00e7db089b6ad7ca2e62b7607c03ac964843b483cc";
     const expected_header = "177535ee08de90ee3f68f708046f19815e283f1072102afb594f6697708f676a";
 
     const provenance = b.build_root.handle.readFileAlloc(
@@ -1511,17 +1701,8 @@ fn requireProvenance(b: *std.Build) void {
     ) catch {
         std.debug.panic("[shovelerdb-provenance:error] unable to read exact-pin provenance; owning WP04", .{});
     };
-    const required_lines = [_][]const u8{
-        "source_url=https://github.com/LynnColeArt/ShovelerDB.git",
-        "commit=" ++ expected_commit,
-        "abi_version=0.1.0",
-        "source_tree_sha256=" ++ expected_tree,
-        "source_modifications=none",
-    };
-    for (required_lines) |line| {
-        if (std.mem.indexOf(u8, provenance, line) == null) {
-            std.debug.panic("[shovelerdb-provenance:error] missing or changed required field {s}; owning WP04", .{line});
-        }
+    if (!shovelerDbProvenanceValid(provenance)) {
+        std.debug.panic("[shovelerdb-provenance:error] exact GPL-3.0-only engine evidence is missing, reordered, duplicated, or changed; owning WP04", .{});
     }
 
     const actual_tree = sourceTreeDigest(b) catch |err| {
@@ -1530,12 +1711,30 @@ fn requireProvenance(b: *std.Build) void {
     if (!std.mem.eql(u8, &actual_tree, expected_tree)) {
         std.debug.panic("[shovelerdb-provenance:error] vendored source digest differs from the exact public export; owning WP04", .{});
     }
+    const actual_code_tree = codeTreeDigest(b) catch |err| {
+        std.debug.panic("[shovelerdb-provenance:error] code-tree verification failed: {s}; owning WP04", .{@errorName(err)});
+    };
+    if (!std.mem.eql(u8, &actual_code_tree, expected_code_tree)) {
+        std.debug.panic("[shovelerdb-provenance:error] include/src code differs from the previously accepted engine bytes; owning WP04", .{});
+    }
 
     const actual_license = fileDigest(b, "../../deps/shovelerdb/LICENSE") catch |err| {
         std.debug.panic("[license:error] unable to hash preserved ShovelerDB LICENSE: {s}; owning WP04", .{@errorName(err)});
     };
     if (!std.mem.eql(u8, &actual_license, expected_license)) {
         std.debug.panic("[license:error] preserved ShovelerDB LICENSE differs from exact public commit; owning WP04", .{});
+    }
+    const actual_notice = fileDigest(b, "../../deps/shovelerdb/NOTICE") catch |err| {
+        std.debug.panic("[license:error] unable to hash preserved ShovelerDB NOTICE: {s}; owning WP04", .{@errorName(err)});
+    };
+    if (!std.mem.eql(u8, &actual_notice, expected_notice)) {
+        std.debug.panic("[license:error] preserved ShovelerDB NOTICE differs from exact public commit; owning WP04", .{});
+    }
+    const actual_build = fileDigest(b, "../../deps/shovelerdb/build.zig") catch |err| {
+        std.debug.panic("[shovelerdb-provenance:error] unable to hash upstream build.zig: {s}; owning WP04", .{@errorName(err)});
+    };
+    if (!std.mem.eql(u8, &actual_build, expected_build)) {
+        std.debug.panic("[shovelerdb-provenance:error] upstream build.zig differs from exact public commit; owning WP04", .{});
     }
     const actual_header = fileDigest(b, "../../deps/shovelerdb/include/shovelerdb.h") catch |err| {
         std.debug.panic("[shovelerdb-provenance:error] unable to hash ABI header: {s}; owning WP04", .{@errorName(err)});
@@ -1553,37 +1752,48 @@ fn sourceTreeDigest(b: *std.Build) ![64]u8 {
     );
     defer source_dir.close(b.graph.io);
 
-    var paths: std.ArrayList([]const u8) = .empty;
+    var entries: std.ArrayList(ShovelerDbCandidateEntry) = .empty;
+    defer {
+        for (entries.items) |entry| {
+            b.allocator.free(entry.path);
+            b.allocator.free(entry.sha256);
+        }
+        entries.deinit(b.allocator);
+    }
     var walker = try source_dir.walk(b.allocator);
     defer walker.deinit();
     while (try walker.next(b.graph.io)) |entry| {
-        const included = std.mem.eql(u8, entry.path, "LICENSE") or
-            std.mem.startsWith(u8, entry.path, "include/") or
-            std.mem.startsWith(u8, entry.path, "src/");
-        if (!included) continue;
-        if (entry.kind == .directory) continue;
-        if (entry.kind != .file) return error.NonRegularSource;
-        try paths.append(b.allocator, try b.allocator.dupe(u8, entry.path));
-    }
-    std.mem.sort([]const u8, paths.items, {}, struct {
-        fn lessThan(_: void, left: []const u8, right: []const u8) bool {
-            return std.mem.lessThan(u8, left, right);
+        if (std.mem.eql(u8, entry.path, "PROVENANCE")) {
+            if (entry.kind != .file) return error.NonRegularEnginePath;
+            continue;
         }
-    }.lessThan);
+        if (entry.kind == .directory) {
+            if (!shovelerDbExpectedDirectory(entry.path)) return error.UnexpectedEnginePath;
+            continue;
+        }
+        const full_path = try std.fmt.allocPrint(b.allocator, "../../deps/shovelerdb/{s}", .{entry.path});
+        defer b.allocator.free(full_path);
+        const digest = if (entry.kind == .file)
+            try fileDigest(b, full_path)
+        else
+            [_]u8{'0'} ** 64;
+        try entries.append(b.allocator, .{
+            .path = try b.allocator.dupe(u8, entry.path),
+            .kind = entry.kind,
+            .sha256 = try b.allocator.dupe(u8, &digest),
+        });
+    }
+    return shovelerDbManifestDigest(b.allocator, entries.items);
+}
 
+fn codeTreeDigest(b: *std.Build) ![64]u8 {
     var aggregate = std.crypto.hash.sha2.Sha256.init(.{});
-    for (paths.items) |path| {
+    for (shovelerdb_expected_files) |path| {
+        if (!std.mem.startsWith(u8, path, "include/") and !std.mem.startsWith(u8, path, "src/")) continue;
         const full_path = try std.fmt.allocPrint(b.allocator, "../../deps/shovelerdb/{s}", .{path});
-        const contents = try b.build_root.handle.readFileAlloc(
-            b.graph.io,
-            full_path,
-            b.allocator,
-            .limited(16 * 1024 * 1024),
-        );
-        var digest: [32]u8 = undefined;
-        std.crypto.hash.sha2.Sha256.hash(contents, &digest, .{});
-        const hex = std.fmt.bytesToHex(digest, .lower);
-        aggregate.update(&hex);
+        defer b.allocator.free(full_path);
+        const digest = try fileDigest(b, full_path);
+        aggregate.update(&digest);
         aggregate.update("  ");
         aggregate.update(path);
         aggregate.update("\n");
@@ -1615,6 +1825,6 @@ fn requireNotice(b: *std.Build) void {
         std.debug.panic("[license:error] missing THIRD_PARTY_NOTICES.md; owning WP04", .{});
     };
     if (!noticeValid(notice, pathExists(b, "../../deps/shovelerdb/LICENSE"))) {
-        std.debug.panic("[license:error] ShovelerDB notice must include public URL, exact commit, GPL-2.0-only, and deps/shovelerdb/LICENSE; owning WP04", .{});
+        std.debug.panic("[license:error] ShovelerDB notice must include the public URL, GPL-3.0-only pin, LICENSE/NOTICE/PROVENANCE paths, and excluded reference corpora; owning WP04", .{});
     }
 }
