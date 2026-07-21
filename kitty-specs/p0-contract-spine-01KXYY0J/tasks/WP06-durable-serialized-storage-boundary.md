@@ -26,7 +26,7 @@ subtasks:
 - T030
 phase: Phase 3
 assignee: ''
-agent: "codex-wp06-fresh-review"
+agent: "codex"
 history: []
 agent_profile: implementer-ivan
 authoritative_surface: services/api/src/platform/persistence/
@@ -560,3 +560,11 @@ and the final full verification matrix.
 - 2026-07-21T06:35:30Z – codex – shell_pid=1807838 – Implementation complete at 8f0bded with test evidence at 49234b5; Debug and ReleaseSafe persistence/ABI matrices pass and exact owned coverage is 562/624 with 20/20 critical branches.
 - 2026-07-21T06:38:31Z – codex-wp06-fresh-review – shell_pid=1807838 – Started review via action command
 - 2026-07-21T06:47:18Z – user – shell_pid=1807838 – Review passed: cycle 2 approved at product 8f0bded; value-token lifecycle, shutdown reclamation, alias leases, persistence-only completion, adapter opacity, corrupt/crash safety, RED chronology, and exact coverage 562/624 with 20/20 probes verified independently
+- 2026-07-21T08:31:16Z – codex – shell_pid=1807838 – WP07 integration review proved the public Store cannot distinguish newly created storage from existing malformed/deleted history; add only an atomic migration-agnostic fresh-initialization operation.
+- 2026-07-21T08:32:10Z – codex – shell_pid=1807838 – Started implementation via action command
+- 2026-07-21T08:45:38Z – codex – shell_pid=1807838 – Cycle 3 RED: test-only commits 4310d01, 61cbec1, 366bc14, and 7a56b2c precede product code. cd services/api && zig build test-persistence failed at seven permanent public-facade sites because Store had no initializeFresh member; 62/62 pre-existing tests passed. Cases lock newly-created success, existing logical-empty and nonempty denial, second/concurrent denial, callback recovery/retry, checkpoint completion without replay, shutdown cleanup, and closed/quarantined refusal.
+- 2026-07-21T08:45:50Z – codex – shell_pid=1807838 – Cycle 3 product commit 2a68b9e adds only the application-neutral Store.initializeFresh(StartupWriteOperation) StoreError!DurableReceipt seam, typed NotFresh/not_fresh taxonomy, immutable private open-origin captured after lease acquisition immediately before adapter open, and mutex-protected durable-completion eligibility. Existing startup recovery, capability, shutdown, and durability choreography are reused unchanged; no WP07 or migration-specific code was added.
+- 2026-07-21T08:45:58Z – codex – shell_pid=1807838 – Cycle 3 GREEN: Debug and ReleaseSafe each passed test-persistence 89/89, integration 1/1, crash 2/2, coverage-persistence 92/92 with exact 577/641 owned PCs (90.02%), 20/20 critical branches, 42 formal coverage tests and 0 skipped, adapter 4/4, and real C ABI integration 5/5. Zig 0.16.0, zig fmt --check, git diff --check, application-neutral facade scan, and clean lane all passed. Diff-scoped ruff: no changed Python files, exit 0. The referenced charter terminology-canon and code-review-checklist selectors were queried but are absent from the installed charter surface.
+- 2026-07-21T08:46:35Z – codex – shell_pid=1807838 – Ready for review: atomic fresh initialization at product 2a68b9e; test-first history 4310d01..7a56b2c; Debug/ReleaseSafe matrix green; exact coverage 577/641 with 20/20 critical branches
+- 2026-07-21T08:48:21Z – codex – shell_pid=1807838 – Started review via action command
+- 2026-07-21T08:53:45Z – user – shell_pid=1807838 – Review passed: cycle 4 approves atomic fresh initialization at 2a68b9e; private post-lease origin, mutex-atomic eligibility/callback, no public leaks, safe same-Store precommit retry, permanent receipt denial, cleanup, prior guarantees, RED chronology, and exact coverage 577/641 with 20/20 probes independently verified
