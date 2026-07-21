@@ -11,7 +11,16 @@ answers:
     LaTeX. Issued invoices are immutable business records. Next.js owns the user
     interface; Zig owns business behavior, persistence, scheduling, security,
     and document-generation orchestration. The project is open source under
-    GPL-2.0-only.
+    GPL-3.0-only. This owner-approved amendment permits Apache-2.0-compatible
+    runtime components required by Next.js while retaining fail-closed license
+    evidence and notice requirements. Approved on 2026-07-21, the amendment
+    affects P0 work packages WP01, WP04, WP11, and WP12; the root license and
+    package metadata; the pinned ShovelerDB engine export; third-party notices;
+    governed documentation; and the real-artifact license audit. Existing
+    combined-runtime evidence must be regenerated and independently reviewed.
+    Validation requires exact source provenance, preserved license and notice
+    texts, exclusion of separately licensed reference corpora, deterministic
+    artifact reports, and clean-clone acceptance.
 
   languages_frameworks: >-
     TypeScript and React with the Next.js App Router for the web application;
@@ -43,7 +52,12 @@ answers:
     regression checks. Changes must preserve exact integer money arithmetic,
     multi-currency separation, durable checkpoint semantics, issued-invoice
     immutability, and the prohibition on raw user-authored TeX. Dependency and
-    license checks must remain clean for a GPL-2.0-only distribution. A failing
+    license checks must remain clean for a GPL-3.0-only distribution. Apache-2.0
+    components require preserved license and notice evidence; LGPL components
+    require an explicit compatible selection and applicable source or relinking
+    obligations; attribution licenses require their complete attribution terms.
+    GPL-2.0-only combined-runtime components, unknown or custom licenses, missing
+    evidence, and unselected multi-license expressions fail closed. A failing
     required gate blocks merge; unrelated pre-existing failures must be reported
     explicitly rather than hidden.
 
