@@ -27,7 +27,7 @@ subtasks:
 - T019
 phase: Phase 2 - Service Dependency Integration
 assignee: ''
-agent: "codex-wp04-cycle20-reviewer"
+agent: "codex-wp04-cycle23-reviewer"
 history: []
 agent_profile: reviewer-renata
 authoritative_surface: deps/shovelerdb/
@@ -609,3 +609,12 @@ Review `THIRD_PARTY_NOTICES.md` and the complete upstream license as acceptance-
 - 2026-07-21T11:38:41Z – codex-wp04-inventory-embed-fix – shell_pid=1807838 – Cycle 19 GREEN product commit fd3f829 (separate RED test commit cc03cc3). Exact-key read-only HTTP module dependency maps '../../../../tools/contracts/.generated/runtime/v1/route-inventory.json' directly to tools/contracts/.generated/runtime/v1/route-inventory.json; HTTP still exposes only shared as executable Zig capability and composition/test/config graphs are unchanged. Validation: discovery 21/21; two cold-cache replays 21/21; default 3/3; adapter Debug and ReleaseSafe 4/4; integration Debug twice and ReleaseSafe 5/5; format/diff clean; stable help steps present; absent WP08 test-http and run fail closed with owner diagnostics. Permanent discovery coverage proves exact embedded bytes after delayed materialization, emitted API composition, direct prerequisites, and forbidden persistence rejection.
 - 2026-07-21T11:38:51Z – codex-wp04-inventory-embed-fix – shell_pid=2686213 – Cycle 19 exact inventory embed mapping complete: cc03cc3 RED, fd3f829 GREEN; full cold-cache and ABI matrix recorded.
 - 2026-07-21T11:39:07Z – codex-wp04-cycle20-reviewer – shell_pid=1807838 – Started review via action command
+- 2026-07-21T11:42:42Z – user – shell_pid=1807838 – Review passed: cycle 20 independently verifies exact external-package 20/21 RED at cc03cc3, four-line exact-key data-only mapping fd3f829, current 21/21 discovery, delayed canonical bytes, preserved HTTP least authority, emitted API/materializer wiring, and fail-closed regressions.
+- 2026-07-21T12:35:09Z – codex-wp08-aggregate-audit – shell_pid=1807838 – Cycle 21 aggregate HTTP cwd blocker at ad3fa98
+- 2026-07-21T12:35:41Z – codex-wp04-cwd-fix – shell_pid=1807838 – Started implementation via action command
+- 2026-07-21T13:00:24Z – codex-wp04-cwd-fix – shell_pid=1807838 – Cycle 21 correction f98ecfc 53111be 76dddae ac3d45c ready for independent review
+- 2026-07-21T13:00:31Z – codex-wp04-cycle22-reviewer – shell_pid=1807838 – Started review via action command
+- 2026-07-21T13:07:38Z – codex-wp04-cycle22-reviewer – shell_pid=1807838 – Cycle 22 rejects missing behavioral aggregate consumer coverage at 2d7dd65
+- 2026-07-21T13:07:49Z – codex-wp04-aggregate-fixture-fix – shell_pid=1807838 – Started implementation via action command
+- 2026-07-21T13:15:54Z – codex-wp04-aggregate-fixture-fix – shell_pid=1807838 – Cycle 22 correction cb1e6e0 adds deletion-sensitive aggregate consumer fixture
+- 2026-07-21T13:16:01Z – codex-wp04-cycle23-reviewer – shell_pid=1807838 – Started review via action command
