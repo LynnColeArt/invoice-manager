@@ -26,7 +26,7 @@ subtasks:
 - T050
 phase: Phase 5
 assignee: ''
-agent: "codex"
+agent: "reviewer-renata"
 history: []
 agent_profile: curator-carla
 authoritative_surface: docs/governance/
@@ -344,3 +344,4 @@ No implementation entries yet.
 - 2026-07-21T20:27:59Z – codex-wp11-reviewer – shell_pid=1807838 – Moved to planned
 - 2026-07-21T22:28:00Z – codex – shell_pid=1807838 – Started implementation via action command
 - 2026-07-21T22:45:53Z – codex – shell_pid=1807838 – Ready for review: immutable receipt 97b4094de279a0b568760f2e9a202f98dc64021d; no-sync baseline 65ca5ac70870b984a5aa527ca061542c7021a9c5; exact 18-artifact schema, digest, status, mapping, command, synthetic-safety, one-file topology, and drift checks pass; ruff diff-scoped check has no changed Python files, exit 0
+- 2026-07-21T22:47:13Z – reviewer-renata – shell_pid=1807838 – Started review via action command
