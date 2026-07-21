@@ -27,7 +27,7 @@ subtasks:
 - T019
 phase: Phase 2 - Service Dependency Integration
 assignee: ''
-agent: "codex-wp04-cwd-fix"
+agent: "codex-wp04-cycle22-reviewer"
 history: []
 agent_profile: reviewer-renata
 authoritative_surface: deps/shovelerdb/
@@ -612,3 +612,5 @@ Review `THIRD_PARTY_NOTICES.md` and the complete upstream license as acceptance-
 - 2026-07-21T11:42:42Z – user – shell_pid=1807838 – Review passed: cycle 20 independently verifies exact external-package 20/21 RED at cc03cc3, four-line exact-key data-only mapping fd3f829, current 21/21 discovery, delayed canonical bytes, preserved HTTP least authority, emitted API/materializer wiring, and fail-closed regressions.
 - 2026-07-21T12:35:09Z – codex-wp08-aggregate-audit – shell_pid=1807838 – Cycle 21 aggregate HTTP cwd blocker at ad3fa98
 - 2026-07-21T12:35:41Z – codex-wp04-cwd-fix – shell_pid=1807838 – Started implementation via action command
+- 2026-07-21T13:00:24Z – codex-wp04-cwd-fix – shell_pid=1807838 – Cycle 21 correction f98ecfc 53111be 76dddae ac3d45c ready for independent review
+- 2026-07-21T13:00:31Z – codex-wp04-cycle22-reviewer – shell_pid=1807838 – Started review via action command
