@@ -111,15 +111,34 @@ pub const Service = struct {
         try writer.interface.flush();
     }
 
-    pub fn holdPartialPastHeaderDeadline(self: *const Service, partial_request: []const u8) !void {
+    pub fn expectPartialClosedByHeaderDeadline(self: *const Service, partial_request: []const u8) !void {
         const stream = try self.address.connect(std.testing.io, .{ .mode = .stream });
         defer stream.close(std.testing.io);
         var write_buffer: [256]u8 = undefined;
         var writer = stream.writer(std.testing.io, &write_buffer);
         try writer.interface.writeAll(partial_request);
         try writer.interface.flush();
-        const hold = std.Io.Clock.Duration{ .raw = .fromMilliseconds(2200), .clock = .awake };
-        try hold.sleep(std.testing.io);
+        var read_buffer: [32]u8 = undefined;
+        var reader = stream.reader(std.testing.io, &read_buffer);
+        var select_buffer: [2]CloseSelect = undefined;
+        var select = std.Io.Select(CloseSelect).init(std.testing.io, &select_buffer);
+        select.async(.peer, waitForPeerClosure, .{&reader});
+        select.async(.timeout, waitRequestTimeout, .{});
+        const selected = select.await() catch |err| switch (err) {
+            error.Canceled => {
+                select.cancelDiscard();
+                return error.Canceled;
+            },
+        };
+        select.cancelDiscard();
+        switch (selected) {
+            .timeout => return error.HeaderDeadlineNotEnforced,
+            .peer => |result| switch (result) {
+                .closed => return,
+                .data => return error.UnexpectedPartialResponse,
+                .failed => return error.PartialReadFailed,
+            },
+        }
     }
 };
 
@@ -129,6 +148,20 @@ const WaitSelect = union(enum) { child: WaitResult, timeout: void };
 fn waitChild(child: *std.process.Child, io: std.Io) WaitResult {
     const term = child.wait(io) catch return .failed;
     return .{ .term = term };
+}
+
+const CloseResult = enum { closed, data, failed };
+const CloseSelect = union(enum) { peer: CloseResult, timeout: void };
+
+fn waitForPeerClosure(reader: *std.Io.net.Stream.Reader) CloseResult {
+    _ = reader.interface.takeByte() catch |err| switch (err) {
+        error.EndOfStream => return .closed,
+        error.ReadFailed => {
+            const read_err = reader.err orelse return .failed;
+            return if (read_err == error.ConnectionResetByPeer) .closed else .failed;
+        },
+    };
+    return .data;
 }
 
 fn drainRequestSelect(

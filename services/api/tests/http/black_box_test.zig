@@ -98,7 +98,7 @@ test "spawned service serves the exact health boundary and contains client failu
     defer std.testing.allocator.free(after_disconnect);
     try expectReadyResponse(after_disconnect);
 
-    try service.holdPartialPastHeaderDeadline("GET /api/v1/health HTTP/1.1\r\nhost:");
+    try service.expectPartialClosedByHeaderDeadline("GET /api/v1/health HTTP/1.1\r\nhost:");
     const after_slow_client = try service.request(get_health);
     defer std.testing.allocator.free(after_slow_client);
     try expectReadyResponse(after_slow_client);
