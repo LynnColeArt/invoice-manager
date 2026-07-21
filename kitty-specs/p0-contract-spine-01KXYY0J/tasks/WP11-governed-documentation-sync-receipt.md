@@ -26,7 +26,7 @@ subtasks:
 - T050
 phase: Phase 5
 assignee: ''
-agent: "codex-wp11-curator"
+agent: "codex-wp11-reviewer"
 history: []
 agent_profile: curator-carla
 authoritative_surface: docs/governance/
@@ -337,3 +337,6 @@ ordinary `git commit`.
 
 No implementation entries yet.
 - 2026-07-21T17:56:38Z – codex-wp11-curator – shell_pid=1807838 – Started implementation via action command
+- 2026-07-21T18:21:01Z – codex-wp11-curator – shell_pid=1807838 – WP11 implementation complete: producer=263b8a25190775f54b280788da0135a7862d2b4e; synchronized=03818d8573ce50443a863d6ed9fdcc5b0cd1b921; exact resolver=18 tracked regular non-symlinks; governed sync changed exactly 7 paths; receipt schema and deterministic serialization passed with locked Ajv 8.20.0 Draft 2020-12; receipt=83820584b5f22e4be061e53d16d839856edfef92; exact parent, subject, receipt-only diff, 18 digests/statuses, 8 mappings, dispositions, command constants, synthetic safety, and drift exit 0 verified. WP12 must consume only the accepted full receipt commit from review handoff.
+- 2026-07-21T18:21:04Z – codex-wp11-curator – shell_pid=1807838 – Ready for review: receipt 83820584b5f22e4be061e53d16d839856edfef92; producer 263b8a25190775f54b280788da0135a7862d2b4e; synchronized 03818d8573ce50443a863d6ed9fdcc5b0cd1b921; schema, topology, exact one-file diff, digests, mappings, commands, synthetic safety, and drift verified.
+- 2026-07-21T18:22:46Z – codex-wp11-reviewer – shell_pid=1807838 – Started review via action command
