@@ -163,18 +163,10 @@ test "coverage origin classification fails closed for missing and ambiguous debu
         error.MissingPcOrigin,
         runner.directOriginFromFrames(&.{.{ .source_path = null }}),
     );
-    const direct_with_outer = try runner.directOriginFromFrames(&.{
-        .{ .source_path = "src/platform/persistence/shovelerdb.zig" },
-        .{ .source_path = "src/platform/persistence/store.zig" },
-    });
-    try std.testing.expectEqualStrings(
-        "src/platform/persistence/shovelerdb.zig",
-        direct_with_outer.known,
-    );
     try std.testing.expectError(
-        error.MissingPcOrigin,
+        error.AmbiguousPcOrigin,
         runner.directOriginFromFrames(&.{
-            .{ .source_path = null },
+            .{ .source_path = "src/platform/persistence/shovelerdb.zig" },
             .{ .source_path = "src/platform/persistence/store.zig" },
         }),
     );
