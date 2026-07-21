@@ -1,0 +1,41 @@
+{
+  "format_version": 1,
+  "inputs": [
+    {
+      "owner_mission": "p1",
+      "contract_id": "invoice-manager.parties-projects",
+      "version": "0.1.0-draft.1",
+      "manifest_path": "kitty-specs/p1-parties-projects-01KXYZD3/contracts/p1-contract-manifest.json",
+      "commit": "47638a9d95427697c1fcc74c7279f40f314450f5",
+      "manifest_sha256": "3f28ddb033e5259163671b34c8c64f6214c5524f0f941e4dc5d03c38485a7987",
+      "content_digest": "73457636636187ff5537564a0f13ed29030d931746dbcc2740da3636cb2747f5"
+    },
+    {
+      "owner_mission": "p2",
+      "contract_id": "invoice-manager.invoice-document",
+      "version": "0.1.0-draft.1",
+      "manifest_path": "kitty-specs/p2-invoice-document-engine-01KXZ0ET/contracts/p2-contract-manifest.json",
+      "commit": "8830e8bbdfb1a7ecb92015359aa28c58d9f2b078",
+      "manifest_sha256": "24bf9f15fad1d598fae394e5ec40e7a50e6f166e7bd1202e3c51c4576c89bbc7",
+      "content_digest": "c12f5c79c21689f146c705cef5b454bca684e5e86e0ac7a326df8dc7db1f9a70"
+    },
+    {
+      "owner_mission": "p3",
+      "contract_id": "invoice-manager.platform-security-operations",
+      "version": "0.1.0-draft.1",
+      "manifest_path": "kitty-specs/p3-platform-security-operations-01KXZ0Y2/contracts/p3-contract-manifest.json",
+      "commit": "1a83ce0523ccc793c62d7bcd3b6992eb761ec506",
+      "manifest_sha256": "1b2013f7876a0015af7a18ed9bdc89675520c7dcf0c68f98253357af5c96c11f",
+      "content_digest": "48d85d152ab9e46efd052c4e3b02dba47a8e6bbfeac8315864cc6d470d274bf3"
+    },
+    {
+      "owner_mission": "p4",
+      "contract_id": "invoice-manager.reporting-dashboard",
+      "version": "0.1.0-draft.1",
+      "manifest_path": "kitty-specs/p4-reporting-dashboard-01KXZ1AJ/contracts/p4-contract-manifest.json",
+      "commit": "860ee50cd959e75391753cafe841b4da82882a0b",
+      "manifest_sha256": "2da1496e68aa9577a91af647af34268181c9a58ff5aec529cc71121db4159a24",
+      "content_digest": "453c138255cd525587a07049a04576c9d22919979c0c2ac45ce37f46e2e54636"
+    }
+  ]
+}
