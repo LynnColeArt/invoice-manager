@@ -1,0 +1,1027 @@
+{
+  "fixture_version": "1",
+  "schema_id": "https://invoice-manager.invalid/contracts/common/v1/schema.json",
+  "purpose": "Synthetic invalid boundary evidence separating JSON Schema failures from mandatory runtime semantic failures.",
+  "consumer_handoff": {
+    "definitions": [
+      "EntityId",
+      "CurrencyCode",
+      "CanonicalInt64",
+      "NonNegativeInt64",
+      "Money",
+      "LocalDate",
+      "UtcInstant",
+      "Sha256Digest",
+      "RequestId"
+    ],
+    "schema_resolution": "WP03 must resolve this schema ID from the repository registry without a network fetch and enable JSON Schema date and date-time format assertion.",
+    "runtime_semantics": "WP05 must execute every runtime and schema_and_runtime signed-range, supported-year, Gregorian, and UTC clock case in Zig even when JSON Schema also rejects it.",
+    "generated_types": "WP03 must generate and workspace-export integer-string or BigInt-safe types. WP10 must consume those exports without authoritative number arithmetic. WP09 is config-only and consumes no fixtures.",
+    "domain_narrowing": "Domain missions may narrow Money signs or allowed currencies only in their own schemas and validators; uppercase three-letter non-launch codes are not invalid at this shared layer.",
+    "coercion_policy": "Consumers must reject the supplied value as-is and must not trim, case-fold, coerce, normalize, round, or convert JSON numbers into canonical strings.",
+    "data_classification": "All values are invented synthetic boundary data and contain no client, bank, invoice, credential, token, or private-key material."
+  },
+  "case_counts": {
+    "total": 73,
+    "by_definition": {
+      "CanonicalInt64": 14,
+      "EntityId": 8,
+      "LocalDate": 9,
+      "Money": 11,
+      "NonNegativeInt64": 8,
+      "RequestId": 1,
+      "Sha256Digest": 8,
+      "UtcInstant": 14
+    },
+    "by_validation_layer": {
+      "runtime": 8,
+      "schema": 51,
+      "schema_and_runtime": 14
+    }
+  },
+  "required_case_ids": [
+    "canonical-int64-decimal",
+    "canonical-int64-empty",
+    "canonical-int64-exponent",
+    "canonical-int64-i64-overflow",
+    "canonical-int64-i64-underflow",
+    "canonical-int64-leading-whitespace",
+    "canonical-int64-leading-zero",
+    "canonical-int64-negative-leading-zero",
+    "canonical-int64-negative-zero",
+    "canonical-int64-numeric-type",
+    "canonical-int64-plus-sign",
+    "canonical-int64-trailing-whitespace",
+    "canonical-int64-very-long-negative",
+    "canonical-int64-very-long-positive",
+    "entity-id-braces",
+    "entity-id-invalid-hex",
+    "entity-id-missing-hyphens",
+    "entity-id-uppercase",
+    "entity-id-variant",
+    "entity-id-version",
+    "entity-id-whitespace",
+    "entity-id-wrong-length",
+    "local-date-day-zero",
+    "local-date-impossible-february-30",
+    "local-date-missing-zero-padding",
+    "local-date-month-00",
+    "local-date-month-13",
+    "local-date-non-leap-day",
+    "local-date-surrounding-whitespace",
+    "local-date-timestamp-suffix",
+    "local-date-year-zero",
+    "money-extra-property",
+    "money-four-letter-currency",
+    "money-lowercase-currency",
+    "money-missing-currency",
+    "money-missing-minor-units",
+    "money-noncanonical-minor-units",
+    "money-null-currency",
+    "money-numeric-currency",
+    "money-numeric-minor-units",
+    "money-out-of-range-minor-units",
+    "money-two-letter-currency",
+    "nonnegative-int64-decimal",
+    "nonnegative-int64-exponent",
+    "nonnegative-int64-i64-overflow",
+    "nonnegative-int64-leading-zero",
+    "nonnegative-int64-negative-one",
+    "nonnegative-int64-numeric-type",
+    "nonnegative-int64-plus-sign",
+    "nonnegative-int64-whitespace",
+    "request-id-uppercase-alias",
+    "sha256-digest-bare-bytes",
+    "sha256-digest-missing-prefix",
+    "sha256-digest-nonhex",
+    "sha256-digest-too-long",
+    "sha256-digest-too-short",
+    "sha256-digest-uppercase-algorithm",
+    "sha256-digest-uppercase-hex",
+    "sha256-digest-whitespace",
+    "utc-instant-four-fraction-digits",
+    "utc-instant-impossible-day",
+    "utc-instant-impossible-month",
+    "utc-instant-impossible-time",
+    "utc-instant-leap-second",
+    "utc-instant-lowercase-z",
+    "utc-instant-missing-fraction",
+    "utc-instant-missing-z",
+    "utc-instant-numeric-offset",
+    "utc-instant-one-fraction-digit",
+    "utc-instant-six-fraction-digits",
+    "utc-instant-space-separator",
+    "utc-instant-surrounding-whitespace",
+    "utc-instant-two-fraction-digits"
+  ],
+  "cases": [
+    {
+      "case_id": "canonical-int64-decimal",
+      "definition": "CanonicalInt64",
+      "value": "1.0",
+      "expectation": "invalid",
+      "expected": {
+        "code": "canonical_spelling",
+        "path": "",
+        "validation_layer": "schema"
+      },
+      "reason": "Decimal notation is not a canonical integer spelling."
+    },
+    {
+      "case_id": "canonical-int64-empty",
+      "definition": "CanonicalInt64",
+      "value": "",
+      "expectation": "invalid",
+      "expected": {
+        "code": "canonical_spelling",
+        "path": "",
+        "validation_layer": "schema"
+      },
+      "reason": "An empty string contains no canonical integer."
+    },
+    {
+      "case_id": "canonical-int64-exponent",
+      "definition": "CanonicalInt64",
+      "value": "1e3",
+      "expectation": "invalid",
+      "expected": {
+        "code": "canonical_spelling",
+        "path": "",
+        "validation_layer": "schema"
+      },
+      "reason": "Exponent notation is prohibited."
+    },
+    {
+      "case_id": "canonical-int64-i64-overflow",
+      "definition": "CanonicalInt64",
+      "value": "9223372036854775808",
+      "expectation": "invalid",
+      "expected": {
+        "code": "int64_out_of_range",
+        "path": "",
+        "validation_layer": "runtime"
+      },
+      "reason": "The canonical spelling passes JSON Schema but is one above signed 64-bit maximum."
+    },
+    {
+      "case_id": "canonical-int64-i64-underflow",
+      "definition": "CanonicalInt64",
+      "value": "-9223372036854775809",
+      "expectation": "invalid",
+      "expected": {
+        "code": "int64_out_of_range",
+        "path": "",
+        "validation_layer": "runtime"
+      },
+      "reason": "The canonical spelling passes JSON Schema but is one below signed 64-bit minimum."
+    },
+    {
+      "case_id": "canonical-int64-leading-whitespace",
+      "definition": "CanonicalInt64",
+      "value": " 1",
+      "expectation": "invalid",
+      "expected": {
+        "code": "canonical_spelling",
+        "path": "",
+        "validation_layer": "schema"
+      },
+      "reason": "Whitespace must not be trimmed."
+    },
+    {
+      "case_id": "canonical-int64-leading-zero",
+      "definition": "CanonicalInt64",
+      "value": "01",
+      "expectation": "invalid",
+      "expected": {
+        "code": "canonical_spelling",
+        "path": "",
+        "validation_layer": "schema"
+      },
+      "reason": "A nonzero value cannot have a leading zero."
+    },
+    {
+      "case_id": "canonical-int64-negative-leading-zero",
+      "definition": "CanonicalInt64",
+      "value": "-01",
+      "expectation": "invalid",
+      "expected": {
+        "code": "canonical_spelling",
+        "path": "",
+        "validation_layer": "schema"
+      },
+      "reason": "A negative nonzero value cannot have a leading zero."
+    },
+    {
+      "case_id": "canonical-int64-negative-zero",
+      "definition": "CanonicalInt64",
+      "value": "-0",
+      "expectation": "invalid",
+      "expected": {
+        "code": "canonical_spelling",
+        "path": "",
+        "validation_layer": "schema"
+      },
+      "reason": "Zero has exactly one canonical spelling."
+    },
+    {
+      "case_id": "canonical-int64-numeric-type",
+      "definition": "CanonicalInt64",
+      "value": 1,
+      "expectation": "invalid",
+      "expected": {
+        "code": "type_mismatch",
+        "path": "",
+        "validation_layer": "schema_and_runtime"
+      },
+      "reason": "JSON numbers are rejected rather than converted to strings."
+    },
+    {
+      "case_id": "canonical-int64-plus-sign",
+      "definition": "CanonicalInt64",
+      "value": "+1",
+      "expectation": "invalid",
+      "expected": {
+        "code": "canonical_spelling",
+        "path": "",
+        "validation_layer": "schema"
+      },
+      "reason": "An explicit plus sign is prohibited."
+    },
+    {
+      "case_id": "canonical-int64-trailing-whitespace",
+      "definition": "CanonicalInt64",
+      "value": "1 ",
+      "expectation": "invalid",
+      "expected": {
+        "code": "canonical_spelling",
+        "path": "",
+        "validation_layer": "schema"
+      },
+      "reason": "Whitespace must not be trimmed."
+    },
+    {
+      "case_id": "canonical-int64-very-long-negative",
+      "definition": "CanonicalInt64",
+      "value": "-99999999999999999999999999999999999999999999999999999999999999999999999999999999",
+      "expectation": "invalid",
+      "expected": {
+        "code": "int64_out_of_range",
+        "path": "",
+        "validation_layer": "runtime"
+      },
+      "reason": "The spelling passes JSON Schema; checked parsing must reject the long negative value without overflow."
+    },
+    {
+      "case_id": "canonical-int64-very-long-positive",
+      "definition": "CanonicalInt64",
+      "value": "99999999999999999999999999999999999999999999999999999999999999999999999999999999",
+      "expectation": "invalid",
+      "expected": {
+        "code": "int64_out_of_range",
+        "path": "",
+        "validation_layer": "runtime"
+      },
+      "reason": "The spelling passes JSON Schema; checked parsing must reject the long positive value without overflow."
+    },
+    {
+      "case_id": "entity-id-braces",
+      "definition": "EntityId",
+      "value": "{01890f3e-2c4a-7d5e-8abc-0123456789ab}",
+      "expectation": "invalid",
+      "expected": {
+        "code": "uuidv7_shape",
+        "path": "",
+        "validation_layer": "schema"
+      },
+      "reason": "Extra braces are not part of the canonical representation."
+    },
+    {
+      "case_id": "entity-id-invalid-hex",
+      "definition": "EntityId",
+      "value": "01890f3e-2c4a-7d5e-8abc-0123456789ag",
+      "expectation": "invalid",
+      "expected": {
+        "code": "uuidv7_shape",
+        "path": "",
+        "validation_layer": "schema"
+      },
+      "reason": "The final character is not hexadecimal."
+    },
+    {
+      "case_id": "entity-id-missing-hyphens",
+      "definition": "EntityId",
+      "value": "01890f3e2c4a7d5e8abc0123456789ab",
+      "expectation": "invalid",
+      "expected": {
+        "code": "uuidv7_shape",
+        "path": "",
+        "validation_layer": "schema"
+      },
+      "reason": "Canonical UUID grouping requires hyphens."
+    },
+    {
+      "case_id": "entity-id-uppercase",
+      "definition": "EntityId",
+      "value": "01890F3E-2C4A-7D5E-8ABC-0123456789AB",
+      "expectation": "invalid",
+      "expected": {
+        "code": "uuidv7_shape",
+        "path": "",
+        "validation_layer": "schema"
+      },
+      "reason": "Uppercase hexadecimal must not be case-folded."
+    },
+    {
+      "case_id": "entity-id-variant",
+      "definition": "EntityId",
+      "value": "01890f3e-2c4a-7d5e-7abc-0123456789ab",
+      "expectation": "invalid",
+      "expected": {
+        "code": "uuid_variant",
+        "path": "",
+        "validation_layer": "schema"
+      },
+      "reason": "Variant nibble 7 is outside 8, 9, a, or b."
+    },
+    {
+      "case_id": "entity-id-version",
+      "definition": "EntityId",
+      "value": "01890f3e-2c4a-6d5e-8abc-0123456789ab",
+      "expectation": "invalid",
+      "expected": {
+        "code": "uuid_version",
+        "path": "",
+        "validation_layer": "schema"
+      },
+      "reason": "The version nibble must be 7."
+    },
+    {
+      "case_id": "entity-id-whitespace",
+      "definition": "EntityId",
+      "value": " 01890f3e-2c4a-7d5e-8abc-0123456789ab ",
+      "expectation": "invalid",
+      "expected": {
+        "code": "uuidv7_shape",
+        "path": "",
+        "validation_layer": "schema"
+      },
+      "reason": "Surrounding whitespace must not be trimmed."
+    },
+    {
+      "case_id": "entity-id-wrong-length",
+      "definition": "EntityId",
+      "value": "01890f3e-2c4a-7d5e-8abc-0123456789a",
+      "expectation": "invalid",
+      "expected": {
+        "code": "uuidv7_shape",
+        "path": "",
+        "validation_layer": "schema"
+      },
+      "reason": "The canonical UUID text has exactly 36 characters."
+    },
+    {
+      "case_id": "local-date-day-zero",
+      "definition": "LocalDate",
+      "value": "2024-01-00",
+      "expectation": "invalid",
+      "expected": {
+        "code": "invalid_gregorian_date",
+        "path": "",
+        "validation_layer": "schema_and_runtime"
+      },
+      "reason": "Day zero has canonical byte shape but is not a Gregorian date."
+    },
+    {
+      "case_id": "local-date-impossible-february-30",
+      "definition": "LocalDate",
+      "value": "2024-02-30",
+      "expectation": "invalid",
+      "expected": {
+        "code": "invalid_gregorian_date",
+        "path": "",
+        "validation_layer": "schema_and_runtime"
+      },
+      "reason": "February 30 has canonical byte shape but is not a Gregorian date."
+    },
+    {
+      "case_id": "local-date-missing-zero-padding",
+      "definition": "LocalDate",
+      "value": "2024-2-9",
+      "expectation": "invalid",
+      "expected": {
+        "code": "local_date_shape",
+        "path": "",
+        "validation_layer": "schema"
+      },
+      "reason": "Month and day require exactly two digits."
+    },
+    {
+      "case_id": "local-date-month-00",
+      "definition": "LocalDate",
+      "value": "2024-00-15",
+      "expectation": "invalid",
+      "expected": {
+        "code": "invalid_gregorian_date",
+        "path": "",
+        "validation_layer": "schema_and_runtime"
+      },
+      "reason": "Month zero has canonical byte shape but is not Gregorian."
+    },
+    {
+      "case_id": "local-date-month-13",
+      "definition": "LocalDate",
+      "value": "2024-13-15",
+      "expectation": "invalid",
+      "expected": {
+        "code": "invalid_gregorian_date",
+        "path": "",
+        "validation_layer": "schema_and_runtime"
+      },
+      "reason": "Month 13 has canonical byte shape but is not Gregorian."
+    },
+    {
+      "case_id": "local-date-non-leap-day",
+      "definition": "LocalDate",
+      "value": "2023-02-29",
+      "expectation": "invalid",
+      "expected": {
+        "code": "invalid_gregorian_date",
+        "path": "",
+        "validation_layer": "schema_and_runtime"
+      },
+      "reason": "2023 is not a leap year; format assertion and runtime Gregorian validation must reject it."
+    },
+    {
+      "case_id": "local-date-surrounding-whitespace",
+      "definition": "LocalDate",
+      "value": " 2024-01-01 ",
+      "expectation": "invalid",
+      "expected": {
+        "code": "local_date_shape",
+        "path": "",
+        "validation_layer": "schema"
+      },
+      "reason": "Whitespace must not be trimmed."
+    },
+    {
+      "case_id": "local-date-timestamp-suffix",
+      "definition": "LocalDate",
+      "value": "2024-01-01T00:00:00Z",
+      "expectation": "invalid",
+      "expected": {
+        "code": "local_date_shape",
+        "path": "",
+        "validation_layer": "schema"
+      },
+      "reason": "LocalDate carries no time or timezone suffix."
+    },
+    {
+      "case_id": "local-date-year-zero",
+      "definition": "LocalDate",
+      "value": "0000-01-01",
+      "expectation": "invalid",
+      "expected": {
+        "code": "unsupported_year",
+        "path": "",
+        "validation_layer": "runtime"
+      },
+      "reason": "The schema pattern and date format accept four-digit year zero, but the conservative runtime range is 0001 through 9999."
+    },
+    {
+      "case_id": "money-extra-property",
+      "definition": "Money",
+      "value": {
+        "currency": "USD",
+        "minor_units": "1",
+        "memo": "synthetic"
+      },
+      "expectation": "invalid",
+      "expected": {
+        "code": "additional_property",
+        "path": "/memo",
+        "validation_layer": "schema"
+      },
+      "reason": "Money is a closed object."
+    },
+    {
+      "case_id": "money-four-letter-currency",
+      "definition": "Money",
+      "value": {
+        "currency": "USDX",
+        "minor_units": "1"
+      },
+      "expectation": "invalid",
+      "expected": {
+        "code": "currency_shape",
+        "path": "/currency",
+        "validation_layer": "schema"
+      },
+      "reason": "Currency requires exactly three uppercase ASCII letters."
+    },
+    {
+      "case_id": "money-lowercase-currency",
+      "definition": "Money",
+      "value": {
+        "currency": "usd",
+        "minor_units": "1"
+      },
+      "expectation": "invalid",
+      "expected": {
+        "code": "currency_shape",
+        "path": "/currency",
+        "validation_layer": "schema"
+      },
+      "reason": "Currency must not be case-folded."
+    },
+    {
+      "case_id": "money-missing-currency",
+      "definition": "Money",
+      "value": {
+        "minor_units": "1"
+      },
+      "expectation": "invalid",
+      "expected": {
+        "code": "required_property",
+        "path": "/currency",
+        "validation_layer": "schema"
+      },
+      "reason": "Money requires an explicit currency."
+    },
+    {
+      "case_id": "money-missing-minor-units",
+      "definition": "Money",
+      "value": {
+        "currency": "USD"
+      },
+      "expectation": "invalid",
+      "expected": {
+        "code": "required_property",
+        "path": "/minor_units",
+        "validation_layer": "schema"
+      },
+      "reason": "Money requires explicit minor units."
+    },
+    {
+      "case_id": "money-noncanonical-minor-units",
+      "definition": "Money",
+      "value": {
+        "currency": "USD",
+        "minor_units": "01"
+      },
+      "expectation": "invalid",
+      "expected": {
+        "code": "canonical_spelling",
+        "path": "/minor_units",
+        "validation_layer": "schema"
+      },
+      "reason": "Minor units use the canonical signed integer spelling."
+    },
+    {
+      "case_id": "money-null-currency",
+      "definition": "Money",
+      "value": {
+        "currency": null,
+        "minor_units": "1"
+      },
+      "expectation": "invalid",
+      "expected": {
+        "code": "type_mismatch",
+        "path": "/currency",
+        "validation_layer": "schema_and_runtime"
+      },
+      "reason": "Null members are rejected rather than defaulted."
+    },
+    {
+      "case_id": "money-numeric-currency",
+      "definition": "Money",
+      "value": {
+        "currency": 840,
+        "minor_units": "1"
+      },
+      "expectation": "invalid",
+      "expected": {
+        "code": "type_mismatch",
+        "path": "/currency",
+        "validation_layer": "schema_and_runtime"
+      },
+      "reason": "Numeric currency identifiers are not coerced to strings."
+    },
+    {
+      "case_id": "money-numeric-minor-units",
+      "definition": "Money",
+      "value": {
+        "currency": "USD",
+        "minor_units": 1
+      },
+      "expectation": "invalid",
+      "expected": {
+        "code": "type_mismatch",
+        "path": "/minor_units",
+        "validation_layer": "schema_and_runtime"
+      },
+      "reason": "JSON numeric minor units are rejected rather than converted."
+    },
+    {
+      "case_id": "money-out-of-range-minor-units",
+      "definition": "Money",
+      "value": {
+        "currency": "USD",
+        "minor_units": "9223372036854775808"
+      },
+      "expectation": "invalid",
+      "expected": {
+        "code": "int64_out_of_range",
+        "path": "/minor_units",
+        "validation_layer": "runtime"
+      },
+      "reason": "The closed object passes JSON Schema, but minor units exceed signed 64-bit maximum."
+    },
+    {
+      "case_id": "money-two-letter-currency",
+      "definition": "Money",
+      "value": {
+        "currency": "US",
+        "minor_units": "1"
+      },
+      "expectation": "invalid",
+      "expected": {
+        "code": "currency_shape",
+        "path": "/currency",
+        "validation_layer": "schema"
+      },
+      "reason": "Currency requires exactly three uppercase ASCII letters."
+    },
+    {
+      "case_id": "nonnegative-int64-decimal",
+      "definition": "NonNegativeInt64",
+      "value": "1.0",
+      "expectation": "invalid",
+      "expected": {
+        "code": "canonical_spelling",
+        "path": "",
+        "validation_layer": "schema"
+      },
+      "reason": "Decimal notation is not a canonical counter spelling."
+    },
+    {
+      "case_id": "nonnegative-int64-exponent",
+      "definition": "NonNegativeInt64",
+      "value": "1e3",
+      "expectation": "invalid",
+      "expected": {
+        "code": "canonical_spelling",
+        "path": "",
+        "validation_layer": "schema"
+      },
+      "reason": "Exponent notation is prohibited."
+    },
+    {
+      "case_id": "nonnegative-int64-i64-overflow",
+      "definition": "NonNegativeInt64",
+      "value": "9223372036854775808",
+      "expectation": "invalid",
+      "expected": {
+        "code": "int64_out_of_range",
+        "path": "",
+        "validation_layer": "runtime"
+      },
+      "reason": "The canonical spelling passes JSON Schema but exceeds signed 64-bit maximum."
+    },
+    {
+      "case_id": "nonnegative-int64-leading-zero",
+      "definition": "NonNegativeInt64",
+      "value": "01",
+      "expectation": "invalid",
+      "expected": {
+        "code": "canonical_spelling",
+        "path": "",
+        "validation_layer": "schema"
+      },
+      "reason": "A nonzero counter cannot have a leading zero."
+    },
+    {
+      "case_id": "nonnegative-int64-negative-one",
+      "definition": "NonNegativeInt64",
+      "value": "-1",
+      "expectation": "invalid",
+      "expected": {
+        "code": "canonical_spelling",
+        "path": "",
+        "validation_layer": "schema"
+      },
+      "reason": "NonNegativeInt64 does not admit a minus sign."
+    },
+    {
+      "case_id": "nonnegative-int64-numeric-type",
+      "definition": "NonNegativeInt64",
+      "value": 1,
+      "expectation": "invalid",
+      "expected": {
+        "code": "type_mismatch",
+        "path": "",
+        "validation_layer": "schema_and_runtime"
+      },
+      "reason": "JSON numbers are rejected rather than converted to strings."
+    },
+    {
+      "case_id": "nonnegative-int64-plus-sign",
+      "definition": "NonNegativeInt64",
+      "value": "+1",
+      "expectation": "invalid",
+      "expected": {
+        "code": "canonical_spelling",
+        "path": "",
+        "validation_layer": "schema"
+      },
+      "reason": "An explicit plus sign is prohibited."
+    },
+    {
+      "case_id": "nonnegative-int64-whitespace",
+      "definition": "NonNegativeInt64",
+      "value": " 1 ",
+      "expectation": "invalid",
+      "expected": {
+        "code": "canonical_spelling",
+        "path": "",
+        "validation_layer": "schema"
+      },
+      "reason": "Whitespace must not be trimmed."
+    },
+    {
+      "case_id": "request-id-uppercase-alias",
+      "definition": "RequestId",
+      "value": "01890F3E-2C4A-7D5E-8ABC-0123456789AB",
+      "expectation": "invalid",
+      "expected": {
+        "code": "uuidv7_shape",
+        "path": "",
+        "validation_layer": "schema"
+      },
+      "reason": "RequestId inherits EntityId lowercase requirements through its reference."
+    },
+    {
+      "case_id": "sha256-digest-bare-bytes",
+      "definition": "Sha256Digest",
+      "value": [0, 1, 2],
+      "expectation": "invalid",
+      "expected": {
+        "code": "type_mismatch",
+        "path": "",
+        "validation_layer": "schema_and_runtime"
+      },
+      "reason": "Bare digest bytes are not the canonical algorithm-prefixed JSON string."
+    },
+    {
+      "case_id": "sha256-digest-missing-prefix",
+      "definition": "Sha256Digest",
+      "value": "0000000000000000000000000000000000000000000000000000000000000000",
+      "expectation": "invalid",
+      "expected": {
+        "code": "digest_shape",
+        "path": "",
+        "validation_layer": "schema"
+      },
+      "reason": "The literal sha256: prefix is mandatory."
+    },
+    {
+      "case_id": "sha256-digest-nonhex",
+      "definition": "Sha256Digest",
+      "value": "sha256:000000000000000000000000000000000000000000000000000000000000000g",
+      "expectation": "invalid",
+      "expected": {
+        "code": "digest_shape",
+        "path": "",
+        "validation_layer": "schema"
+      },
+      "reason": "Character g is not hexadecimal."
+    },
+    {
+      "case_id": "sha256-digest-too-long",
+      "definition": "Sha256Digest",
+      "value": "sha256:00000000000000000000000000000000000000000000000000000000000000000",
+      "expectation": "invalid",
+      "expected": {
+        "code": "digest_shape",
+        "path": "",
+        "validation_layer": "schema"
+      },
+      "reason": "A SHA-256 digest has exactly 64 hexadecimal characters."
+    },
+    {
+      "case_id": "sha256-digest-too-short",
+      "definition": "Sha256Digest",
+      "value": "sha256:000000000000000000000000000000000000000000000000000000000000000",
+      "expectation": "invalid",
+      "expected": {
+        "code": "digest_shape",
+        "path": "",
+        "validation_layer": "schema"
+      },
+      "reason": "A SHA-256 digest has exactly 64 hexadecimal characters."
+    },
+    {
+      "case_id": "sha256-digest-uppercase-algorithm",
+      "definition": "Sha256Digest",
+      "value": "SHA256:0000000000000000000000000000000000000000000000000000000000000000",
+      "expectation": "invalid",
+      "expected": {
+        "code": "digest_shape",
+        "path": "",
+        "validation_layer": "schema"
+      },
+      "reason": "The algorithm prefix is lowercase and exact."
+    },
+    {
+      "case_id": "sha256-digest-uppercase-hex",
+      "definition": "Sha256Digest",
+      "value": "sha256:A000000000000000000000000000000000000000000000000000000000000000",
+      "expectation": "invalid",
+      "expected": {
+        "code": "digest_shape",
+        "path": "",
+        "validation_layer": "schema"
+      },
+      "reason": "Digest hexadecimal is lowercase only."
+    },
+    {
+      "case_id": "sha256-digest-whitespace",
+      "definition": "Sha256Digest",
+      "value": " sha256:0000000000000000000000000000000000000000000000000000000000000000 ",
+      "expectation": "invalid",
+      "expected": {
+        "code": "digest_shape",
+        "path": "",
+        "validation_layer": "schema"
+      },
+      "reason": "Whitespace must not be trimmed."
+    },
+    {
+      "case_id": "utc-instant-four-fraction-digits",
+      "definition": "UtcInstant",
+      "value": "2024-01-01T00:00:00.0000Z",
+      "expectation": "invalid",
+      "expected": {
+        "code": "utc_instant_shape",
+        "path": "",
+        "validation_layer": "schema"
+      },
+      "reason": "Four fractional digits exceed exact millisecond precision."
+    },
+    {
+      "case_id": "utc-instant-impossible-day",
+      "definition": "UtcInstant",
+      "value": "2024-02-30T12:00:00.000Z",
+      "expectation": "invalid",
+      "expected": {
+        "code": "invalid_gregorian_date",
+        "path": "",
+        "validation_layer": "schema_and_runtime"
+      },
+      "reason": "The byte shape is canonical but February 30 is not Gregorian."
+    },
+    {
+      "case_id": "utc-instant-impossible-month",
+      "definition": "UtcInstant",
+      "value": "2024-13-01T12:00:00.000Z",
+      "expectation": "invalid",
+      "expected": {
+        "code": "invalid_gregorian_date",
+        "path": "",
+        "validation_layer": "schema_and_runtime"
+      },
+      "reason": "The byte shape is canonical but month 13 is not Gregorian."
+    },
+    {
+      "case_id": "utc-instant-impossible-time",
+      "definition": "UtcInstant",
+      "value": "2024-01-01T24:00:00.000Z",
+      "expectation": "invalid",
+      "expected": {
+        "code": "invalid_utc_clock",
+        "path": "",
+        "validation_layer": "schema_and_runtime"
+      },
+      "reason": "Hour 24 is outside the canonical UTC clock range."
+    },
+    {
+      "case_id": "utc-instant-leap-second",
+      "definition": "UtcInstant",
+      "value": "2024-01-01T23:59:60.000Z",
+      "expectation": "invalid",
+      "expected": {
+        "code": "leap_second_unsupported",
+        "path": "",
+        "validation_layer": "runtime"
+      },
+      "reason": "The pattern and RFC-compatible format assertion accept a leap-second spelling, but the frozen runtime contract does not."
+    },
+    {
+      "case_id": "utc-instant-lowercase-z",
+      "definition": "UtcInstant",
+      "value": "2024-01-01T00:00:00.000z",
+      "expectation": "invalid",
+      "expected": {
+        "code": "utc_instant_shape",
+        "path": "",
+        "validation_layer": "schema"
+      },
+      "reason": "The UTC marker must be uppercase Z."
+    },
+    {
+      "case_id": "utc-instant-missing-fraction",
+      "definition": "UtcInstant",
+      "value": "2024-01-01T00:00:00Z",
+      "expectation": "invalid",
+      "expected": {
+        "code": "utc_instant_shape",
+        "path": "",
+        "validation_layer": "schema"
+      },
+      "reason": "Fractional seconds are mandatory."
+    },
+    {
+      "case_id": "utc-instant-missing-z",
+      "definition": "UtcInstant",
+      "value": "2024-01-01T00:00:00.000",
+      "expectation": "invalid",
+      "expected": {
+        "code": "utc_instant_shape",
+        "path": "",
+        "validation_layer": "schema"
+      },
+      "reason": "The uppercase UTC marker is mandatory."
+    },
+    {
+      "case_id": "utc-instant-numeric-offset",
+      "definition": "UtcInstant",
+      "value": "2024-01-01T00:00:00.000+00:00",
+      "expectation": "invalid",
+      "expected": {
+        "code": "utc_instant_shape",
+        "path": "",
+        "validation_layer": "schema"
+      },
+      "reason": "Numeric offsets are not normalized into the canonical UTC form."
+    },
+    {
+      "case_id": "utc-instant-one-fraction-digit",
+      "definition": "UtcInstant",
+      "value": "2024-01-01T00:00:00.0Z",
+      "expectation": "invalid",
+      "expected": {
+        "code": "utc_instant_shape",
+        "path": "",
+        "validation_layer": "schema"
+      },
+      "reason": "One fractional digit is not exact millisecond precision."
+    },
+    {
+      "case_id": "utc-instant-six-fraction-digits",
+      "definition": "UtcInstant",
+      "value": "2024-01-01T00:00:00.000000Z",
+      "expectation": "invalid",
+      "expected": {
+        "code": "utc_instant_shape",
+        "path": "",
+        "validation_layer": "schema"
+      },
+      "reason": "Microsecond precision must not be rounded to milliseconds."
+    },
+    {
+      "case_id": "utc-instant-space-separator",
+      "definition": "UtcInstant",
+      "value": "2024-01-01 00:00:00.000Z",
+      "expectation": "invalid",
+      "expected": {
+        "code": "utc_instant_shape",
+        "path": "",
+        "validation_layer": "schema"
+      },
+      "reason": "The date-time separator must be uppercase T."
+    },
+    {
+      "case_id": "utc-instant-surrounding-whitespace",
+      "definition": "UtcInstant",
+      "value": " 2024-01-01T00:00:00.000Z ",
+      "expectation": "invalid",
+      "expected": {
+        "code": "utc_instant_shape",
+        "path": "",
+        "validation_layer": "schema"
+      },
+      "reason": "Whitespace must not be trimmed."
+    },
+    {
+      "case_id": "utc-instant-two-fraction-digits",
+      "definition": "UtcInstant",
+      "value": "2024-01-01T00:00:00.00Z",
+      "expectation": "invalid",
+      "expected": {
+        "code": "utc_instant_shape",
+        "path": "",
+        "validation_layer": "schema"
+      },
+      "reason": "Two fractional digits are not exact millisecond precision."
+    }
+  ]
+}
