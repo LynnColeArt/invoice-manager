@@ -52,3 +52,59 @@ test "bootstrap applies durably and an identical reopen run is a no-op" {
     try std.testing.expectEqual(@as(usize, 0), second.applied_count);
     try std.testing.expectEqual(@as(usize, 1), second.already_applied_count);
 }
+
+test "applied-history corruption and immutable drift fail through the public runner" {
+    const cases = [_]migrations.CriticalCategory{
+        .corrupt_applied_history,
+        .duplicate_applied_history,
+        .applied_id_drift,
+        .applied_owner_drift,
+        .applied_descriptor_drift,
+        .applied_script_drift,
+    };
+    for (cases) |case| {
+        try std.testing.expectError(
+            migrations.expectedError(case),
+            migrations.testing.exerciseCritical(std.testing.allocator, std.testing.io, case),
+        );
+    }
+}
+
+test "DDL failure discards dirty state reopens durable state and blocks later work" {
+    try std.testing.expectError(
+        error.DdlFailure,
+        migrations.testing.exerciseCritical(std.testing.allocator, std.testing.io, .ddl_failure),
+    );
+    try std.testing.expectError(
+        error.LaterMigrationBlocked,
+        migrations.testing.exerciseCritical(std.testing.allocator, std.testing.io, .later_migration_blocked),
+    );
+    try std.testing.expectError(
+        error.ReopenFailure,
+        migrations.testing.exerciseCritical(std.testing.allocator, std.testing.io, .reopen_failure),
+    );
+    try std.testing.expectError(
+        error.RecoveryQuarantine,
+        migrations.testing.exerciseCritical(std.testing.allocator, std.testing.io, .recovery_quarantine),
+    );
+}
+
+test "durability completion retries persistence and never replays migration DDL" {
+    const cases = [_]migrations.CriticalCategory{
+        .checkpoint_failure,
+        .directory_sync_failure,
+        .unsupported_directory_sync,
+    };
+    for (cases) |case| {
+        const evidence = try migrations.testing.completeWithoutReplay(
+            std.testing.allocator,
+            std.testing.io,
+            case,
+        );
+        try std.testing.expectEqual(@as(usize, 1), evidence.application_calls);
+        try std.testing.expect(!evidence.initial.isReady());
+        try std.testing.expectEqual(migrations.ReadinessStatus.durability_unconfirmed, evidence.initial.status);
+        try std.testing.expect(evidence.completed.isReady());
+        try std.testing.expectEqual(@as(usize, 1), evidence.application_calls);
+    }
+}
