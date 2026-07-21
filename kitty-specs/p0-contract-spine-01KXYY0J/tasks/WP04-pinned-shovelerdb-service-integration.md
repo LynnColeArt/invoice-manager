@@ -27,7 +27,7 @@ subtasks:
 - T019
 phase: Phase 2 - Service Dependency Integration
 assignee: ''
-agent: "codex-wp04-http-consumer-fix"
+agent: "codex-wp04-cycle16-reviewer"
 history: []
 agent_profile: reviewer-renata
 authoritative_surface: deps/shovelerdb/
@@ -591,3 +591,7 @@ Review `THIRD_PARTY_NOTICES.md` and the complete upstream license as acceptance-
 - 2026-07-21T07:50:31Z – user – shell_pid=1807838 – Arbiter override of stale historical cycle-6 rejection: independent review-cycle-15.md at 7ec6ea1 verifies RED 5bca0ba and product 9b9b7d9 close every cycle-13 HTTP module-graph, compile-order, and fail-closed run blocker; 19/19 discovery, two clean delayed HTTP replays, run forwarding, raw-module/module-removal negatives, composition, and Debug/ReleaseSafe ABI gates pass.
 - 2026-07-21T10:50:13Z – codex-wp04-cycle15 – shell_pid=2558026 – Cycle 16 rejects the WP08 HTTP consumer seam: tests cannot import the production HTTP/composition modules or receive the real executable path.
 - 2026-07-21T10:50:32Z – codex-wp04-http-consumer-fix – shell_pid=1807838 – Started implementation via action command
+- 2026-07-21T10:55:23Z – codex-wp04-http-consumer-fix – shell_pid=1807838 – RED cycle 16: committed permanent consumer fixture be9af8d. Exact command cd services/api && zig build test-build-discovery --summary all failed as intended: 18/19 passed; isolated HTTP root compilation reports no module named http available within module root. No production edit existed when this failure was captured.
+- 2026-07-21T11:00:14Z – codex-wp04-http-consumer-fix – shell_pid=1807838 – GREEN cycle 16: product commit 1d97a2a after RED test be9af8d and Zig-typed assertion follow-up 1a453e5. Exact discovery command passed 19/19, including named http and composition refAllDecls plus spawning the invoice-manager-api path generated directly from executable.getEmittedBin(). Two cold-cache discovery replays passed 19/19 each. Zig 0.16.0 fmt and base build passed; adapter passed 4/4 Debug and ReleaseSafe; real integration passed 5/5 Debug and ReleaseSafe; stable build help names are unchanged; absent-WP08 test-http and run remain fail-closed with owning-WP diagnostics.
+- 2026-07-21T11:00:31Z – codex-wp04-http-consumer-fix – shell_pid=1807838 – Cycle 16 consumer-boundary correction ready for independent review at be9af8d, 1a453e5, and 1d97a2a; qualifying RED and full GREEN matrix recorded.
+- 2026-07-21T11:01:40Z – codex-wp04-cycle16-reviewer – shell_pid=1807838 – Started review via action command
