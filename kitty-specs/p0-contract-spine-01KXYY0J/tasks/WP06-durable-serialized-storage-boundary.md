@@ -41,6 +41,7 @@ create_intent:
 - services/api/tests/persistence/durability_test.zig
 - services/api/tests/persistence/durability_integration_test.zig
 - services/api/tests/persistence/directory_sync_test.zig
+- services/api/tests/persistence/durability_coverage_test.zig
 execution_mode: code_change
 model: ''
 owned_files:
@@ -355,6 +356,35 @@ The same tests must prove downstream code cannot obtain the raw ShovelerDB handl
 or adapter result types through the public facade. Run WP04's coverage hook and
 inspect persistence boundary coverage, especially failure transitions.
 
+### Executable Persistence Coverage Contract
+
+Use WP04's exact `coverage-persistence` mechanism. Every production file that
+owns one of the following branches must import the build-wired probe with exact
+`const persistence_coverage = @import("persistence_coverage_probe");` and call
+`persistence_coverage.hit(.<tag>)` inside the real error branch:
+
+`canonicalization_failure`, `lease_acquire_failure`, `lease_conflict`,
+`engine_open_failure`, `partial_open_cleanup`, `transaction_begin_failure`,
+`callback_failure`, `rollback_failure`, `commit_failure`, `checkpoint_failure`,
+`directory_open_failure`, `directory_sync_failure`, `directory_close_failure`,
+`uncertain_transition`, `quarantined_refusal`, `dirty_discard_failure`,
+`reopen_failure`, `recovery_quarantine`, `unsupported_directory_sync`, and
+`shutdown_failure`.
+
+Put executable cases in exact dedicated root
+`services/api/tests/persistence/durability_coverage_test.zig`. It may import only
+`std` and public `@import("persistence")`, with exact canonical binding
+`const persistence = @import("persistence");`. Include exact executable
+declaration test
+`test "persistence production declarations are analyzed" { std.testing.refAllDecls(persistence); }`.
+Name each critical test exactly `test "critical branch: <tag>"`; reach the tag
+through the public persistence facade, assert the stable diagnostic or state,
+and execute a positive owned-production PC delta after WP04 resets counters.
+Tests must never import or mutate the probe directly. Missing or renamed roots,
+a denominator below 20 owned production PCs, below 90%, unknown, duplicate, or
+missing names, skipped or logged-error tests, missing production hits, or zero
+per-test production deltas are hard failures.
+
 ## Build and Test Integration
 
 WP04 owns convention-scanned service build integration. Place source and test files
@@ -369,13 +399,16 @@ git diff --check -- services/api/src/platform/persistence services/api/tests/per
 cd services/api
 zig fmt --check src/platform/persistence tests/persistence
 zig build test-persistence
-zig build coverage
+zig build test-persistence-integration
+zig build test-persistence-crash
+zig build coverage-persistence
 zig build -Doptimize=ReleaseSafe test-persistence
 ```
 
-Also run `zig build test` when the package is locally green to catch service-wide
-regressions. Use `zig build test-shared` only when a shared-boundary change is
-legitimately in scope; do not modify shared code merely to make this package pass.
+Do not require aggregate `zig build test` or `zig build coverage` while WP07 and
+WP08 producers are absent; WP04 intentionally fails those missing downstream
+categories closed. Use `zig build test-shared` only when a shared-boundary change
+is legitimately in scope; do not modify shared code merely to make this package pass.
 
 If a WP04 build step is absent, stop and document the missing upstream contract.
 Do not invent one-off steps, bypass the convention scanner, or edit the build graph.
@@ -436,7 +469,7 @@ existing service policy provides an approved alternative.
 - [ ] The real engine passes at least 20 durability cycles and required crash cases.
 - [ ] The public facade exposes the later migration-runner seam without raw engine types.
 - [ ] Persistence diagnostics distinguish failures without exposing sensitive data.
-- [ ] WP04 convention-scanned tests, coverage, formatting, and ReleaseSafe checks pass.
+- [ ] WP04 focused persistence tests, measured persistence coverage, formatting, and ReleaseSafe checks pass.
 - [ ] No service build file, migration file, domain module, or frontend file was changed.
 - [ ] `git diff --check` passes for all owned changes.
 
