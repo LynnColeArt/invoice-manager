@@ -42,6 +42,7 @@ create_intent:
 - services/api/tests/shared/digest_test.zig
 - services/api/tests/shared/json_http_test.zig
 - services/api/tests/shared/boundary_fixtures_test.zig
+- services/api/tests/shared/boundary_coverage_test.zig
 execution_mode: code_change
 model: ''
 owned_files:
@@ -334,6 +335,35 @@ documented acceptance and error branch before implementation is declared done.
 21. Add a mutation or sentinel test that fails if negative Money, non-launch currency, exact milliseconds, or i64 overflow cases disappear.
 22. Do not weaken a fixture, skip a case, or catch-all an error merely to reach green.
 
+### Executable Shared Coverage Contract
+
+Use WP04's exact `coverage-shared` mechanism. Every production file that owns one
+of the following branches must import the build-wired probe with exact
+`const shared_coverage = @import("shared_coverage_probe");` and call
+`shared_coverage.hit(.<tag>)` inside the real error branch:
+
+`entity_id_length`, `entity_id_syntax`, `entity_id_version`,
+`entity_id_variant`, `currency_length`, `currency_alphabet`,
+`money_decimal_syntax`, `money_overflow`, `money_currency_mismatch`,
+`money_add_overflow`, `money_sub_overflow`, `local_date_shape`,
+`local_date_invalid`, `utc_instant_shape`, `utc_instant_invalid_date`,
+`utc_instant_invalid_clock`, `digest_prefix`, `digest_length`,
+`digest_alphabet`, `json_wrong_type`, `json_unknown_field`,
+`json_duplicate_field`, `json_missing_field`, and `json_trailing_content`.
+
+Put executable cases in exact dedicated root
+`services/api/tests/shared/boundary_coverage_test.zig`. It may import only `std`
+and public `@import("shared")`, with exact canonical binding
+`const shared = @import("shared");`. Include exact executable declaration test
+`test "shared production declarations are analyzed" { std.testing.refAllDecls(shared); }`.
+Name each critical test exactly `test "critical branch: <tag>"`; reach the tag
+through the public shared boundary, assert the stable error, and execute a
+positive owned-production PC delta after WP04 resets counters. Tests must never
+import or mutate the probe directly. Missing or renamed roots, a denominator
+below 24 owned production PCs, below 90%, unknown, duplicate, or missing names,
+skipped or logged-error tests, missing production hits, or zero per-test
+production deltas are hard failures.
+
 **Files**:
 
 - `services/api/tests/shared/boundary_fixtures_test.zig`
@@ -357,12 +387,13 @@ zig fmt --check services/api/src/shared services/api/tests/shared
 cd services/api
 zig build test-shared
 zig build coverage-shared
-zig build test
 ```
 
-`test-shared`, `coverage-shared`, and `test` are literal WP04 hook names. Do not
+`test-shared` and `coverage-shared` are literal WP04 hook names. Do not
 substitute aliases or documented equivalents. A missing hook is a WP04 dependency
 defect to route to its owner, not permission to edit `build.zig` in this package.
+Do not require aggregate `zig build test` while WP06-WP08 producers are absent;
+WP04 intentionally fails those missing downstream categories closed.
 
 Required test classes include parser/formatter round trips; all WP02 fixtures;
 signed i64 endpoints, unsafe-JavaScript values, and overflow; signed Money and
@@ -392,7 +423,7 @@ Before handoff, run `git diff --check`, `git status --short`, and
 - [ ] Runtime-only invalid fixtures prove structural acceptance before semantic rejection.
 - [ ] Fixture category counts and mutation sentinels prevent vacuous test success.
 - [ ] Shared Zig code reaches 90% coverage and every critical error branch has an explicit assertion.
-- [ ] Formatting, focused tests, full service tests, coverage, and diff checks pass.
+- [ ] Formatting, focused shared tests, measured shared coverage, and diff checks pass.
 - [ ] All examples and logs are synthetic and contain no sensitive material.
 - [ ] Only WP05-owned files changed.
 - [ ] The Activity Log records commands, counts, coverage, and reviewer remediation chronologically.

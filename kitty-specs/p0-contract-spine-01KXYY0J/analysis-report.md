@@ -4,71 +4,82 @@ artifact_type: spec-kitty.analysis-report
 command: /spec-kitty.analyze
 mission_slug: p0-contract-spine-01KXYY0J
 mission_id: 01KXYY0J76QBNSWXX0SHMZNXC4
-generated_at: '2026-07-20T22:37:53.483677+00:00'
-analyzer_agent: codex:gpt-5:architect-aida:architect
+generated_at: '2026-07-21T00:58:11.519112+00:00'
+analyzer_agent: unknown
 input_artifacts:
   spec.md:
     path: /home/lynn/projects/invoice-manager/kitty-specs/p0-contract-spine-01KXYY0J/spec.md
     sha256: cbf96c32d255558dd1464b73a21ad4d101c171f0e3af45823b85823dfbf87420
   plan.md:
     path: /home/lynn/projects/invoice-manager/kitty-specs/p0-contract-spine-01KXYY0J/plan.md
-    sha256: 6657c06b221b6df52a8ef3eae0121069e15fbadc44b7df060630e1cfecb11e87
+    sha256: e115aa7d51ec98694f475a4fe589e5124a4a56296c9322bdd602afcb40546ce3
   tasks.md:
     path: /home/lynn/projects/invoice-manager/kitty-specs/p0-contract-spine-01KXYY0J/tasks.md
-    sha256: 20bdde2326005f56a9001224e6657c6a8148f7364839066187babb33e18b71c8
+    sha256: 67ac4f848b8cbccb19b034fb4809100a0c5432a78f4a546070e93645fed32495
   charter:
     path: /home/lynn/projects/invoice-manager/.kittify/charter/charter.md
     sha256: a1176517b273e322d3dc408e369ef836c40e3bb84c69ae140ad554cffbb53f0f
 verdict: ready
 issue_counts:
   high: 0
-  critical: 0
   low: 0
+  critical: 0
   medium: 0
   info: 0
 findings: []
 ---
 
-## Specification Analysis Report
+# Cross-Artifact Analysis
 
-| ID | Category | Severity | Location(s) | Summary | Recommendation |
-|----|----------|----------|-------------|---------|----------------|
-| — | — | — | — | No cross-artifact finding. The approved ShovelerDB pin is consistently `021e3b3d9247a181252329d6ba7ec8d2ed943a97` in C-004, the technical context, the persistence strategy, research Decision 8, and every normative WP04 instruction. The prior pin appears only in immutable activity-log evidence describing the resolved blocker. | Resume WP04 against the exact public commit and retain the old-pin entries as historical evidence. |
+## Verdict
 
-## Coverage Summary
+READY. The amended specification, plan, task manifest, and WP04-WP07 prompts are
+internally consistent and preserve the charter's coverage and ownership MUSTs.
 
-| Requirement Set | Has Task? | Work Packages | Notes |
-|-----------------|-----------|---------------|-------|
-| FR-001–FR-016 | Yes | WP01–WP12 | All functional requirements remain explicitly mapped; the repin does not change scope. |
-| NFR-001–NFR-012 | Yes | WP01–WP12 | All quality requirements remain explicitly mapped. |
-| C-001–C-010 | Yes | WP01–WP12 | C-004 now names the reviewed public fix commit; C-009 reproducibility is unchanged. |
+## Findings
 
-## Dependency and Ownership Review
+No critical, high, medium, low, or informational consistency findings remain.
 
-- WP04 remains dependent only on WP01 and exclusively owns the vendored source, Zig build/adapter/integration surface, and notices.
-- WP05 and WP06 remain blocked on WP04 approval; no dependency edge changed.
-- WP09 remains independently reviewable; no repin file overlaps its configuration-only ownership.
-- The public remote resolves `refs/heads/main` to the exact new pin. The exported `LICENSE`, `include/**`, and `src/**` tree is reproducible with digest `6bb2b4215aa50a8ffbbff3278aea4f32c4fc0f906da817037c44095cfd19480b`.
+## Coverage and traceability
 
-## Charter Alignment Issues
+- All 38 approved requirements and constraints retain nominal work-package
+  coverage across the 12-package manifest.
+- WP04 and IC-05 now trace FR-015 and NFR-006 as the exclusive service build and
+  coverage-enforcement infrastructure owner; WP05, WP06, and WP07 remain the
+  source/test producers for their respective measured domains.
+- `coverage-shared`, `coverage-persistence`, and `coverage-migration` are each
+  specified as source-scoped production-PC gates with a 90% threshold, exact
+  critical production probes, dedicated roots, and non-vacuous minimum
+  denominators of 24, 20, and 36 respectively.
+- WP05 and WP06 use only their focused test and coverage gates while downstream
+  producers are absent; aggregate test and coverage success is deferred until
+  every constituent producer exists.
 
-None. The repin preserves exact dependency identity, GPL-compatible notice requirements, clean-clone reproducibility, the one-adapter boundary, TDD evidence, and the prohibition on floating or sibling-path dependencies.
+## Boundary and dependency review
 
-## Unmapped Tasks
-
-None. T001–T057 remain contiguous and singly owned. No task, requirement, ownership path, or work-package dependency was added or removed.
+- Each coverage root may import only `std` and exactly one public production
+  module; Zig token/AST validation, executable declaration analysis, normalized
+  relative imports, and cross-scope/traversal rejection are explicit WP04
+  acceptance requirements.
+- Shared, persistence, and migration critical-tag inventories are exact and
+  executable. Per-test counter resets, production probe hits, and positive
+  owned-production PC deltas are required in all three scopes.
+- The WP dependency DAG remains acyclic. WP05 and WP06 may proceed in parallel
+  after WP04; WP07 remains correctly dependent on WP03-WP06.
+- Ownership is additive: WP04 owns `build.zig` and `shovelerdb*` coverage
+  infrastructure, while later packages own only their production and dedicated
+  test roots.
 
 ## Metrics
 
-- Total Requirements: 38
-- Total Tasks: 57
-- Coverage: 100%
-- Ambiguity Count: 0
-- Duplication Count: 0
-- Critical Issues Count: 0
+- Requirements and constraints: 38
+- Work packages: 12
+- Nominal requirement mapping: 100%
+- Critical findings: 0
+- High findings: 0
+- Medium findings: 0
+- Low findings: 0
+- Informational findings: 0
 
-## Next Actions
-
-- Continue WP04 after its hostile-literal ABI probe passed against the new exact vendored source; finish its adapter, integration, clean-clone, and license gates.
-- Treat WP09 as independently approved after its static lock/integrity and proxy review passed without package execution.
-- After WP04 approval, dispatch WP05 and WP06 concurrently because both dependency sets will be satisfied and their owned paths do not overlap.
+Implementation conformance is intentionally left to WP04's implement-review
+cycle; this analysis verdict concerns the now-consistent planning artifacts.

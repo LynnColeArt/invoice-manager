@@ -6,6 +6,8 @@ dependencies:
 requirement_refs:
 - FR-011
 - FR-012
+- FR-015
+- NFR-006
 - NFR-009
 - NFR-011
 - NFR-012
@@ -27,7 +29,7 @@ phase: Phase 2 - Service Dependency Integration
 assignee: ''
 agent: "codex"
 history: []
-agent_profile: reviewer-renata
+agent_profile: implementer-ivan
 authoritative_surface: deps/shovelerdb/
 create_intent:
 - services/api/build.zig
@@ -44,7 +46,7 @@ owned_files:
 - services/api/src/platform/persistence/shovelerdb*
 - services/api/tests/persistence/shovelerdb*
 - THIRD_PARTY_NOTICES*
-role: reviewer
+role: implementer
 tags: []
 task_type: implement
 shell_pid: "1807838"
@@ -242,6 +244,13 @@ If upstream later publishes package metadata, replacing this shim is a separate 
 23. Add an ABI compatibility build assertion that requires runtime/header version `0.1.0`.
 24. Preserve target and optimization options so Debug and ReleaseSafe builds exercise the same discovery graph.
 25. Keep service build integration here; later WPs add files only inside their owned roots and consume these hooks unchanged.
+26. Make `coverage-shared`, `coverage-persistence`, and `coverage-migration` independent measured gates, not aliases for ordinary tests. Each gate must compile its owned production module with Zig instrumentation, run a dedicated coverage root through WP04's pinned runner, measure only the scope's owned production PCs, reject a zero or implausibly small denominator, require at least 90%, and require every exact critical production-side probe.
+27. Reserve exact dedicated roots `tests/shared/boundary_coverage_test.zig`, `tests/persistence/durability_coverage_test.zig`, and `tests/persistence/migrations_coverage_test.zig`. Ordinary or renamed roots do not satisfy coverage production. The build must fail closed before a producer exists and when a producer exists without its exact dedicated root.
+28. Wire uninstrumented WP04-owned probe, contract, runner, and dependency modules into each instrumented production scope. Coverage roots may import only `std` and their one public production module (`shared`, `persistence`, or `migrations`); they may never import or mutate probes, contracts, adapters, or another production scope directly.
+29. Validate coverage-root declarations with Zig tokens or AST structure, never raw substring presence. Require one canonical module binding and one executable declaration-analysis test using `std.testing.refAllDecls(<module>)`; comments, string literals, alternate bindings, duplicate bindings, empty shadow modules, or disabled code must not satisfy the contract.
+30. Normalize every production relative import before accepting it. Shared instrumentation may include only `src/shared/**`; persistence instrumentation may include only WP06's `root.zig`, `store*`, `durability*`, `directory_sync*`, and `diagnostic*` files; migration instrumentation may include only `migrations*.zig`. Named uninstrumented dependencies are allowed only as explicitly wired by the build. Reject absolute paths, traversal/backtracking, direct cross-scope imports, and path-prefix lookalikes.
+31. Let the shared and persistence contracts consume the exact critical-tag inventories published by WP05 and WP06. Reset counters and probe bits per test; reject unknown, duplicate, missing, skipped, logged-error, leaked, probe-missing, or zero-production-PC-delta critical tests. Aggregate `coverage` must run and propagate all three measured gates in deterministic order.
+32. In `test-build-discovery`, prove all three gates fail for absent source, absent or renamed roots, production `@compileError` sentinels, comments in place of declaration analysis, alternate or shadow module bindings, direct dependency imports, traversal-shaped imports, missing or wrong probes, fabricated labels, below-threshold execution, and impossible measurement. Prove valid synthetic producers pass at or above threshold without instrumenting harness code.
 
 #### Stable named build steps
 
@@ -255,7 +264,7 @@ Expose these exact names in `zig build --help`:
 - `coverage-persistence` — WP06 persistence coverage;
 - `test-migration`, `test-migration-integration`, `migration-negative`, and `coverage-migration` — distinct WP07 positive, negative, and coverage gates;
 - `test-http` — WP08 HTTP/route-policy tests, after exact `npm run contracts:generate` materialization;
-- `coverage` — aggregate shared/persistence/migration coverage, requiring at least 90% migration logic and every enumerated critical branch;
+- `coverage` — aggregate measured shared/persistence/migration coverage, requiring at least 90% in each scope and every scope's enumerated critical branch;
 - `test` — aggregate service test gate in deterministic group order.
 
 WP01's root `migration:negative` command delegates to `zig build
@@ -461,6 +470,8 @@ Negative checks must prove:
 - [ ] `build.zig` exposes every exact stable adapter/shared/persistence/migration/HTTP/coverage/service step named in T016.
 - [ ] Discovery is canonically ordered and rejects duplicate, overlapping, escaping, or unclassified roots with owning-WP diagnostics.
 - [ ] Distinct WP07 positive/negative/coverage gates are nonempty, and aggregate coverage includes migration at 90% plus every critical branch.
+- [ ] Shared and persistence coverage hooks independently measure only owned production PCs, enforce 90% plus their exact critical probes, and fail when production is uncompiled or evidence is fabricated.
+- [ ] Coverage-root and production-import validators reject comments, strings, shadow bindings, direct cross-scope imports, traversal, and renamed roots.
 - [ ] Later service WPs can add owned tests and consume hooks without editing `build.zig`.
 - [ ] Header and runtime ABI versions are checked as `0.1.0`.
 - [ ] The adapter is the only invoice-manager import of ShovelerDB ABI details.
@@ -526,3 +537,5 @@ Review `THIRD_PARTY_NOTICES.md` and the complete upstream license as acceptance-
 - 2026-07-21T00:29:00Z – codex – shell_pid=1807838 – GREEN: WP04-CYCLE2-REGRESSION; implementation 9bd5806 plus coordination merge 7ac7eb0. Zig format/build passed; adapter 4/4; real ABI integration 3/3 Debug and ReleaseSafe; discovery 10/10. Fresh isolated copy passed build and all WP04 gates twice across deleted caches with no sibling/private path. Exact Node 24.18.0/npm 11.16.0 offline ci, verify:substrate, full and production audits passed with 0 vulnerabilities. Provenance change, missing c_api.zig, and changed ABI source failed before storage use. Ruff diff-scoped check: 0 Python files, exit 0.
 - 2026-07-21T00:30:20Z – codex – shell_pid=1807838 – Cycle 2 ready for independent review: 9bd5806 adds exact Zig 0.16 production-PC coverage with 90% threshold, 36 critical branch probes/tests, strict source/import/test contracts, and aggregate failure propagation. Valid fixture 73/73; low fixture 73/106 rejected; full ABI, clean-copy, tamper, and zero-vulnerability substrate regressions green.
 - 2026-07-21T00:31:47Z – codex – shell_pid=1807838 – Started review via action command
+- 2026-07-21T00:44:11Z – user – shell_pid=1807838 – Moved to planned
+- 2026-07-21T00:58:17Z – codex – shell_pid=1807838 – Started implementation via action command
