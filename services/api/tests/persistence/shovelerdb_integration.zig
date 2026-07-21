@@ -233,3 +233,142 @@ test "Unicode newline and backslash text round trips byte for byte" {
         else => return error.ExpectedRows,
     }
 }
+
+test "public adapter binds five independently escaped text values" {
+    const allocator = std.testing.allocator;
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const path = try temporaryDatabasePath(allocator, &tmp);
+    defer allocator.free(path);
+
+    var adapter = try shovelerdb.Adapter.open(allocator, path);
+    defer adapter.deinit();
+    var created = try adapter.execute(
+        allocator,
+        "CREATE TABLE wp04_bound_probe (migration_id TEXT, owner TEXT, descriptor_digest TEXT, script_digest TEXT, applied_at TEXT);",
+    );
+    created.deinit(allocator);
+
+    const fragments = &[_][]const u8{
+        "INSERT INTO wp04_bound_probe VALUES (",
+        ", ",
+        ", ",
+        ", ",
+        ", ",
+        ");",
+    };
+    const values = [_][]const u8{
+        "018f6f10-7b7a-7c2d-8e65-0f7b1c2d3e4f",
+        "p'0",
+        "",
+        "sha256:a'; DROP TABLE wp04_bound_probe; --",
+        "2026-07-21T04:45:00.000Z\n",
+    };
+
+    try adapter.begin();
+    var inserted = try adapter.executeBound(allocator, fragments, &values);
+    try expectMutation(inserted, 1);
+    inserted.deinit(allocator);
+    try adapter.commit();
+
+    var selected = try adapter.execute(
+        allocator,
+        "SELECT migration_id, owner, descriptor_digest, script_digest, applied_at FROM wp04_bound_probe;",
+    );
+    defer selected.deinit(allocator);
+    const rows = switch (selected) {
+        .rows => |rows| rows,
+        else => return error.ExpectedRows,
+    };
+    try std.testing.expectEqual(@as(usize, 1), rows.rows.len);
+    try std.testing.expectEqual(@as(usize, values.len), rows.rows[0].values.len);
+    for (values, 0..) |expected, index| {
+        try std.testing.expectEqualStrings(expected, rows.rows[0].values[index].text);
+    }
+
+    try adapter.begin();
+    try std.testing.expectError(
+        error.BindingArityMismatch,
+        adapter.executeBound(allocator, fragments, values[0..4]),
+    );
+    const nul_values = [_][]const u8{
+        values[0],
+        values[1],
+        "digest\x00suffix",
+        values[3],
+        values[4],
+    };
+    try std.testing.expectError(
+        error.EmbeddedNul,
+        adapter.executeBound(allocator, fragments, &nul_values),
+    );
+    var failing = std.testing.FailingAllocator.init(allocator, .{ .fail_index = 0 });
+    try std.testing.expectError(
+        error.OutOfMemory,
+        adapter.executeBound(failing.allocator(), fragments, &values),
+    );
+    try std.testing.expect(failing.has_induced_failure);
+    try adapter.rollback();
+
+    var after_failures = try adapter.execute(
+        allocator,
+        "SELECT migration_id FROM wp04_bound_probe;",
+    );
+    defer after_failures.deinit(allocator);
+    switch (after_failures) {
+        .rows => |after_rows| try std.testing.expectEqual(@as(usize, 1), after_rows.rows.len),
+        else => return error.ExpectedRows,
+    }
+}
+
+test "public adapter executes one exact runtime statement without normalization" {
+    const allocator = std.testing.allocator;
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const path = try temporaryDatabasePath(allocator, &tmp);
+    defer allocator.free(path);
+
+    var adapter = try shovelerdb.Adapter.open(allocator, path);
+    defer adapter.deinit();
+
+    const exact_script = "\r\n\tCREATE TABLE wp04_exact_script (body TEXT);\n \t";
+    var created = try adapter.executeScript(allocator, exact_script);
+    created.deinit(allocator);
+
+    var selected = try adapter.execute(allocator, "SELECT body FROM wp04_exact_script;");
+    selected.deinit(allocator);
+
+    try std.testing.expectError(
+        error.Parse,
+        adapter.executeScript(
+            allocator,
+            "CREATE TABLE wp04_first_forbidden (body TEXT);\nCREATE TABLE wp04_second_forbidden (body TEXT);\n",
+        ),
+    );
+    try std.testing.expectError(
+        error.Object,
+        adapter.execute(allocator, "SELECT body FROM wp04_first_forbidden;"),
+    );
+    try std.testing.expectEqual(
+        shovelerdb.ErrorCategory.object,
+        shovelerdb.category(error.Object),
+    );
+    try std.testing.expectError(
+        error.EmbeddedNul,
+        adapter.executeScript(allocator, "CREATE TABLE bad\x00suffix (body TEXT);"),
+    );
+
+    var failing = std.testing.FailingAllocator.init(allocator, .{ .fail_index = 0 });
+    try std.testing.expectError(
+        error.OutOfMemory,
+        adapter.executeScript(failing.allocator(), "CREATE TABLE wp04_allocation_probe (body TEXT);"),
+    );
+    try std.testing.expect(failing.has_induced_failure);
+
+    var usable_after_failure = try adapter.execute(allocator, "SELECT body FROM wp04_exact_script;");
+    defer usable_after_failure.deinit(allocator);
+    switch (usable_after_failure) {
+        .rows => |rows| try std.testing.expectEqual(@as(usize, 0), rows.rows.len),
+        else => return error.ExpectedRows,
+    }
+}
