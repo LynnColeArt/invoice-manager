@@ -27,7 +27,7 @@ subtasks:
 - T036
 phase: Phase 4
 assignee: ''
-agent: "codex-cycle3-reviewer"
+agent: "codex-wp07-cycle4-reviewer"
 history: []
 agent_profile: implementer-ivan
 authoritative_surface: services/api/src/platform/persistence/migrations
@@ -538,3 +538,5 @@ root scripts, or WP06 internals; missing stable wiring is an upstream WP04 failu
 - 2026-07-21T10:27:05Z – codex – shell_pid=2494830 – Chronology correction complete via transparent revert, contemporaneous RED, effective reapply, and full GREEN verification; ready for independent cycle-3 review.
 - 2026-07-21T10:27:47Z – codex-cycle3-reviewer – shell_pid=1807838 – Started review via action command
 - 2026-07-21T10:37:17Z – user – shell_pid=1807838 – Review passed: cycle 2 chronology blocker closed by transparent ce4b886 revert, contemporaneous RED cbfc861, effective correction 42f375b, and independently verified full GREEN matrix; cycle 3 artifact records zero blockers.
+- 2026-07-21T13:31:41Z – user – shell_pid=1807838 – Moved to for_review
+- 2026-07-21T13:32:18Z – codex-wp07-cycle4-reviewer – shell_pid=1807838 – Started review via action command
