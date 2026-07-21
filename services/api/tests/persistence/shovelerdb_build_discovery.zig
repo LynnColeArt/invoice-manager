@@ -182,12 +182,17 @@ fn prepareHttpFixture(
     try writeFixtureFile(
         fixture.tmp.dir,
         "services/api/src/http/root.zig",
-        "pub const marker: u8 = 1;\n",
+        "const shared = @import(\"shared\");\n" ++
+            "const persistence = @import(\"persistence\");\n" ++
+            "const migrations = @import(\"migrations\");\n" ++
+            "pub const marker = shared.marker + persistence.marker + migrations.marker;\n" ++
+            "pub fn touch() void { shared.touch(); persistence.touch(); migrations.touch(); }\n",
     );
     try writeFixtureFile(
         fixture.tmp.dir,
         "services/api/src/main.zig",
-        "pub fn main() !void {}\n",
+        "const http = @import(\"http\");\n" ++
+            "pub fn main() !void { http.touch(); }\n",
     );
     try writeFixtureFile(
         fixture.tmp.dir,
@@ -276,7 +281,7 @@ test "stable step names and aggregate order are exact" {
     );
 }
 
-test "isolated HTTP roots compile against the public service module graph" {
+test "isolated HTTP roots compile against the complete service graph and emitted API" {
     const allocator = std.testing.allocator;
     var fixture = try prepareHttpFixture(
         allocator,
@@ -285,10 +290,20 @@ test "isolated HTTP roots compile against the public service module graph" {
             "const shared = @import(\"shared\");\n" ++
             "const persistence = @import(\"persistence\");\n" ++
             "const migrations = @import(\"migrations\");\n" ++
+            "const http = @import(\"http\");\n" ++
+            "const composition = @import(\"composition\");\n" ++
+            "const http_test_config = @import(\"http_test_config\");\n" ++
             "test \"public HTTP dependencies compile\" {\n" ++
             "    std.testing.refAllDecls(shared);\n" ++
             "    std.testing.refAllDecls(persistence);\n" ++
             "    std.testing.refAllDecls(migrations);\n" ++
+            "    std.testing.refAllDecls(http);\n" ++
+            "    std.testing.refAllDecls(composition);\n" ++
+            "    try std.testing.expectEqualStrings(\"invoice-manager-api\", std.fs.path.basename(http_test_config.api_executable_path));\n" ++
+            "    const result = try std.process.run(std.testing.allocator, std.testing.io, .{ .argv = &.{http_test_config.api_executable_path} });\n" ++
+            "    defer std.testing.allocator.free(result.stdout);\n" ++
+            "    defer std.testing.allocator.free(result.stderr);\n" ++
+            "    try std.testing.expectEqual(.{ .exited = 0 }, result.term);\n" ++
             "}\n",
     );
     defer fixture.deinit(allocator);
