@@ -27,7 +27,7 @@ subtasks:
 - T036
 phase: Phase 4
 assignee: ''
-agent: codex
+agent: "codex"
 history: []
 agent_profile: implementer-ivan
 authoritative_surface: services/api/src/platform/persistence/migrations
@@ -49,6 +49,7 @@ owned_files:
 role: implementer
 tags: []
 task_type: implement
+shell_pid: "1807838"
 ---
 
 # Work Package Prompt: WP07 – Parallel-Safe Migration Runner
@@ -508,3 +509,4 @@ root scripts, or WP06 internals; missing stable wiring is an upstream WP04 failu
   integrity, deterministic planning, durable application, and negative evidence.
 - 2026-07-20T16:05:56Z – system – Prompt remapped to WP07 and constrained to
   WP06's public durability/recovery seam and WP04's mandatory negative gate.
+- 2026-07-21T06:52:36Z – codex – shell_pid=1807838 – Assigned agent via action command
