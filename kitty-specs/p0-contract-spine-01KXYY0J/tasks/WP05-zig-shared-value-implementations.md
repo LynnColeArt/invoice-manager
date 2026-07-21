@@ -22,7 +22,7 @@ subtasks:
 - T024
 phase: Phase 2 - Canonical Contract Foundation
 assignee: ''
-agent: codex
+agent: "codex"
 history: []
 agent_profile: implementer-ivan
 authoritative_surface: services/api/src/shared/
@@ -51,6 +51,7 @@ owned_files:
 role: implementer
 tags: []
 task_type: implement
+shell_pid: "1807838"
 ---
 
 # Work Package Prompt: WP05 – Zig Shared Value Implementations
@@ -480,3 +481,4 @@ No implementation entries yet.
 
 Use `spec-kitty agent tasks move-task WP05 --to <status>`; never edit status
 logs or frontmatter state by hand.
+- 2026-07-21T02:08:27Z – codex – shell_pid=1807838 – Assigned agent via action command
