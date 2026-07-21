@@ -1,6 +1,50 @@
 const std = @import("std");
 const migrations = @import("migrations");
 
+const bootstrap_id = "018f6f10-7b7a-7c2d-8e65-0f7b1c2d3e4f";
+const bootstrap_script = "CREATE TABLE app_schema_migrations (id TEXT, owner TEXT, descriptor_digest TEXT, script_digest TEXT, applied_at TEXT);\n";
+const bootstrap_manifest =
+    "{\"id\":\"018f6f10-7b7a-7c2d-8e65-0f7b1c2d3e4f\",\"owner\":\"p0\",\"name\":\"bootstrap_migration_history\",\"depends_on\":[],\"script_path\":\"up.sql\",\"script_digest\":\"sha256:68dff6daa265a0c0c6d603994438c43a0af3228fff72e677d9dcd0cd60b1fbd3\",\"descriptor_digest\":\"sha256:0b5af56a66a73c1f0f96b76ad4307a6e3a76f3cd34cb0ba71197a5e90d4e7877\"}";
+
+fn temporaryPath(
+    allocator: std.mem.Allocator,
+    tmp: *const std.testing.TmpDir,
+    suffix: []const u8,
+) ![]u8 {
+    return std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/{s}", .{ tmp.sub_path, suffix });
+}
+
+fn writeBootstrap(
+    allocator: std.mem.Allocator,
+    io: std.Io,
+    root_path: []const u8,
+    relative_parent: []const u8,
+) !void {
+    const migration_path = if (relative_parent.len == 0)
+        try std.fmt.allocPrint(allocator, "{s}/{s}", .{ root_path, bootstrap_id })
+    else
+        try std.fmt.allocPrint(allocator, "{s}/{s}/{s}", .{ root_path, relative_parent, bootstrap_id });
+    defer allocator.free(migration_path);
+    try std.Io.Dir.createDirPath(.cwd(), io, migration_path);
+
+    const script_path = try std.fmt.allocPrint(allocator, "{s}/up.sql", .{migration_path});
+    defer allocator.free(script_path);
+    try std.Io.Dir.writeFile(.cwd(), io, .{ .sub_path = script_path, .data = bootstrap_script });
+
+    const manifest_path = try std.fmt.allocPrint(allocator, "{s}/manifest.json", .{migration_path});
+    defer allocator.free(manifest_path);
+    try std.Io.Dir.writeFile(.cwd(), io, .{ .sub_path = manifest_path, .data = bootstrap_manifest });
+}
+
+fn discoverFailure(
+    allocator: std.mem.Allocator,
+    io: std.Io,
+    roots: []const migrations.OwnerRoot,
+) migrations.MigrationError!void {
+    var discovered = try migrations.discover(allocator, io, roots);
+    defer discovered.deinit();
+}
+
 test "bootstrap migration is discovered with immutable exact-byte digests" {
     var discovered = try migrations.discover(
         std.testing.allocator,
@@ -42,6 +86,105 @@ test "bootstrap migration is discovered with immutable exact-byte digests" {
             .{},
         ),
     );
+}
+
+test "owner root basename must exactly match the configured owner" {
+    const allocator = std.testing.allocator;
+    const io = std.testing.io;
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const root_path = try temporaryPath(allocator, &tmp, "not-p0");
+    defer allocator.free(root_path);
+    try writeBootstrap(allocator, io, root_path, "");
+
+    try std.testing.expectError(
+        error.OwnerMismatch,
+        discoverFailure(allocator, io, &.{.{ .owner = "p0", .path = root_path }}),
+    );
+}
+
+test "lexical owner-root aliases share one normalized descriptor identity" {
+    const allocator = std.testing.allocator;
+    const io = std.testing.io;
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const root_path = try temporaryPath(allocator, &tmp, "p0");
+    defer allocator.free(root_path);
+    const alias_path = try temporaryPath(allocator, &tmp, "./p0");
+    defer allocator.free(alias_path);
+    try writeBootstrap(allocator, io, root_path, "");
+
+    try std.testing.expectError(
+        error.DuplicateDescriptorPath,
+        discoverFailure(allocator, io, &.{
+            .{ .owner = "p0", .path = root_path },
+            .{ .owner = "p0", .path = alias_path },
+        }),
+    );
+}
+
+test "final owner-root symlink is rejected as an escape" {
+    const allocator = std.testing.allocator;
+    const io = std.testing.io;
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const real_root = try temporaryPath(allocator, &tmp, "real/p0");
+    defer allocator.free(real_root);
+    const linked_root = try temporaryPath(allocator, &tmp, "p0");
+    defer allocator.free(linked_root);
+    try writeBootstrap(allocator, io, real_root, "");
+    try std.Io.Dir.symLink(.cwd(), io, "real/p0", linked_root, .{});
+
+    try std.testing.expectError(
+        error.SymlinkEscape,
+        discoverFailure(allocator, io, &.{.{ .owner = "p0", .path = linked_root }}),
+    );
+}
+
+test "symlinked owner-root ancestor is rejected as an escape" {
+    const allocator = std.testing.allocator;
+    const io = std.testing.io;
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const real_root = try temporaryPath(allocator, &tmp, "real/p0");
+    defer allocator.free(real_root);
+    const linked_ancestor = try temporaryPath(allocator, &tmp, "alias");
+    defer allocator.free(linked_ancestor);
+    const linked_root = try temporaryPath(allocator, &tmp, "alias/p0");
+    defer allocator.free(linked_root);
+    try writeBootstrap(allocator, io, real_root, "");
+    try std.Io.Dir.symLink(.cwd(), io, "real", linked_ancestor, .{});
+
+    try std.testing.expectError(
+        error.SymlinkEscape,
+        discoverFailure(allocator, io, &.{.{ .owner = "p0", .path = linked_root }}),
+    );
+}
+
+test "valid descriptors are discovered recursively beneath an owner root" {
+    const allocator = std.testing.allocator;
+    const io = std.testing.io;
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const root_path = try temporaryPath(allocator, &tmp, "p0");
+    defer allocator.free(root_path);
+    try writeBootstrap(allocator, io, root_path, "nested/component");
+
+    var discovered = try migrations.discover(
+        allocator,
+        io,
+        &.{.{ .owner = "p0", .path = root_path }},
+    );
+    defer discovered.deinit();
+    try std.testing.expectEqual(@as(usize, 1), discovered.descriptors.len);
+    try std.testing.expectEqualStrings(bootstrap_id, discovered.descriptors[0].id);
+    const expected_source_path = try std.fmt.allocPrint(
+        allocator,
+        "{s}/nested/component/{s}/manifest.json",
+        .{ root_path, bootstrap_id },
+    );
+    defer allocator.free(expected_source_path);
+    try std.testing.expectEqualStrings(expected_source_path, discovered.descriptors[0].source_path);
 }
 
 const DigestVector = struct {
