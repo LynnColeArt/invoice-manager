@@ -25,7 +25,9 @@ npm run verify:foundation:clean
 
 `verify:foundation:clean` starts from the empty clean-checkout dependency/build
 cache state, runs `npm ci` inside its measured boundary, and then delegates to
-`verify:foundation`. The aggregate will run deterministic contract composition, generated type
+`verify:foundation`. The HTTP stage installs the exact Chromium revision selected
+by the locked Playwright 1.61.1 package inside that same boundary; it never falls
+back to a system browser. The aggregate will run deterministic contract composition, generated type
 checks, web validation/build, Zig formatting/build/tests/coverage, migration
 negative tests, real ShovelerDB persistence integration, black-box HTTP/proxy
 smoke, and runtime-license validation.
@@ -39,12 +41,15 @@ npm run web:check
 npm run api:check
 npm run persistence:integration
 npm run migration:negative
+npm run browser:install
 npm run http:smoke
 npm run licenses:check
 ```
 
 Each command must be independently diagnosable and use the same underlying
-commands as CI.
+commands as CI. `http:smoke` invokes the idempotent `browser:install` stage itself,
+so the bare smoke command is complete after `npm ci`; the focused install command
+exists for contributors who want to prepare the pinned browser artifact early.
 
 The separate NFR-001 first-run measurement invokes `npm run
 bootstrap:foundation`; that wrapper also runs `npm ci` inside the monotonic
@@ -58,8 +63,13 @@ npm run dev:api
 npm run dev:web
 ```
 
-The web shell will proxy `/api/v1/*` to the Zig service. A successful smoke path
-returns structured health data from:
+The web shell owns an App Router handler for `/api/v1/*`. The handler reads one
+validated server-only Zig origin at request time, never from browser-controlled
+input or `NEXT_PUBLIC_*`, and the normal lint/typecheck/build gates do not require
+that runtime variable. The Playwright smoke starts production Next.js with the
+fixed origin, starts and later stops a real Ready Zig process, and rejects
+redirects, unbounded responses, and noncanonical upstream failures. A successful
+smoke path returns structured health data from:
 
 ```text
 http://localhost:3000/api/v1/health

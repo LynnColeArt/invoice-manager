@@ -494,15 +494,18 @@ shutdown during an active operation, and close/reopen through this public seam.
 - The first-run 15-minute clock uses a monotonic wall clock, starts immediately
   before `npm run bootstrap:foundation` in a clean checkout with dependency/build
   caches disabled, and that wrapper runs `npm ci` before build, all required
-  foundation validation, service/web startup, and one valid same-origin health
-  response, and stops only after all complete successfully. Installation of the
-  documented prerequisite toolchains is outside the clock.
+  foundation validation, the exact Playwright-managed Chromium installation,
+  service/web startup, and one valid same-origin health response, and stops only
+  after all complete successfully. Installation of the documented prerequisite
+  Node, npm, and Zig toolchains is outside the clock; the pinned browser artifact
+  is a repository dependency and remains inside it.
 - The validation-duration 15-minute clock uses a monotonic wall clock and starts
   immediately before `npm run verify:foundation:clean` from a clean checkout
   with empty dependency and build caches. That wrapper runs `npm ci` and then
-  `npm run verify:foundation`; dependency resolution, builds, tests, audits, and
-  every independently required gate are inside the boundary, which stops only
-  after the final gate reports a result on the same reference runner.
+  `npm run verify:foundation`; dependency resolution, the exact
+  Playwright-managed Chromium installation, builds, tests, audits, and every
+  independently required gate are inside the boundary, which stops only after
+  the final gate reports a result on the same reference runner.
 - Health responsiveness is measured through the real same-origin proxy with a
   ready ReleaseSafe Zig service and production Next.js build. After ten
   unmeasured warm-up requests, issue exactly 100 sequential requests. Measure
@@ -526,6 +529,9 @@ shutdown during an active operation, and close/reopen through this public seam.
   `apps/web/package.json`, tool-version files, and root bootstrap commands.
   WP01 declares the complete npm graph before locking it; later concerns own
   implementation/configuration but never mutate package metadata or the lock.
+  The root and web command surfaces install the browser revision selected by the
+  exact locked Playwright package before invoking E2E; they never fall back to a
+  system browser.
 - **Sequencing/depends-on**: none.
 - **Risks**: Package metadata is high-contention; predeclaring both workspaces
   and exact tool versions once prevents later phased lock ownership and cyclic
@@ -620,17 +626,23 @@ shutdown during an active operation, and close/reopen through this public seam.
 ### IC-08 — Web configuration substrate
 
 - **Purpose**: Publish static Next.js/tool configuration against the exact app
-  package metadata and lock already owned by IC-01, without claiming the real
-  application integration is ready.
+  package metadata and lock already owned by IC-01, without claiming or
+  implementing the real application integration boundary.
 - **Relevant requirements**: FR-001, FR-015; NFR-001, NFR-004, NFR-012; C-002.
 - **Affected surfaces**: App-local configuration files required for formatting,
   lint, strict types,
-  accessibility tests, production build, and Playwright.
+  accessibility tests, production build, and Playwright. `next.config.ts` has no
+  external rewrite and does not require the Zig origin during lint, typecheck, or
+  build. Playwright configuration starts production Next.js with a fixed
+  server-only origin supplied for the WP10-owned Route Handler; the WP10 test
+  harness owns real Zig process startup, readiness, and cleanup.
 - **Sequencing/depends-on**: IC-01, IC-02, and IC-03. It may proceed in parallel
   with service work and does not update package metadata/the root lock or create the real
   shell/proxy/E2E implementation.
 - **Risks**: Configuration may request an undeclared tool. Static validation
   rejects any package/version expectation not already present in IC-01's lock.
+  Configuration must not regain an external rewrite or hide process lifecycle in
+  an operator's shell environment.
 
 ### IC-09 — Shell, proxy, and E2E integration
 
@@ -639,14 +651,19 @@ shutdown during an active operation, and close/reopen through this public seam.
 - **Relevant requirements**: FR-001, FR-002, FR-004, FR-015; NFR-001, NFR-004,
   NFR-007, NFR-012; C-002.
 - **Affected surfaces**: Real `apps/web/src/app/` shell/style files,
-  `apps/web/src/lib/api/`, handwritten generated-contract
-  adapters, foundation component/accessibility tests, and Playwright E2E.
+  the catch-all App Router boundary under `apps/web/src/app/api/v1/`,
+  `apps/web/src/lib/api/`, handwritten generated-contract adapters, foundation
+  component/accessibility tests, and Playwright E2E/process-lifecycle harnesses.
 - **Sequencing/depends-on**: IC-07 and IC-08, plus IC-03's generated workspace
   export. It begins only after WP08's Zig HTTP/readiness package is accepted and
   materializes contracts before typecheck/build.
 - **Risks**: The real proxy/security boundary can be hidden by mocks. Red-first
-  attacker-input tests and production-process E2E must prove it without editing
-  package metadata or the root lock.
+  attacker-input tests and production-process E2E must prove the owned Route
+  Handler before and after implementation without editing package metadata,
+  configuration, or the root lock. The handler accepts one validated server-only
+  origin, uses manual redirect handling, bounded request/body limits, an explicit
+  cache policy, an allowlisted forwarding surface, and canonical origin-safe
+  failures; browser path/query/header/cookie input can never select a destination.
 
 ### IC-10 — Governed documentation sync attestation
 
@@ -697,7 +714,8 @@ durable seam and canonical descriptor schema.
 
 IC-07 waits for IC-02, IC-03, IC-04, and IC-06 so HTTP readiness cannot outrun
 durable/migration readiness. IC-09 waits for IC-07 and IC-08, then performs the
-real shell/proxy/E2E integration without touching package metadata or the lock.
+real shell/owned-Route-Handler/E2E integration without touching package metadata,
+configuration, or the lock.
 IC-10's governed-doc planning package follows reviewed producer work. IC-11
 is the final codebase-wide closure after that sync and every producer. All code
 WP ownership is disjoint, so lane computation must remain acyclic.
@@ -709,15 +727,15 @@ two narrow work packages claiming the same file:
 
 | Concern package | Exclusive primary surfaces |
 | --- | --- |
-| Repository substrate | Root `package.json`, sole root lock, exact contract-tool/web workspace package manifests, npm policy, and tool-version files; declares the complete npm graph and focused commands once |
+| Repository substrate | Root `package.json`, sole root lock, exact contract-tool/web workspace package manifests, npm policy, and tool-version files; declares the complete npm graph, exact Playwright-browser installation, and focused commands once |
 | Shared values | `contracts/common/v1/`, Zig shared values, and their tests |
 | Contract composition | API/event/module/fixture trees, manifest schema plus Draft `contracts/manifests/drafts/p0.json`, conformance lock, contract-tool source/tests, and sole writer of ignored TypeScript/runtime generated outputs; package metadata remains read-only |
 | Migration runner | P0 descriptors, migration application/readiness, and migration tests through the public durable seam; excludes adapter/store/directory-sync implementation |
 | ShovelerDB consumption | Dependency source, service build files, dependency adapter, dependency notice, and convention-scanned stable Zig test/coverage hooks |
 | Durable storage | Migration-agnostic persistence state machine, serialized store, directory sync, diagnostics, and store tests; excludes every `migrations*` file |
 | Zig HTTP boundary | `services/api/src/main.zig`, HTTP modules, and black-box service tests |
-| Web configuration substrate | App-local configuration only; no package metadata, root lock, shell, proxy, or E2E source |
-| Application integration | Narrow app-owned shell/style, proxy/client adapters, accessibility tests, and Playwright E2E after Zig HTTP; package metadata and lock remain read-only |
+| Web configuration substrate | App-local configuration only; no package metadata, root lock, shell, external rewrite, Route Handler, or E2E source; build stays origin-independent and Playwright supplies the server-only origin to production Next.js |
+| Application integration | Narrow app-owned shell/style, fixed-origin App Router handler, proxy/client adapters, accessibility tests, and Playwright E2E/Zig lifecycle after Zig HTTP; package metadata, configuration, and lock remain read-only |
 | Pre-acceptance planning sync | One `planning_artifact` WP owns only `docs/governance/p0-governed-doc-sync.json`: it checks the exact mission spec/plan/data model/quickstart/research/contracts inventory read-only, blocks for an authorized exact sync commit when corrections are needed, records absent glossary/architecture categories, and commits a formal attestation |
 | Program closure | One `scope: codebase-wide` package owning foundation CI, full-gate execution, license tooling, `README.md`, `docs/program-ledger.md`, and sole creation/promotion of canonical `contracts/manifests/p0.json` from WP03's disjoint Draft input after all producers and planning sync |
 
@@ -834,7 +852,8 @@ merely to close their own package.
 | Generated contracts gain multiple writers or are absent at compile time | `contracts:generate` is the sole writer of TypeScript and runtime route inventory; HTTP/web hooks depend on it | P0 |
 | Conformance silently follows a moving mission head | Commit and validate full commits plus manifest/content digests in `contracts/conformance/p0-p4-inputs.json` | P0 / program orchestrator |
 | Workspace metadata and root lock race with later work | WP01 predeclares both exact workspace manifests and is the only lock writer; all consumers verify read-only | P0 substrate |
-| Proxy accepts attacker-controlled destinations or leaks internal origin | Require charter-mandated red-first public-route security cases and production E2E | P0 web integration |
+| Proxy accepts attacker-controlled destinations, follows redirects, stalls, or leaks internal origin | Own the App Router handler in WP10; require charter-mandated red-first public-route cases for fixed destination, allowlisted forwarding, manual redirects, bounded time/body, canonical safe failures, and production E2E | P0 web integration |
+| Clean Playwright gate depends on an undeclared browser binary | WP01 installs the exact browser revision selected by locked Playwright inside bare/clean smoke commands and forbids system-browser fallback | P0 substrate |
 | Timing gates vary by machine or discard slow samples | Enforce the reference runner, cache, dataset, monotonic timing, sample, and evidence protocol above | P0 closure |
 | Governed docs drift or closure absorbs quickstart | Run planning-artifact WP11 before IC-11; WP12 closure owns only README, ledger, CI/license tooling, and P0 manifest | Program orchestrator |
 | P0 absorbs feature behavior | Explicit exclusions and requirement/path review | Program orchestrator |
