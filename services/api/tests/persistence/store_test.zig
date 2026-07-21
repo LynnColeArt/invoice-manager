@@ -130,6 +130,52 @@ const OperationThread = struct {
     }
 };
 
+const FreshContext = struct {
+    calls: usize = 0,
+    fail: bool = false,
+};
+
+fn createFreshSchema(raw_context: *anyopaque, executor: persistence.StartupExecutor) !void {
+    const context: *FreshContext = @ptrCast(@alignCast(raw_context));
+    context.calls += 1;
+    _ = try executor.execute("CREATE TABLE wp06_fresh_probe (body TEXT);");
+    if (context.fail) return error.ExpectedFreshInitializationFailure;
+}
+
+const BlockingFreshContext = struct {
+    entered: std.atomic.Value(bool) = .init(false),
+    release: std.atomic.Value(bool) = .init(false),
+    calls: std.atomic.Value(u32) = .init(0),
+};
+
+fn blockFreshInitialization(raw_context: *anyopaque, executor: persistence.StartupExecutor) !void {
+    const context: *BlockingFreshContext = @ptrCast(@alignCast(raw_context));
+    _ = context.calls.fetchAdd(1, .seq_cst);
+    context.entered.store(true, .release);
+    try waitForFlagFor(&context.release, .{
+        .raw = .fromSeconds(5),
+        .clock = .awake,
+    });
+    _ = try executor.execute("CREATE TABLE wp06_fresh_concurrent (body TEXT);");
+}
+
+const FreshOperationThread = struct {
+    store: *persistence.Store,
+    operation: persistence.StartupWriteOperation,
+    done: std.atomic.Value(bool) = .init(false),
+    result: ?anyerror = null,
+    receipt: ?persistence.DurableReceipt = null,
+
+    fn run(self: *FreshOperationThread) void {
+        self.receipt = self.store.initializeFresh(self.operation) catch |err| {
+            self.result = err;
+            self.done.store(true, .release);
+            return;
+        };
+        self.done.store(true, .release);
+    }
+};
+
 const HeldScopeContext = struct {
     entered: *std.atomic.Value(u32),
     release: *std.atomic.Value(bool),
@@ -189,6 +235,187 @@ test "canonical aliases share one exclusive lease and release it on shutdown" {
     var reopened = try persistence.Store.open(allocator, std.testing.io, alias);
     defer reopened.shutdown() catch {};
     try std.testing.expectEqual(persistence.State.ready, reopened.state());
+}
+
+test "fresh initialization succeeds only for a newly created store" {
+    const allocator = std.testing.allocator;
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const path = try databasePath(allocator, &tmp, "fresh-created");
+    defer allocator.free(path);
+
+    var store = try persistence.Store.open(allocator, std.testing.io, path);
+    defer store.shutdown() catch {};
+    var context = FreshContext{};
+    const receipt = try store.initializeFresh(.{ .context = &context, .run = createFreshSchema });
+
+    try std.testing.expectEqual(@as(usize, 1), context.calls);
+    try std.testing.expectEqual(persistence.State.directory_synchronized, receipt.durability);
+    try std.testing.expectEqual(persistence.State.ready, store.state());
+    try std.testing.expectEqual(
+        @as(usize, 0),
+        try persistence.testing.rowCount(&store, "SELECT body FROM wp06_fresh_probe;"),
+    );
+}
+
+test "fresh initialization denies existing empty and nonempty stores without invoking callbacks" {
+    const allocator = std.testing.allocator;
+
+    var empty_tmp = std.testing.tmpDir(.{});
+    defer empty_tmp.cleanup();
+    const empty_path = try databasePath(allocator, &empty_tmp, "fresh-existing-empty");
+    defer allocator.free(empty_path);
+    try std.Io.Dir.writeFile(.cwd(), std.testing.io, .{ .sub_path = empty_path, .data = "" });
+    var empty_store = try persistence.Store.open(allocator, std.testing.io, empty_path);
+    defer empty_store.shutdown() catch {};
+    var empty_context = FreshContext{};
+    try std.testing.expectError(
+        error.NotFresh,
+        empty_store.initializeFresh(.{ .context = &empty_context, .run = createFreshSchema }),
+    );
+    try std.testing.expectEqual(@as(usize, 0), empty_context.calls);
+    try std.testing.expectEqual(persistence.DiagnosticCategory.not_fresh, empty_store.lastDiagnostic().?.category);
+
+    var nonempty_tmp = std.testing.tmpDir(.{});
+    defer nonempty_tmp.cleanup();
+    const nonempty_path = try databasePath(allocator, &nonempty_tmp, "fresh-existing-nonempty");
+    defer allocator.free(nonempty_path);
+    var original = try persistence.Store.open(allocator, std.testing.io, nonempty_path);
+    var unused: void = {};
+    _ = try original.mutate(.{ .context = &unused, .run = createProbe });
+    try original.shutdown();
+
+    var reopened = try persistence.Store.open(allocator, std.testing.io, nonempty_path);
+    defer reopened.shutdown() catch {};
+    var nonempty_context = FreshContext{};
+    try std.testing.expectError(
+        error.NotFresh,
+        reopened.initializeFresh(.{ .context = &nonempty_context, .run = createFreshSchema }),
+    );
+    try std.testing.expectEqual(@as(usize, 0), nonempty_context.calls);
+}
+
+test "second and concurrent fresh initialization attempts are denied atomically" {
+    const allocator = std.testing.allocator;
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const path = try databasePath(allocator, &tmp, "fresh-concurrent");
+    defer allocator.free(path);
+    var store = try persistence.Store.open(allocator, std.testing.io, path);
+    defer store.shutdown() catch {};
+
+    var first_context = BlockingFreshContext{};
+    var first = FreshOperationThread{
+        .store = &store,
+        .operation = .{ .context = &first_context, .run = blockFreshInitialization },
+    };
+    const first_thread = try std.Thread.spawn(.{}, FreshOperationThread.run, .{&first});
+    try waitForFlag(&first_context.entered);
+
+    var second_context = FreshContext{};
+    var second = FreshOperationThread{
+        .store = &store,
+        .operation = .{ .context = &second_context, .run = createFreshSchema },
+    };
+    const second_thread = try std.Thread.spawn(.{}, FreshOperationThread.run, .{&second});
+    try (std.Io.Clock.Duration{ .raw = .fromMilliseconds(10), .clock = .awake }).sleep(std.testing.io);
+    try std.testing.expect(!second.done.load(.acquire));
+
+    first_context.release.store(true, .release);
+    first_thread.join();
+    second_thread.join();
+
+    try std.testing.expectEqual(@as(?anyerror, null), first.result);
+    try std.testing.expect(first.receipt != null);
+    try std.testing.expectEqual(@as(u32, 1), first_context.calls.load(.seq_cst));
+    try std.testing.expectEqual(@as(?anyerror, error.NotFresh), second.result);
+    try std.testing.expectEqual(@as(usize, 0), second_context.calls);
+
+    var third_context = FreshContext{};
+    try std.testing.expectError(
+        error.NotFresh,
+        store.initializeFresh(.{ .context = &third_context, .run = createFreshSchema }),
+    );
+    try std.testing.expectEqual(@as(usize, 0), third_context.calls);
+}
+
+test "failed fresh initialization recovers and remains eligible until durability completes" {
+    const allocator = std.testing.allocator;
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const path = try databasePath(allocator, &tmp, "fresh-recovery");
+    defer allocator.free(path);
+    var store = try persistence.Store.open(allocator, std.testing.io, path);
+    defer store.shutdown() catch {};
+
+    var failing = FreshContext{ .fail = true };
+    try std.testing.expectError(
+        error.StartupWriteFailed,
+        store.initializeFresh(.{ .context = &failing, .run = createFreshSchema }),
+    );
+    try std.testing.expectEqual(@as(usize, 1), failing.calls);
+    try std.testing.expectEqual(@as(usize, 1), persistence.testing.discardCount(&store));
+    try std.testing.expectEqual(@as(usize, 1), persistence.testing.reopenCount(&store));
+    try std.testing.expectEqual(persistence.State.ready, store.state());
+
+    var retry = FreshContext{};
+    _ = try store.initializeFresh(.{ .context = &retry, .run = createFreshSchema });
+    try std.testing.expectEqual(@as(usize, 1), retry.calls);
+}
+
+test "fresh initialization durability completion never replays its callback" {
+    const allocator = std.testing.allocator;
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const path = try databasePath(allocator, &tmp, "fresh-completion");
+    defer allocator.free(path);
+    var store = try persistence.testing.openWithFaults(
+        allocator,
+        std.testing.io,
+        path,
+        .{ .checkpoint = true },
+    );
+    defer store.shutdown() catch {};
+
+    var context = FreshContext{};
+    try std.testing.expectError(
+        error.CheckpointFailed,
+        store.initializeFresh(.{ .context = &context, .run = createFreshSchema }),
+    );
+    try std.testing.expectEqual(@as(usize, 1), context.calls);
+    persistence.testing.setFaults(&store, .{});
+    const receipt = try store.completeDurability();
+    try std.testing.expectEqual(persistence.State.directory_synchronized, receipt.durability);
+    try std.testing.expectEqual(@as(usize, 1), context.calls);
+    try std.testing.expectError(
+        error.NotFresh,
+        store.initializeFresh(.{ .context = &context, .run = createFreshSchema }),
+    );
+    try std.testing.expectEqual(@as(usize, 1), context.calls);
+}
+
+test "fresh initialization recovery cleanup releases ownership without recategorizing the file" {
+    const allocator = std.testing.allocator;
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const path = try databasePath(allocator, &tmp, "fresh-cleanup");
+    defer allocator.free(path);
+    var store = try persistence.Store.open(allocator, std.testing.io, path);
+    var failing = FreshContext{ .fail = true };
+    try std.testing.expectError(
+        error.StartupWriteFailed,
+        store.initializeFresh(.{ .context = &failing, .run = createFreshSchema }),
+    );
+    try store.shutdown();
+
+    var reopened = try persistence.Store.open(allocator, std.testing.io, path);
+    defer reopened.shutdown() catch {};
+    var retry = FreshContext{};
+    try std.testing.expectError(
+        error.NotFresh,
+        reopened.initializeFresh(.{ .context = &retry, .run = createFreshSchema }),
+    );
+    try std.testing.expectEqual(@as(usize, 0), retry.calls);
 }
 
 test "renaming an open database cannot bypass its inode lease" {
