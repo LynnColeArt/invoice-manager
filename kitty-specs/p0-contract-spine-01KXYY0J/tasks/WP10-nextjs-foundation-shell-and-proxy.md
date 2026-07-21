@@ -31,9 +31,9 @@ subtasks:
 - T047
 phase: Phase 3
 assignee: ''
-agent: "codex-wp10-independent-review"
+agent: "codex-wp10-cycle2-review"
 history: []
-agent_profile: node-norris
+agent_profile: reviewer-renata
 authoritative_surface: apps/web/
 create_intent:
 - apps/web/src/app/layout.tsx
@@ -63,7 +63,7 @@ owned_files:
 - apps/web/src/lib/api/**
 - apps/web/src/lib/contracts/**
 - apps/web/tests/foundation/**
-role: implementer
+role: reviewer
 tags: []
 task_type: implement
 shell_pid: "1807838"
@@ -464,3 +464,7 @@ build, or aggregate check; a stale prior output does not satisfy this ordering.
 - 2026-07-21T17:26:01Z – codex-wp10-implementation – shell_pid=1807838 – Ready for independent review: exact commit 170d253; clean web:check and full http:smoke green
 - 2026-07-21T17:27:05Z – codex-wp10-independent-review – shell_pid=1807838 – Started review via action command
 - 2026-07-21T17:38:21Z – user – shell_pid=1807838 – Moved to planned
+- 2026-07-21T17:43:37Z – codex-wp10-dead-facade-fix – shell_pid=1807838 – Started implementation via action command
+- 2026-07-21T17:48:39Z – codex-wp10-dead-facade-fix – shell_pid=1807838 – REVIEW CYCLE 1 CORRECTION GREEN under authority d19a3df: targeted call-site search proved zero imports/references to apps/web/src/lib/contracts/index.ts, then exact commit e8b055c753f600bc4db4919a1877351c913afe69 (tree 35ed9474202c5280bda8a9dc2b9e6370573c8eb9) deleted only that unused facade; no replacement or import edits. Node 24.18.0/npm 11.16.0 clean npm ci added 496/audited 499 with 0 vulnerabilities. Clean no-.next bare npm run web:check passed format, lint, strict typecheck, 24 Vitest tests, and production build. Full bare npm run http:smoke passed exact candidate with tracked_clean=true across real Ready, stopped/missing/invalid config, all hostile sockets, live accessibility, and failure/timeout/signal cleanup. NFR-007: 100 sequential complete-body samples after 10 warmups, min=2.130ms median=2.437ms p99_sample_99=8.782ms max=9.730ms slow=0 invalid=0. Immutable hashes exact: package=816264f8 tools=ee7fcc2f web=f31c4513 lock=6ea2ffb8 next=a6fbd459 tsconfig=c36224bb next-env=7b550dda. Scope/direct-generated-import/unsafe-number scans and git diff check passed; diff-scoped ruff: no changed Python files, exit 0. Generated/transient outputs removed; lane clean.
+- 2026-07-21T17:48:48Z – codex-wp10-dead-facade-fix – shell_pid=1807838 – Review cycle 1 corrected: exact commit e8b055c, tree 35ed947, one-file dead-facade deletion; clean web:check and full http:smoke green
+- 2026-07-21T17:49:33Z – codex-wp10-cycle2-review – shell_pid=1807838 – Started review via action command
