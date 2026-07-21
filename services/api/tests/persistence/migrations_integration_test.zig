@@ -276,6 +276,118 @@ test "early-plan durability completion requires revalidation and never replays c
     try std.testing.expect(all_completion_results_require_revalidation);
 }
 
+test "nonempty store without migration history is corruption and executes zero migration DDL" {
+    const allocator = std.testing.allocator;
+    const io = std.testing.io;
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const database_path = try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/wp07-nonempty.shovel", .{tmp.sub_path});
+    defer allocator.free(database_path);
+    var store = try migrations.testing.openStoreWithFaults(allocator, io, database_path, .{});
+    defer store.shutdown() catch {};
+    _ = try store.startupWrite(.{ .context = undefined, .run = seedUnrelatedObject });
+
+    var calls: usize = 0;
+    var observed_error: ?anyerror = null;
+    _ = migrations.testing.runObserved(
+        allocator,
+        io,
+        &store,
+        &.{.{ .owner = "p0", .path = migrationRoot(io) }},
+        "2026-07-21T12:34:56.789Z",
+        &calls,
+    ) catch |err| {
+        observed_error = err;
+    };
+    try std.testing.expectEqual(@as(usize, 0), calls);
+    try std.testing.expectEqual(error.CorruptAppliedHistory, observed_error.?);
+    try std.testing.expectEqual(@as(usize, 1), try migrations.testing.rowCount(
+        &store,
+        "SELECT body FROM wp07_unrelated;",
+    ));
+}
+
+test "existing malformed migration history is corruption and executes zero migration DDL" {
+    const allocator = std.testing.allocator;
+    const io = std.testing.io;
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const database_path = try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/wp07-malformed-history.shovel", .{tmp.sub_path});
+    defer allocator.free(database_path);
+    var store = try migrations.testing.openStoreWithFaults(allocator, io, database_path, .{});
+    defer store.shutdown() catch {};
+    _ = try store.startupWrite(.{ .context = undefined, .run = seedMalformedHistoryObject });
+
+    var calls: usize = 0;
+    var observed_error: ?anyerror = null;
+    _ = migrations.testing.runObserved(
+        allocator,
+        io,
+        &store,
+        &.{.{ .owner = "p0", .path = migrationRoot(io) }},
+        "2026-07-21T12:34:56.789Z",
+        &calls,
+    ) catch |err| {
+        observed_error = err;
+    };
+    try std.testing.expectEqual(@as(usize, 0), calls);
+    try std.testing.expectEqual(error.CorruptAppliedHistory, observed_error.?);
+}
+
+test "deleted durable migration history is corruption and executes zero replacement DDL" {
+    const allocator = std.testing.allocator;
+    const io = std.testing.io;
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const database_path = try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/wp07-deleted-history.shovel", .{tmp.sub_path});
+    defer allocator.free(database_path);
+    var store = try migrations.testing.openStoreWithFaults(allocator, io, database_path, .{});
+    defer store.shutdown() catch {};
+    var bootstrap_calls: usize = 0;
+    const bootstrap = try migrations.testing.runObserved(
+        allocator,
+        io,
+        &store,
+        &.{.{ .owner = "p0", .path = migrationRoot(io) }},
+        "2026-07-21T12:34:56.789Z",
+        &bootstrap_calls,
+    );
+    try std.testing.expect(bootstrap.isReady());
+    try std.testing.expectEqual(@as(usize, 1), bootstrap_calls);
+    _ = try store.startupWrite(.{ .context = undefined, .run = deleteHistoryObject });
+
+    var replacement_calls: usize = 0;
+    var observed_error: ?anyerror = null;
+    _ = migrations.testing.runObserved(
+        allocator,
+        io,
+        &store,
+        &.{.{ .owner = "p0", .path = migrationRoot(io) }},
+        "2026-07-21T12:34:56.789Z",
+        &replacement_calls,
+    ) catch |err| {
+        observed_error = err;
+    };
+    try std.testing.expectEqual(@as(usize, 0), replacement_calls);
+    try std.testing.expectEqual(error.CorruptAppliedHistory, observed_error.?);
+}
+
+fn seedUnrelatedObject(_: *anyopaque, executor: migrations.testing.StartupExecutor) !void {
+    _ = try executor.executeScript("CREATE TABLE wp07_unrelated (body TEXT);\n");
+    _ = try executor.executeBound(
+        &.{ "INSERT INTO wp07_unrelated VALUES (", ");" },
+        &.{"durable"},
+    );
+}
+
+fn seedMalformedHistoryObject(_: *anyopaque, executor: migrations.testing.StartupExecutor) !void {
+    _ = try executor.executeScript("CREATE TABLE app_schema_migrations (id TEXT);\n");
+}
+
+fn deleteHistoryObject(_: *anyopaque, executor: migrations.testing.StartupExecutor) !void {
+    _ = try executor.executeScript("DROP TABLE app_schema_migrations;\n");
+}
+
 const CompletionEvidence = struct {
     initial: migrations.Readiness,
     completed: migrations.Readiness,
