@@ -46,7 +46,7 @@ Draft state.
 **Language/Version**: Zig 0.16.0; TypeScript 6.0.3; Node.js 24.18.0 LTS
 **Primary Dependencies**: Next.js 16.2.10; React/React DOM 19.2.7; ESLint
 9.39.5; npm 11.16.0; ShovelerDB commit
-`021e3b3d9247a181252329d6ba7ec8d2ed943a97`; OpenAPI 3.1; JSON Schema
+`20dced69738bfce08f94368b8d017cfc283747fe`; OpenAPI 3.1; JSON Schema
 2020-12
 **Storage**: One serialized ShovelerDB handle per database path; binary
 artifacts remain outside the database
@@ -337,7 +337,7 @@ mutation.
 
 ### ShovelerDB boundary
 
-- Pin `021e3b3d9247a181252329d6ba7ec8d2ed943a97`.
+- Pin GPL-3.0-only engine commit `20dced69738bfce08f94368b8d017cfc283747fe`.
 - Consume the pin as the committed `git archive` source export under
   `deps/shovelerdb/`. Verify `PROVENANCE` records the source commit and
   `source_tree_sha256=6bb2b4215aa50a8ffbbff3278aea4f32c4fc0f906da817037c44095cfd19480b`;

@@ -259,7 +259,9 @@ separately licensed, non-distributed reference aggregates.
 7. For dual- or multi-licensed components, require a committed explicit selection of the
    compatible SPDX branch; never guess, auto-select, or silently change that selection.
 8. Fail on unknown, missing, ambiguous, custom, conflicting, or unselected license evidence.
-9. Fail GPL-3.0-only, incompatible Apache-2.0 combined-runtime code, and other incompatibility.
+9. Require GPL-3.0-only for project output; permit Apache-2.0 components only
+   with complete compatible license and notice evidence; fail GPL-2.0-only
+   combined-runtime code and every other incompatible or incomplete case.
 10. Allow separate build/orchestration tools only with deterministic proof they are not shipped.
 11. Keep nuanced linking/exception cases failing until explicit human legal review is recorded.
 12. Preserve every required copyright, license, and notice in the distribution.
