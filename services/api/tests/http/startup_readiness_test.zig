@@ -267,7 +267,7 @@ test "graceful Started shutdown stops listener before surfacing store close fail
     try std.testing.expectEqual(@as(usize, 1), observation.bind_attempts);
     try std.testing.expectError(error.ShutdownFailed, started.shutdown(std.testing.io));
     var rebound_address = address;
-    var rebound = try rebound_address.listen(std.testing.io, .{ .reuse_address = true });
+    var rebound = try rebound_address.listen(std.testing.io, .{ .reuse_address = false });
     rebound.deinit(std.testing.io);
 }
 
