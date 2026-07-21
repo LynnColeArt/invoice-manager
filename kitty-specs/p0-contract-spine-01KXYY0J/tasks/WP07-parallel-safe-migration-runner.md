@@ -38,6 +38,7 @@ create_intent:
 - services/api/tests/persistence/migrations_test.zig
 - services/api/tests/persistence/migrations_integration_test.zig
 - services/api/tests/persistence/migrations_negative_test.zig
+- services/api/tests/persistence/migrations_coverage_test.zig
 - services/api/tests/persistence/migrations_digest_vector.json
 execution_mode: code_change
 model: ''
@@ -366,10 +367,18 @@ covering every documented collision, graph, mutation, and durability failure bra
 16. Keep all fixtures synthetic and deterministic.
 17. Exercise each documented error branch regardless of aggregate coverage percentage.
 18. Maintain at least 90% automated coverage through literal WP04 `coverage-migration`, then aggregate `coverage`; put a nonempty, never-empty-pass negative matrix in exact root `services/api/tests/persistence/migrations_negative_test.zig`.
+19. Put executable coverage cases in exact dedicated root `services/api/tests/persistence/migrations_coverage_test.zig`; ordinary unit, integration, or negative roots and renamed substitutes do not satisfy the coverage producer contract.
+20. Import WP04's build-wired probe in production with exact `const migration_coverage = @import("migration_coverage_probe");`. Consume WP05 and WP06 only through the build-wired named modules `@import("shared")` and `@import("persistence")`; do not relative-import shared, store, durability, directory-sync, adapter, or other non-`migrations*.zig` source into the instrumented migration module. Coverage tests may import only the public `@import("migrations")` module and must never import or mutate the probe directly.
+21. Call `migration_coverage.hit(.<tag>)` inside the real production error branch represented by each tag. A test label, manifest row, stdout claim, or direct probe call is not coverage evidence.
+22. Name each dedicated critical test exactly `test "critical branch: <tag>"`. Each test must reach its tag through the public migration boundary, assert the expected stable result category, and execute at least one instrumented PC from `services/api/src/platform/persistence/migrations*.zig` after counters are reset.
+    The dedicated root must also contain exact `test "migration production declarations are analyzed" { std.testing.refAllDecls(migrations); }` using its canonical `std` and `migrations` imports so pinned Zig 0.16 cannot lazily omit uncalled public migration declarations from the production coverage denominator.
+23. Cover these exact critical tags once each: `discovery_failure`, `missing_manifest`, `missing_script`, `malformed_manifest`, `unknown_descriptor_field`, `invalid_uuid`, `owner_mismatch`, `directory_mismatch`, `path_traversal`, `symlink_escape`, `noncanonical_dependencies`, `script_digest_mismatch`, `descriptor_digest_mismatch`, `duplicate_migration_id`, `duplicate_descriptor_path`, `missing_dependency`, `self_dependency`, `dependency_cycle`, `graph_capacity_exceeded`, `corrupt_applied_history`, `duplicate_applied_history`, `applied_id_drift`, `applied_owner_drift`, `applied_descriptor_drift`, `applied_script_drift`, `ddl_failure`, `checkpoint_failure`, `directory_sync_failure`, `reopen_failure`, `recovery_quarantine`, `durability_unconfirmed`, `unsupported_directory_sync`, `committed_not_durable`, `checkpointed_not_durable`, `later_migration_blocked`, and `allocation_failure_cleanup`.
+24. Let WP04's pinned Zig runner measure compiler PCs from only `services/api/src/platform/persistence/migrations*.zig`; require a nonzero denominator of at least 36 PCs, at least 90% aggregate executed PCs, every exact critical name, every matching production-side hit bit, and a positive production-PC delta per critical test.
+25. Treat missing DWARF/instrumentation sections, a zero or implausibly small production denominator, an unknown/duplicate/missing critical name, a tag without a canonical production hit call, a critical test without production execution, or a below-threshold report as a hard gate failure. Do not edit WP04's runner or build wiring to make WP07 pass.
 
 **Files**
 
-- `services/api/tests/persistence/migrations_test.zig`, `migrations_integration_test.zig`, and `migrations_negative_test.zig`
+- `services/api/tests/persistence/migrations_test.zig`, `migrations_integration_test.zig`, `migrations_negative_test.zig`, and `migrations_coverage_test.zig`
 - `services/api/tests/persistence/migrations_digest_vector.json`
 
 **Validation**
@@ -441,6 +450,7 @@ root scripts, or WP06 internals; missing stable wiring is an upstream WP04 failu
 - [ ] Migration `Ready` requires WP06 durable-store readiness and `DirectorySynchronized`.
 - [ ] Checkpoint and directory-sync failure never make the service ready.
 - [ ] T036 covers every documented error branch and at least 90% migration logic.
+- [ ] The exact dedicated coverage root reaches all 36 production-side critical tags through public behavior, and WP04's source-filtered Zig PC gate reports a nonzero denominator of at least 36 with at least 90% executed.
 - [ ] No down migration or destructive reset path exists.
 - [ ] No shared sequence, migration registry, or domain registry exists.
 - [ ] `npm run migration:negative` reports nonzero cases and every expected category.
