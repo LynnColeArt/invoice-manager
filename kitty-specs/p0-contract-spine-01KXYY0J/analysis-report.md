@@ -4,7 +4,7 @@ artifact_type: spec-kitty.analysis-report
 command: /spec-kitty.analyze
 mission_slug: p0-contract-spine-01KXYY0J
 mission_id: 01KXYY0J76QBNSWXX0SHMZNXC4
-generated_at: '2026-07-21T02:54:25.742300+00:00'
+generated_at: '2026-07-21T03:19:12.334026+00:00'
 analyzer_agent: codex
 input_artifacts:
   spec.md:
@@ -15,15 +15,15 @@ input_artifacts:
     sha256: e115aa7d51ec98694f475a4fe589e5124a4a56296c9322bdd602afcb40546ce3
   tasks.md:
     path: /home/lynn/projects/invoice-manager/kitty-specs/p0-contract-spine-01KXYY0J/tasks.md
-    sha256: 7d7378db11853d2bb2ac41518998e598020f7176a34f8554b6f513d17baa5847
+    sha256: 1213ecc62e23f3c79e51d8c2f7a13178be2a192dc42f3f48e97989e4ff4cbfd5
   charter:
     path: /home/lynn/projects/invoice-manager/.kittify/charter/charter.md
     sha256: a1176517b273e322d3dc408e369ef836c40e3bb84c69ae140ad554cffbb53f0f
 verdict: ready
 issue_counts:
   medium: 0
-  critical: 0
   low: 0
+  critical: 0
   high: 0
   info: 0
 findings: []
@@ -33,21 +33,26 @@ findings: []
 
 ### Verdict
 
-READY. The current specification, plan, task manifest, and work-package prompts remain internally consistent and preserve the charter's ownership, coverage, licensing, and reproducibility requirements.
+READY. The current specification, plan, task manifest, and work-package prompts remain internally consistent and preserve the charter's ownership, safety, coverage, licensing, and reproducibility requirements.
 
 ### Findings
 
 No cross-artifact consistency findings remain.
 
-The active WP04 review finding is an implementation-conformance defect, not a planning inconsistency: the plan and T016 already require adapter dependencies to be uninstrumented and the persistence denominator to contain only WP06-owned production PCs. The correction therefore needs no spec, plan, task, or charter amendment.
+The active review findings are implementation-conformance defects already governed by existing requirements, not planning gaps:
+
+- WP04 T016 already requires stable diagnostics with the owning WP, expected pattern, observed evidence, and no absolute checkout paths.
+- WP05 T020 already requires fixed UUIDv7 hyphen positions, bounds-safe malformed-input rejection, and typed `InvalidSyntax` results.
+- WP06 already requires red-first behavior evidence and safe shutdown during active operations; its independent review remains authoritative for implementation disposition.
+
+No spec, plan, task, dependency, or charter amendment is needed before applying corrections.
 
 ### Coverage Summary
 
 - All 38 requirements and constraints retain nominal coverage across 12 work packages.
-- WP04 remains the exclusive owner of the service build and measured-coverage infrastructure; WP05, WP06, and WP07 remain the source/test producers for shared values, durable persistence, and migrations.
-- The three domain gates remain source-scoped, require at least 90% live production-PC coverage, and require every exact critical production probe.
-- The dependency DAG remains acyclic. WP05 and WP06 can proceed after WP04; WP07 correctly waits for WP03 through WP06.
-- The optional shared-module seam in WP04 preserves dependency-clean WP06 execution and the later WP07 composition graph.
+- WP04 exclusively owns the build and measured-coverage infrastructure; WP05, WP06, and WP07 own their respective domain production and test inputs.
+- The three measured gates remain source-scoped, require at least 90% live production-PC coverage, and require every exact critical probe.
+- The dependency DAG remains acyclic and correctly prevents WP05 and later packages from advancing while WP04 is under correction.
 
 ### Charter Alignment Issues
 
@@ -69,4 +74,4 @@ None.
 
 ### Next Actions
 
-Resume WP04 implementation against the existing cycle-six rejection, prove zero adapter PCs in the persistence coverage denominator, then return the correction to independent review. No planning remediation is required.
+Apply and independently review the narrow WP04 diagnostic correction. Then resume the already-specified WP05 and WP06 remediation cycles without changing planning scope.
