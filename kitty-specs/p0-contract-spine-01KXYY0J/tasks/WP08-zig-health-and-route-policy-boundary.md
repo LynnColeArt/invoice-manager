@@ -26,7 +26,7 @@ subtasks:
 - T041
 phase: Phase 4 - Application Boundaries
 assignee: ''
-agent: codex
+agent: "codex-wp08-implementer"
 history: []
 agent_profile: implementer-ivan
 authoritative_surface: services/api/src/http/
@@ -54,6 +54,7 @@ owned_files:
 role: implementer
 tags: []
 task_type: implement
+shell_pid: "1807838"
 ---
 
 # Work Package Prompt: WP08 – Zig Health and Route-Policy Boundary
@@ -478,3 +479,4 @@ No implementation entries yet.
 
 Use `spec-kitty agent tasks move-task WP08 --to <status>`; never edit status
 events or frontmatter state by hand.
+- 2026-07-21T10:38:55Z – codex-wp08-implementer – shell_pid=1807838 – Assigned agent via action command
