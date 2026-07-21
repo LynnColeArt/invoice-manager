@@ -686,7 +686,7 @@ fn reopenFailure(allocator: std.mem.Allocator, io: std.Io, quarantine: bool) !vo
     if (quarantine) {
         try std.testing.expectEqual(.quarantined, store.state());
         try std.testing.expect(migrations.testing.discardCount(&store) > 0);
-        try std.testing.expect(migrations.testing.reopenCount(&store) > 0);
+        try std.testing.expectEqual(@as(usize, 0), migrations.testing.reopenCount(&store));
     }
 }
 
