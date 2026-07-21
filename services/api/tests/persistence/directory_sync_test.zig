@@ -20,10 +20,11 @@ test "real Linux directory synchronization follows checkpoint and yields a recei
     var unused: void = {};
     const receipt = try store.mutate(.{ .context = &unused, .run = createProbe });
     try std.testing.expectEqual(persistence.State.directory_synchronized, receipt.durability);
+    const event_snapshot = persistence.testing.events(&store);
     try std.testing.expectEqualSlices(
         persistence.DurabilityEvent,
         &.{ .transaction_began, .callback_succeeded, .committed, .checkpointed, .directory_synchronized, .receipt_issued },
-        persistence.testing.events(&store),
+        event_snapshot.slice(),
     );
 }
 

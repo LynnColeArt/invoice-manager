@@ -17,6 +17,13 @@ fn callback(raw_context: *anyopaque, executor: *persistence.Executor) !void {
     if (context.fail) return error.ExpectedCallbackFailure;
 }
 
+fn startupCallback(raw_context: *anyopaque, executor: *persistence.StartupExecutor) !void {
+    const context: *CallbackContext = @ptrCast(@alignCast(raw_context));
+    context.calls += 1;
+    _ = try executor.execute("CREATE TABLE wp06_durability (body TEXT);");
+    if (context.fail) return error.ExpectedCallbackFailure;
+}
+
 fn insertAndFail(raw_context: *anyopaque, executor: *persistence.Executor) !void {
     const context: *CallbackContext = @ptrCast(@alignCast(raw_context));
     context.calls += 1;
@@ -116,7 +123,7 @@ test "quarantine refusals and shutdown retain every originating causal diagnosti
         var context = CallbackContext{};
         if (case.startup) {
             context.fail = true;
-            try std.testing.expectError(case.expected_error, store.startupWrite(.{ .context = &context, .run = callback }));
+            try std.testing.expectError(case.expected_error, store.startupWrite(.{ .context = &context, .run = startupCallback }));
         } else {
             try std.testing.expectError(case.expected_error, store.mutate(.{ .context = &context, .run = callback }));
         }
@@ -125,7 +132,7 @@ test "quarantine refusals and shutdown retain every originating causal diagnosti
         persistence.testing.setFaults(&store, .{});
         try std.testing.expectError(error.StoreQuarantined, store.mutate(.{ .context = &context, .run = callback }));
         try std.testing.expectEqual(case.expected_category, store.lastDiagnostic().?.category);
-        try std.testing.expectError(error.StoreQuarantined, store.startupWrite(.{ .context = &context, .run = callback }));
+        try std.testing.expectError(error.StoreQuarantined, store.startupWrite(.{ .context = &context, .run = startupCallback }));
         try std.testing.expectEqual(case.expected_category, store.lastDiagnostic().?.category);
         try store.shutdown();
         try std.testing.expectEqual(case.expected_category, store.lastDiagnostic().?.category);
@@ -143,7 +150,7 @@ test "failed startup write discards without checkpoint and reopens last durable 
     defer store.shutdown() catch {};
 
     var context = CallbackContext{ .fail = true };
-    try std.testing.expectError(error.StartupWriteFailed, store.startupWrite(.{ .context = &context, .run = callback }));
+    try std.testing.expectError(error.StartupWriteFailed, store.startupWrite(.{ .context = &context, .run = startupCallback }));
     try std.testing.expectEqual(@as(usize, 1), context.calls);
     try std.testing.expectEqual(persistence.State.ready, store.state());
     try std.testing.expectEqual(@as(usize, 0), persistence.testing.checkpointCount(&store));
@@ -170,7 +177,7 @@ test "failed startup reopen quarantines and preserves a typed diagnostic" {
     defer store.shutdown() catch {};
 
     var context = CallbackContext{ .fail = true };
-    try std.testing.expectError(error.ReopenFailed, store.startupWrite(.{ .context = &context, .run = callback }));
+    try std.testing.expectError(error.ReopenFailed, store.startupWrite(.{ .context = &context, .run = startupCallback }));
     try std.testing.expectEqual(persistence.State.quarantined, store.state());
     const diagnostic = store.lastDiagnostic().?;
     try std.testing.expectEqual(persistence.DiagnosticCategory.reopen_failure, diagnostic.category);

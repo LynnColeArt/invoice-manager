@@ -1,5 +1,6 @@
 const std = @import("std");
 const persistence = @import("persistence");
+const RowView = persistence.RowView;
 
 fn path(allocator: std.mem.Allocator, tmp: *std.testing.TmpDir, name: []const u8) ![]u8 {
     return std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/{s}.shovel", .{ tmp.sub_path, name });
@@ -14,7 +15,20 @@ fn failure(_: *anyopaque, executor: *persistence.Executor) !void {
     return error.CoverageCallbackFailure;
 }
 
+fn startupSuccess(_: *anyopaque, executor: *persistence.StartupExecutor) !void {
+    _ = try executor.execute("CREATE TABLE coverage_probe (body TEXT);");
+}
+
+fn startupFailure(_: *anyopaque, executor: *persistence.StartupExecutor) !void {
+    _ = try executor.execute("CREATE TABLE coverage_probe (body TEXT);");
+    return error.CoverageCallbackFailure;
+}
+
 fn insert(_: *anyopaque, executor: *persistence.Executor) !void {
+    _ = try executor.executeText("INSERT INTO coverage_probe VALUES (", "coverage", ");");
+}
+
+fn startupInsert(_: *anyopaque, executor: *persistence.StartupExecutor) !void {
     _ = try executor.executeText("INSERT INTO coverage_probe VALUES (", "coverage", ");");
 }
 
@@ -26,6 +40,84 @@ fn selectRows(_: *anyopaque, executor: *persistence.Executor) !void {
 fn statementFailure(_: *anyopaque, executor: *persistence.Executor) !void {
     _ = try executor.execute("SELECT FROM invalid_coverage_statement;");
 }
+
+const RichContext = struct {
+    visits: usize = 0,
+    denied: bool = false,
+};
+
+fn visitRich(raw_context: *anyopaque, row: *const RowView) !void {
+    const context: *RichContext = @ptrCast(@alignCast(raw_context));
+    _ = row.len();
+    _ = try row.value(0);
+    _ = try row.value(1);
+    _ = try row.value(2);
+    _ = try row.value(3);
+    _ = try row.value(4);
+    _ = try row.value(5);
+    _ = row.value(6) catch {};
+    context.visits += 1;
+}
+
+fn richNormal(raw_context: *anyopaque, executor: *persistence.Executor) !void {
+    const context: *RichContext = @ptrCast(@alignCast(raw_context));
+    _ = try executor.execute(
+        "CREATE TABLE coverage_rich (id INTEGER, score FLOAT, active BOOLEAN, body TEXT, embedding VECTOR(2));",
+    );
+    _ = try executor.executeBound(
+        &.{ "INSERT INTO coverage_rich VALUES (1, 1.5, TRUE, ", ", [0.25, 0.75]);" },
+        &.{"coverage"},
+    );
+    _ = try executor.query(
+        "SELECT NULL, id, score, active, body, embedding FROM coverage_rich;",
+        .{ .context = context, .visit = visitRich },
+    );
+    _ = try executor.queryBound(
+        &.{ "SELECT NULL, id, score, active, body, embedding FROM coverage_rich WHERE body = ", ";" },
+        &.{"coverage"},
+        .{ .context = context, .visit = visitRich },
+    );
+    _ = executor.execute("SELECT FROM sql-sentinel-DO-NOT-LEAK;") catch {};
+    _ = executor.execute("SELECT body FROM coverage_missing;") catch {};
+    _ = executor.executeBound(&.{"SELECT id FROM coverage_rich WHERE body = "}, &.{"coverage"}) catch {};
+    _ = executor.executeBound(&.{ "SELECT id FROM coverage_rich WHERE body = ", ";" }, &.{"nul\x00value"}) catch {};
+    _ = executor.query(
+        "CREATE TABLE coverage_rows_required (body TEXT);",
+        .{ .context = context, .visit = visitRich },
+    ) catch {};
+    const forged: *persistence.StartupExecutor = @ptrCast(executor);
+    _ = forged.executeScript("CREATE TABLE coverage_denied (body TEXT);") catch |err| {
+        if (err == error.CapabilityDenied) context.denied = true;
+    };
+}
+
+fn richStartup(raw_context: *anyopaque, executor: *persistence.StartupExecutor) !void {
+    const context: *RichContext = @ptrCast(@alignCast(raw_context));
+    _ = try executor.executeScript(
+        "CREATE TABLE coverage_startup_rich (id INTEGER, score FLOAT, active BOOLEAN, body TEXT, embedding VECTOR(2));\n",
+    );
+    _ = try executor.executeBound(
+        &.{ "INSERT INTO coverage_startup_rich VALUES (1, 1.5, TRUE, ", ", [0.25, 0.75]);" },
+        &.{"coverage"},
+    );
+    _ = try executor.query(
+        "SELECT NULL, id, score, active, body, embedding FROM coverage_startup_rich;",
+        .{ .context = context, .visit = visitRich },
+    );
+    _ = try executor.queryBound(
+        &.{ "SELECT NULL, id, score, active, body, embedding FROM coverage_startup_rich WHERE body = ", ";" },
+        &.{"coverage"},
+        .{ .context = context, .visit = visitRich },
+    );
+    _ = executor.executeScript("CREATE TABLE coverage_nul (body TEXT);\x00") catch {};
+    _ = executor.executeScript("CREATE TABLE coverage_one (body TEXT); CREATE TABLE coverage_two (body TEXT);") catch {};
+    const forged: *persistence.Executor = @ptrCast(executor);
+    _ = forged.execute("SELECT id FROM coverage_startup_rich;") catch |err| {
+        if (err == error.CapabilityDenied) context.denied = true;
+    };
+}
+
+fn noOp(_: *anyopaque, _: *persistence.Executor) !void {}
 
 fn expectOpenFault(faults: persistence.testing.Faults, expected: anyerror, name: []const u8) !void {
     const allocator = std.testing.allocator;
@@ -49,6 +141,63 @@ fn expectMutationFault(faults: persistence.testing.Faults, expected: anyerror, n
     try std.testing.expect(store.lastDiagnostic() != null);
 }
 
+const coverage_pause = std.Io.Clock.Duration{
+    .raw = .fromMilliseconds(1),
+    .clock = .awake,
+};
+
+fn waitForAtomic(flag: *std.atomic.Value(bool)) !void {
+    const deadline = std.Io.Clock.Timestamp.fromNow(std.testing.io, .{
+        .raw = .fromSeconds(1),
+        .clock = .awake,
+    });
+    while (!flag.load(.acquire)) {
+        if (std.Io.Clock.Timestamp.now(std.testing.io, .awake).compare(.gte, deadline)) return error.TestTimeout;
+        try coverage_pause.sleep(std.testing.io);
+    }
+}
+
+const ClosingContext = struct {
+    entered: std.atomic.Value(bool) = .init(false),
+    release: std.atomic.Value(bool) = .init(false),
+    result: ?anyerror = null,
+};
+
+const RetainContext = struct {
+    executor: ?*persistence.Executor = null,
+    result: ?anyerror = null,
+};
+
+fn retainExecutor(raw_context: *anyopaque, executor: *persistence.Executor) !void {
+    const context: *RetainContext = @ptrCast(@alignCast(raw_context));
+    context.executor = executor;
+}
+
+fn retainedMutation(store: *persistence.Store, context: *RetainContext) void {
+    _ = store.mutate(.{ .context = context, .run = retainExecutor }) catch |err| {
+        context.result = err;
+    };
+}
+
+fn blockedMutation(raw: *anyopaque, _: *persistence.Executor) !void {
+    const context: *ClosingContext = @ptrCast(@alignCast(raw));
+    context.entered.store(true, .release);
+    try waitForAtomic(&context.release);
+}
+
+fn mutationThread(store: *persistence.Store, context: *ClosingContext) void {
+    _ = store.mutate(.{ .context = context, .run = blockedMutation }) catch |err| {
+        context.result = err;
+        return;
+    };
+}
+
+fn shutdownThread(store: *persistence.Store, result: *?anyerror) void {
+    store.shutdown() catch |err| {
+        result.* = err;
+    };
+}
+
 test "persistence production declarations are analyzed" {
     std.testing.refAllDecls(persistence);
 }
@@ -69,7 +218,7 @@ test "successful facade covers durable receipt queries and idempotent shutdown" 
     var unused: void = {};
     const created = try store.mutate(.{ .context = &unused, .run = success });
     try std.testing.expectEqual(persistence.State.directory_synchronized, created.durability);
-    _ = try store.startupWrite(.{ .context = &unused, .run = insert });
+    _ = try store.startupWrite(.{ .context = &unused, .run = startupInsert });
     _ = try store.mutate(.{ .context = &unused, .run = selectRows });
     try std.testing.expectEqual(@as(usize, 1), try persistence.testing.rowCount(&store, "SELECT body FROM coverage_probe;"));
     try std.testing.expect(persistence.testing.checkpointCount(&store) >= 3);
@@ -91,7 +240,7 @@ test "successful facade covers durable receipt queries and idempotent shutdown" 
     persistence.testing.setFaults(&store, .{});
     try std.testing.expectError(error.StoreClosed, persistence.testing.rowCount(&store, "SELECT body FROM coverage_probe;"));
     try std.testing.expectError(error.StoreClosed, store.mutate(.{ .context = &unused, .run = success }));
-    try std.testing.expectError(error.StoreClosed, store.startupWrite(.{ .context = &unused, .run = success }));
+    try std.testing.expectError(error.StoreClosed, store.startupWrite(.{ .context = &unused, .run = startupSuccess }));
 }
 
 test "startup callback failure performs successful discard and reopen" {
@@ -103,7 +252,7 @@ test "startup callback failure performs successful discard and reopen" {
     var store = try persistence.Store.open(allocator, std.testing.io, database_path);
     defer store.shutdown() catch {};
     var unused: void = {};
-    try std.testing.expectError(error.StartupWriteFailed, store.startupWrite(.{ .context = &unused, .run = failure }));
+    try std.testing.expectError(error.StartupWriteFailed, store.startupWrite(.{ .context = &unused, .run = startupFailure }));
     try std.testing.expectEqual(persistence.State.ready, store.state());
     try std.testing.expectEqual(@as(usize, 1), persistence.testing.discardCount(&store));
     try std.testing.expectEqual(@as(usize, 1), persistence.testing.reopenCount(&store));
@@ -177,7 +326,7 @@ test "injected callback and startup begin failures preserve typed recovery state
         .{ .callback = true },
     );
     defer startup_store.shutdown() catch {};
-    try std.testing.expectError(error.StartupWriteFailed, startup_store.startupWrite(.{ .context = &unused, .run = success }));
+    try std.testing.expectError(error.StartupWriteFailed, startup_store.startupWrite(.{ .context = &unused, .run = startupSuccess }));
     try std.testing.expectEqual(persistence.State.ready, startup_store.state());
     try std.testing.expectEqual(@as(usize, 1), persistence.testing.discardCount(&startup_store));
     try std.testing.expectEqual(@as(usize, 1), persistence.testing.reopenCount(&startup_store));
@@ -191,8 +340,211 @@ test "injected callback and startup begin failures preserve typed recovery state
         .{ .transaction_begin = true },
     );
     defer begin_store.shutdown() catch {};
-    try std.testing.expectError(error.TransactionBeginFailed, begin_store.startupWrite(.{ .context = &unused, .run = success }));
+    try std.testing.expectError(error.TransactionBeginFailed, begin_store.startupWrite(.{ .context = &unused, .run = startupSuccess }));
     try std.testing.expectEqual(persistence.State.ready, begin_store.state());
+}
+
+test "hard-link identity rejection and inspection cleanup use the public open boundary" {
+    const allocator = std.testing.allocator;
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const database_path = try path(allocator, &tmp, "coverage-hard-link");
+    defer allocator.free(database_path);
+    const alias_path = try path(allocator, &tmp, "coverage-hard-link-alias");
+    defer allocator.free(alias_path);
+
+    var created = try persistence.Store.open(allocator, std.testing.io, database_path);
+    try created.shutdown();
+    try std.Io.Dir.hardLink(.cwd(), database_path, .cwd(), alias_path, std.testing.io, .{});
+    try std.testing.expectError(error.LeaseConflict, persistence.Store.open(allocator, std.testing.io, database_path));
+    try std.testing.expectError(error.LeaseConflict, persistence.Store.open(allocator, std.testing.io, alias_path));
+    try std.Io.Dir.deleteFile(.cwd(), std.testing.io, alias_path);
+
+    try std.testing.expectError(
+        error.LeaseAcquireFailed,
+        persistence.testing.openWithFaults(
+            allocator,
+            std.testing.io,
+            database_path,
+            .{ .identity_inspection = true },
+        ),
+    );
+    try std.testing.expectError(
+        error.OutOfMemory,
+        persistence.testing.openWithFaults(
+            allocator,
+            std.testing.io,
+            database_path,
+            .{ .registration = true },
+        ),
+    );
+    var reopened = try persistence.Store.open(allocator, std.testing.io, database_path);
+    try reopened.shutdown();
+}
+
+test "opaque nonce capabilities reject forged tags and retain terminal diagnostics" {
+    const allocator = std.testing.allocator;
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const database_path = try path(allocator, &tmp, "coverage-capability");
+    defer allocator.free(database_path);
+    var store = try persistence.testing.openWithFaults(
+        allocator,
+        std.testing.io,
+        database_path,
+        .{ .checkpoint = true },
+    );
+    try std.testing.expect(@intFromEnum(store) > std.math.maxInt(usize));
+    var unused: void = {};
+    try std.testing.expectError(error.CheckpointFailed, store.mutate(.{ .context = &unused, .run = success }));
+    persistence.testing.setFaults(&store, .{});
+    try std.testing.expectError(error.StoreQuarantined, store.mutate(.{ .context = &unused, .run = success }));
+    try store.shutdown();
+    try store.shutdown();
+    try std.testing.expectEqual(persistence.State.closed, store.state());
+    try std.testing.expectEqual(persistence.DiagnosticCategory.checkpoint_failure, store.lastDiagnostic().?.category);
+
+    var forged: persistence.Store = @enumFromInt(1);
+    try std.testing.expectEqual(persistence.State.closed, forged.state());
+    try std.testing.expectEqual(@as(?persistence.Diagnostic, null), forged.lastDiagnostic());
+    try std.testing.expectError(error.StoreClosed, forged.mutate(.{ .context = &unused, .run = success }));
+    try forged.shutdown();
+}
+
+test "closing admission rejects observers and mutations while admitted work drains" {
+    const allocator = std.testing.allocator;
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const database_path = try path(allocator, &tmp, "coverage-closing");
+    defer allocator.free(database_path);
+    var store = try persistence.Store.open(allocator, std.testing.io, database_path);
+    var context = ClosingContext{};
+    const mutation = try std.Thread.spawn(.{}, mutationThread, .{ &store, &context });
+    try waitForAtomic(&context.entered);
+
+    var shutdown_result: ?anyerror = null;
+    const shutdown = try std.Thread.spawn(.{}, shutdownThread, .{ &store, &shutdown_result });
+    const deadline = std.Io.Clock.Timestamp.fromNow(std.testing.io, .{
+        .raw = .fromSeconds(1),
+        .clock = .awake,
+    });
+    while (store.state() != .closed) {
+        if (std.Io.Clock.Timestamp.now(std.testing.io, .awake).compare(.gte, deadline)) {
+            context.release.store(true, .release);
+            mutation.join();
+            shutdown.join();
+            return error.TestTimeout;
+        }
+        try coverage_pause.sleep(std.testing.io);
+    }
+    var unused: void = {};
+    try std.testing.expectError(error.StoreClosed, store.mutate(.{ .context = &unused, .run = success }));
+    try std.testing.expectEqual(@as(?persistence.Diagnostic, null), store.lastDiagnostic());
+    context.release.store(true, .release);
+    mutation.join();
+    shutdown.join();
+    try std.testing.expectEqual(@as(?anyerror, null), context.result);
+    try std.testing.expectEqual(@as(?anyerror, null), shutdown_result);
+    try std.testing.expectEqual(persistence.State.closed, store.state());
+}
+
+test "executor capabilities cover bound rows safe categories and startup runtime scripts" {
+    const allocator = std.testing.allocator;
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const database_path = try path(allocator, &tmp, "coverage-executors");
+    defer allocator.free(database_path);
+    var store = try persistence.Store.open(allocator, std.testing.io, database_path);
+    defer store.shutdown() catch {};
+
+    var normal_context = RichContext{};
+    _ = try store.mutate(.{ .context = &normal_context, .run = richNormal });
+    try std.testing.expect(normal_context.visits >= 2);
+    try std.testing.expect(normal_context.denied);
+
+    var startup_context = RichContext{};
+    _ = try store.startupWrite(.{ .context = &startup_context, .run = richStartup });
+    try std.testing.expect(startup_context.visits >= 2);
+    try std.testing.expect(startup_context.denied);
+}
+
+test "durability completion covers committed checkpointed quarantined and ineligible states" {
+    const allocator = std.testing.allocator;
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    var unused: void = {};
+
+    const checkpoint_path = try path(allocator, &tmp, "coverage-complete-checkpoint");
+    defer allocator.free(checkpoint_path);
+    var checkpoint_store = try persistence.testing.openWithFaults(
+        allocator,
+        std.testing.io,
+        checkpoint_path,
+        .{ .checkpoint = true },
+    );
+    defer checkpoint_store.shutdown() catch {};
+    try std.testing.expectError(error.CheckpointFailed, checkpoint_store.mutate(.{ .context = &unused, .run = noOp }));
+    persistence.testing.setFaults(&checkpoint_store, .{});
+    try std.testing.expectError(error.StoreQuarantined, checkpoint_store.mutate(.{ .context = &unused, .run = noOp }));
+    _ = try checkpoint_store.completeDurability();
+    try std.testing.expectError(error.DurabilityCompletionUnavailable, checkpoint_store.completeDurability());
+
+    const sync_path = try path(allocator, &tmp, "coverage-complete-sync");
+    defer allocator.free(sync_path);
+    var sync_store = try persistence.testing.openWithFaults(
+        allocator,
+        std.testing.io,
+        sync_path,
+        .{ .directory_sync = true },
+    );
+    defer sync_store.shutdown() catch {};
+    try std.testing.expectError(error.DirectorySyncFailed, sync_store.mutate(.{ .context = &unused, .run = noOp }));
+    persistence.testing.setFaults(&sync_store, .{});
+    _ = try sync_store.completeDurability();
+
+    const commit_path = try path(allocator, &tmp, "coverage-complete-commit");
+    defer allocator.free(commit_path);
+    var commit_store = try persistence.testing.openWithFaults(
+        allocator,
+        std.testing.io,
+        commit_path,
+        .{ .commit = true },
+    );
+    defer commit_store.shutdown() catch {};
+    try std.testing.expectError(error.CommitFailed, commit_store.mutate(.{ .context = &unused, .run = noOp }));
+    try std.testing.expectError(error.DurabilityCompletionUnavailable, commit_store.completeDurability());
+}
+
+test "callback-scoped executor expires before durability resumes" {
+    const allocator = std.testing.allocator;
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const database_path = try path(allocator, &tmp, "coverage-expiry");
+    defer allocator.free(database_path);
+    var barrier = persistence.testing.PostCallbackBarrier{};
+    var store = try persistence.testing.openWithFaults(
+        allocator,
+        std.testing.io,
+        database_path,
+        .{ .post_callback_barrier = &barrier },
+    );
+    defer store.shutdown() catch {};
+    var context = RetainContext{};
+    const thread = try std.Thread.spawn(.{}, retainedMutation, .{ &store, &context });
+    var joined = false;
+    defer {
+        barrier.release.store(true, .release);
+        if (!joined) thread.join();
+    }
+    try waitForAtomic(&barrier.entered);
+    try std.testing.expectError(
+        error.CapabilityDenied,
+        context.executor.?.execute("CREATE TABLE coverage_expired (body TEXT);"),
+    );
+    barrier.release.store(true, .release);
+    thread.join();
+    joined = true;
+    try std.testing.expectEqual(@as(?anyerror, null), context.result);
 }
 
 test "critical branch: canonicalization_failure" {
@@ -274,7 +626,7 @@ test "critical branch: dirty_discard_failure" {
     var store = try persistence.testing.openWithFaults(allocator, std.testing.io, database_path, .{ .dirty_discard = true });
     defer store.shutdown() catch {};
     var unused: void = {};
-    try std.testing.expectError(error.DirtyDiscardFailed, store.startupWrite(.{ .context = &unused, .run = failure }));
+    try std.testing.expectError(error.DirtyDiscardFailed, store.startupWrite(.{ .context = &unused, .run = startupFailure }));
 }
 test "critical branch: reopen_failure" {
     const allocator = std.testing.allocator;
@@ -285,7 +637,7 @@ test "critical branch: reopen_failure" {
     var store = try persistence.testing.openWithFaults(allocator, std.testing.io, database_path, .{ .reopen = true });
     defer store.shutdown() catch {};
     var unused: void = {};
-    try std.testing.expectError(error.ReopenFailed, store.startupWrite(.{ .context = &unused, .run = failure }));
+    try std.testing.expectError(error.ReopenFailed, store.startupWrite(.{ .context = &unused, .run = startupFailure }));
 }
 test "critical branch: recovery_quarantine" {
     const allocator = std.testing.allocator;
@@ -296,7 +648,7 @@ test "critical branch: recovery_quarantine" {
     var store = try persistence.testing.openWithFaults(allocator, std.testing.io, database_path, .{ .reopen = true });
     defer store.shutdown() catch {};
     var unused: void = {};
-    try std.testing.expectError(error.ReopenFailed, store.startupWrite(.{ .context = &unused, .run = failure }));
+    try std.testing.expectError(error.ReopenFailed, store.startupWrite(.{ .context = &unused, .run = startupFailure }));
     try std.testing.expectEqual(persistence.State.quarantined, store.state());
 }
 test "critical branch: unsupported_directory_sync" {

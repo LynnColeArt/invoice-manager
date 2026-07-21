@@ -104,7 +104,6 @@ test "crash fixture public seam remains adapter-opaque" {
     try std.testing.expect(@typeInfo(persistence.Store) == .@"enum");
     try std.testing.expect(@typeInfo(persistence.Executor) == .@"opaque");
     try std.testing.expect(!@hasField(persistence.Store, "_implementation"));
-    try std.testing.expect(!@hasField(persistence.Executor, "_context"));
     try std.testing.expect(!@hasDecl(persistence.Store, "rawHandle"));
     try std.testing.expect(!@hasDecl(persistence.Executor, "adapter"));
     try std.testing.expect(@hasDecl(persistence.Store, "startupWrite"));

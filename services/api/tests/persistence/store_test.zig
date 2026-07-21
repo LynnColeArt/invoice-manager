@@ -57,6 +57,16 @@ fn waitForFlagFor(flag: *const std.atomic.Value(bool), duration: std.Io.Clock.Du
     }
 }
 
+fn waitForState(store: *const persistence.Store, expected: persistence.State) !void {
+    const deadline = std.Io.Clock.Timestamp.fromNow(std.testing.io, monotonic_second);
+    while (store.state() != expected) {
+        if (std.Io.Clock.Timestamp.now(std.testing.io, .awake).compare(.gte, deadline)) {
+            return error.TestTimeout;
+        }
+        try monotonic_millisecond.sleep(std.testing.io);
+    }
+}
+
 const ShutdownContext = struct {
     entered: std.atomic.Value(bool) = .init(false),
     release: std.atomic.Value(bool) = .init(false),
@@ -120,6 +130,14 @@ test "canonical aliases share one exclusive lease and release it on shutdown" {
 }
 
 test "hard-link aliases cannot acquire independent writer leases" {
+    if (std.process.Environ.getPosix(std.testing.environ, "WP06_HARDLINK_PROBE_PATH")) |probe_path| {
+        try std.testing.expectError(
+            error.LeaseConflict,
+            persistence.Store.open(std.testing.allocator, std.testing.io, probe_path),
+        );
+        return;
+    }
+
     const allocator = std.testing.allocator;
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
@@ -132,14 +150,30 @@ test "hard-link aliases cannot acquire independent writer leases" {
     try created.shutdown();
     try std.Io.Dir.hardLink(.cwd(), path, .cwd(), alias, std.testing.io, .{});
 
-    var first = try persistence.Store.open(allocator, std.testing.io, path);
-    defer first.shutdown() catch {};
+    // Rejecting every existing multi-link name is identity-safe across
+    // processes and avoids a second adapter open before a lease is held.
     try std.testing.expectError(
         error.LeaseConflict,
         persistence.Store.open(allocator, std.testing.io, alias),
     );
+    try std.testing.expectError(
+        error.LeaseConflict,
+        persistence.Store.open(allocator, std.testing.io, path),
+    );
 
-    try first.shutdown();
+    var environment = try std.process.Environ.createMap(std.testing.environ, allocator);
+    defer environment.deinit();
+    try environment.put("WP06_HARDLINK_PROBE_PATH", alias);
+    const result = try std.process.run(allocator, std.testing.io, .{
+        .argv = &.{"/proc/self/exe"},
+        .environ_map = &environment,
+        .timeout = .{ .duration = monotonic_second },
+    });
+    defer allocator.free(result.stdout);
+    defer allocator.free(result.stderr);
+    try std.testing.expectEqual(std.process.Child.Term{ .exited = 0 }, result.term);
+
+    try std.Io.Dir.deleteFile(.cwd(), std.testing.io, alias);
     var reopened = try persistence.Store.open(allocator, std.testing.io, path);
     defer reopened.shutdown() catch {};
     try std.testing.expectEqual(persistence.State.ready, reopened.state());
@@ -214,6 +248,48 @@ test "partial engine-open cleanup releases the filesystem lease" {
     try std.testing.expectEqual(persistence.State.ready, store.state());
 }
 
+test "identity inspection failure is typed and leaves lease acquisition reusable" {
+    const allocator = std.testing.allocator;
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const path = try databasePath(allocator, &tmp, "identity-inspection");
+    defer allocator.free(path);
+
+    var created = try persistence.Store.open(allocator, std.testing.io, path);
+    try created.shutdown();
+    try std.testing.expectError(
+        error.LeaseAcquireFailed,
+        persistence.testing.openWithFaults(
+            allocator,
+            std.testing.io,
+            path,
+            .{ .identity_inspection = true },
+        ),
+    );
+    var reopened = try persistence.Store.open(allocator, std.testing.io, path);
+    try reopened.shutdown();
+}
+
+test "registration failure destroys the implementation and releases the lease" {
+    const allocator = std.testing.allocator;
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const path = try databasePath(allocator, &tmp, "registration-cleanup");
+    defer allocator.free(path);
+
+    try std.testing.expectError(
+        error.OutOfMemory,
+        persistence.testing.openWithFaults(
+            allocator,
+            std.testing.io,
+            path,
+            .{ .registration = true },
+        ),
+    );
+    var reopened = try persistence.Store.open(allocator, std.testing.io, path);
+    try reopened.shutdown();
+}
+
 test "an existing canonical database path retains exact allocator ownership" {
     const allocator = std.testing.allocator;
     var tmp = std.testing.tmpDir(.{});
@@ -225,6 +301,35 @@ test "an existing canonical database path retains exact allocator ownership" {
     try first.shutdown();
     var second = try persistence.Store.open(allocator, std.testing.io, path);
     try second.shutdown();
+}
+
+test "public capabilities use non-sequential unguessable nonces and forged tags stay closed" {
+    const allocator = std.testing.allocator;
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const first_path = try databasePath(allocator, &tmp, "nonce-first");
+    defer allocator.free(first_path);
+    const second_path = try databasePath(allocator, &tmp, "nonce-second");
+    defer allocator.free(second_path);
+
+    var first = try persistence.Store.open(allocator, std.testing.io, first_path);
+    defer first.shutdown() catch {};
+    var second = try persistence.Store.open(allocator, std.testing.io, second_path);
+    defer second.shutdown() catch {};
+    const first_nonce = @intFromEnum(first);
+    const second_nonce = @intFromEnum(second);
+    try std.testing.expect(first_nonce > std.math.maxInt(usize));
+    try std.testing.expect(second_nonce > std.math.maxInt(usize));
+    try std.testing.expect(first_nonce != second_nonce);
+
+    var forged: persistence.Store = @enumFromInt(1);
+    try std.testing.expectEqual(persistence.State.closed, forged.state());
+    var unused: void = {};
+    try std.testing.expectError(
+        error.StoreClosed,
+        forged.mutate(.{ .context = &unused, .run = createProbe }),
+    );
+    try forged.shutdown();
 }
 
 test "one store serializes concurrent mutation callbacks and checkpoints" {
@@ -264,6 +369,7 @@ test "shutdown is deterministic idempotent and closes the public facade" {
     try std.testing.expectEqual(persistence.State.closed, store.state());
     var unused: void = {};
     try std.testing.expectError(error.StoreClosed, store.mutate(.{ .context = &unused, .run = createProbe }));
+    try std.testing.expectError(error.StoreClosed, store.completeDurability());
 }
 
 test "shutdown closes admission before waiting for an active operation" {
@@ -287,11 +393,10 @@ test "shutdown closes admission before waiting for an active operation" {
         .operation = .{ .context = &context, .run = lateCallback },
     };
     const shutdown_thread = try std.Thread.spawn(.{}, OperationThread.shutdown, .{&closing});
-    // Give shutdown a bounded monotonic scheduling window to close admission.
-    try std.Io.Timeout.sleep(.{ .duration = .{
-        .raw = .fromMilliseconds(20),
-        .clock = .awake,
-    } }, std.testing.io);
+    // The first callback remains blocked, so observing Closed here proves the
+    // shutdown thread has closed admission rather than completed teardown.
+    const closing_observed = if (waitForState(&store, .closed)) true else |_| false;
+    const completion_refused = if (store.completeDurability()) |_| false else |err| err == error.StoreClosed;
 
     var late = OperationThread{
         .store = &store,
@@ -299,6 +404,7 @@ test "shutdown closes admission before waiting for an active operation" {
     };
     const late_thread = try std.Thread.spawn(.{}, OperationThread.mutate, .{&late});
     const refused_before_release = if (waitForFlag(&late.done)) true else |_| false;
+    const closing_diagnostic = store.lastDiagnostic();
 
     context.release.store(true, .release);
     active_thread.join();
@@ -306,6 +412,10 @@ test "shutdown closes admission before waiting for an active operation" {
     late_thread.join();
 
     try std.testing.expect(refused_before_release);
+    try std.testing.expect(completion_refused);
+    try std.testing.expect(closing_observed);
+    try std.testing.expectEqual(persistence.State.closed, store.state());
+    try std.testing.expectEqual(@as(?persistence.Diagnostic, null), closing_diagnostic);
     try std.testing.expectEqual(@as(?anyerror, error.StoreClosed), late.result);
     try std.testing.expectEqual(@as(u32, 0), context.late_callbacks.load(.seq_cst));
     try std.testing.expectEqual(@as(?anyerror, null), active.result);
