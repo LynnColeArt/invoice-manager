@@ -49,7 +49,7 @@ owned_files:
 role: implementer
 tags: []
 task_type: implement
-shell_pid: "1807838"
+shell_pid: "1384230"
 ---
 
 # Work Package Prompt: WP04 – Pinned ShovelerDB Service Integration
@@ -559,3 +559,6 @@ Review `THIRD_PARTY_NOTICES.md` and the complete upstream license as acceptance-
 - 2026-07-21T03:03:22Z – codex – shell_pid=1317556 – GREEN: WP04-COVERAGE-OWNERSHIP-006 final binary proof; fresh lane-f full-PC map /tmp/wp06-final-all-pcs.txt resolves all 205 denominator PCs only to WP06-owned files (store 140, durability 38, directory_sync 17, root 9, diagnostics 1), adapter 0 and other 0. Removing adapter .fuzz=false in an adversarial clean build made the runner fail before ratio at PC 15/356 mapped to shovelerdb.zig with OutOfScopeCoverageSite after 42/42 prerequisites; restoring committed code returned 185/205, 20/20 probes.
 - 2026-07-21T03:03:25Z – codex – shell_pid=1317556 – Cycle 6 corrected: 0/205 adapter PCs; runtime ownership gate rejects contamination
 - 2026-07-21T03:04:35Z – codex – shell_pid=1807838 – Started review via action command
+- 2026-07-21T03:19:51Z – codex – shell_pid=1384230 – Started implementation via action command
+- 2026-07-21T03:24:01Z – codex – shell_pid=1384230 – RED: WP04-COVERAGE-DIAGNOSTIC-007; isolated adapter contamination correctly failed before ratio, but emitted the absolute /tmp checkout path and raw PC address while omitting owning WP06 and the expected persistence source pattern, reproducing review-cycle-7.
+- 2026-07-21T03:24:02Z – codex – shell_pid=1384230 – GREEN: WP04-COVERAGE-DIAGNOSTIC-007; implementation 40d6661 supplies WP05/WP06/WP07 and exact source patterns, reduces observed DWARF evidence to basename, removes the raw address, and catches runner errors without a source trace. Fresh lane-f coverage remains 185/205 with 20/20 probes and 42/42 tests; removing adapter fuzz=false now fails before ratio with stable coverage-persistence, owning WP06, expected pattern, shovelerdb.zig, and OutOfScopeCoverageSite lines, with no absolute source path or address in the diagnostic.
