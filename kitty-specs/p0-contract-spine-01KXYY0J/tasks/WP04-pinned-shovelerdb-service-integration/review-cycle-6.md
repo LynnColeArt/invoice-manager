@@ -12,10 +12,10 @@ reviewed_lane_tip: f96df7a6387c3f4507bd0a3b438cf369b2602c59
 reviewer_agent: 'codex:gpt-5:reviewer-renata:reviewer'
 verdict: rejected
 wp_id: WP04
-review_artifact_override_at: "2026-07-21T04:39:56Z"
-review_artifact_override_actor: "operator"
+review_artifact_override_at: "2026-07-21T05:25:14Z"
+review_artifact_override_actor: "codex-wp04-pc-review"
 review_artifact_override_wp_id: "WP04"
-review_artifact_override_reason: "Arbiter override of stale historical review-cycle-6 rejection: review-cycle-9.md at coordination commit 8f787a9 independently approves cycle-eight correction 0c32098/69458f9 with zero blockers and verifies all accepted coverage/privacy corrections remain green."
+review_artifact_override_reason: "Arbiter override of stale cycle-10/11 rejection: independent review-cycle-12 proves Zig 0.16 __sancov_pcs1 entries are exact instruction PCs, retracts the false pc-1 premise while preserving audit history, verifies 435/435 owned source reconciliation, and finds zero blockers."
 ---
 
 # WP04 Review Cycle 6
