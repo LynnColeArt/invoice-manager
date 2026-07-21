@@ -1,15 +1,4 @@
 ---
-affected_files: []
-cycle_number: 1
-mission_slug: p0-contract-spine-01KXYY0J
-reproduction_command:
-reviewed_at: '2026-07-20T23:53:44Z'
-reviewer_agent: unknown
-verdict: rejected
-wp_id: WP04
----
-
----
 affected_files:
   - path: services/api/build.zig
   - path: services/api/tests/persistence/shovelerdb_build_discovery.zig
