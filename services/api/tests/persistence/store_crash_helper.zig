@@ -48,15 +48,17 @@ fn runChild(allocator: std.mem.Allocator, stage: []const u8, database_path: []co
     defer environment.deinit();
     try environment.put("WP06_CRASH_STAGE", stage);
     try environment.put("WP06_CRASH_PATH", database_path);
-    var child = try std.process.spawn(std.testing.io, .{
+    const result = try std.process.run(allocator, std.testing.io, .{
         .argv = &.{"/proc/self/exe"},
         .environ_map = &environment,
-        .stdin = .ignore,
-        .stdout = .ignore,
-        .stderr = .ignore,
+        .timeout = .{ .duration = .{
+            .raw = .fromSeconds(5),
+            .clock = .awake,
+        } },
     });
-    const term = try child.wait(std.testing.io);
-    try std.testing.expectEqual(std.process.Child.Term{ .exited = 77 }, term);
+    defer allocator.free(result.stdout);
+    defer allocator.free(result.stderr);
+    try std.testing.expectEqual(std.process.Child.Term{ .exited = 77 }, result.term);
 }
 
 test "real engine crash-boundary fixture asserts only proven durability guarantees" {
@@ -99,6 +101,10 @@ test "real engine crash-boundary fixture asserts only proven durability guarante
 }
 
 test "crash fixture public seam remains adapter-opaque" {
+    try std.testing.expect(@typeInfo(persistence.Store) == .@"enum");
+    try std.testing.expect(@typeInfo(persistence.Executor) == .@"opaque");
+    try std.testing.expect(!@hasField(persistence.Store, "_implementation"));
+    try std.testing.expect(!@hasField(persistence.Executor, "_context"));
     try std.testing.expect(!@hasDecl(persistence.Store, "rawHandle"));
     try std.testing.expect(!@hasDecl(persistence.Executor, "adapter"));
     try std.testing.expect(@hasDecl(persistence.Store, "startupWrite"));

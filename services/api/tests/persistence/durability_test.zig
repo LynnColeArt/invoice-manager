@@ -85,6 +85,54 @@ test "post-commit checkpoint failure is uncertain and quarantines future writes"
     try std.testing.expectEqual(persistence.State.quarantined, store.state());
 }
 
+const CausalCase = struct {
+    name: []const u8,
+    faults: persistence.testing.Faults,
+    expected_error: anyerror,
+    expected_category: persistence.DiagnosticCategory,
+    startup: bool = false,
+};
+
+test "quarantine refusals and shutdown retain every originating causal diagnostic" {
+    const cases = [_]CausalCase{
+        .{ .name = "rollback", .faults = .{ .callback = true, .rollback = true }, .expected_error = error.RollbackFailed, .expected_category = .rollback_failure },
+        .{ .name = "commit", .faults = .{ .commit = true }, .expected_error = error.CommitFailed, .expected_category = .commit_failure },
+        .{ .name = "checkpoint", .faults = .{ .checkpoint = true }, .expected_error = error.CheckpointFailed, .expected_category = .checkpoint_failure },
+        .{ .name = "directory-open", .faults = .{ .directory_open = true }, .expected_error = error.DirectoryOpenFailed, .expected_category = .directory_open_failure },
+        .{ .name = "directory-sync", .faults = .{ .directory_sync = true }, .expected_error = error.DirectorySyncFailed, .expected_category = .directory_sync_failure },
+        .{ .name = "directory-close", .faults = .{ .directory_close = true }, .expected_error = error.DirectoryCloseFailed, .expected_category = .directory_close_failure },
+        .{ .name = "dirty-discard", .faults = .{ .dirty_discard = true }, .expected_error = error.DirtyDiscardFailed, .expected_category = .dirty_discard_failure, .startup = true },
+        .{ .name = "reopen", .faults = .{ .reopen = true }, .expected_error = error.ReopenFailed, .expected_category = .reopen_failure, .startup = true },
+    };
+
+    const allocator = std.testing.allocator;
+    inline for (cases) |case| {
+        var tmp = std.testing.tmpDir(.{});
+        defer tmp.cleanup();
+        const path = try databasePath(allocator, &tmp, case.name);
+        defer allocator.free(path);
+        var store = try persistence.testing.openWithFaults(allocator, std.testing.io, path, case.faults);
+        defer store.shutdown() catch {};
+        var context = CallbackContext{};
+        if (case.startup) {
+            context.fail = true;
+            try std.testing.expectError(case.expected_error, store.startupWrite(.{ .context = &context, .run = callback }));
+        } else {
+            try std.testing.expectError(case.expected_error, store.mutate(.{ .context = &context, .run = callback }));
+        }
+        try std.testing.expectEqual(case.expected_category, store.lastDiagnostic().?.category);
+
+        persistence.testing.setFaults(&store, .{});
+        try std.testing.expectError(error.StoreQuarantined, store.mutate(.{ .context = &context, .run = callback }));
+        try std.testing.expectEqual(case.expected_category, store.lastDiagnostic().?.category);
+        try std.testing.expectError(error.StoreQuarantined, store.startupWrite(.{ .context = &context, .run = callback }));
+        try std.testing.expectEqual(case.expected_category, store.lastDiagnostic().?.category);
+        try store.shutdown();
+        try std.testing.expectEqual(case.expected_category, store.lastDiagnostic().?.category);
+        try std.testing.expectEqual(@as(?[]const u8, null), store.lastDiagnostic().?.sensitive_detail);
+    }
+}
+
 test "failed startup write discards without checkpoint and reopens last durable snapshot" {
     const allocator = std.testing.allocator;
     var tmp = std.testing.tmpDir(.{});
