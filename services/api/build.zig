@@ -1398,10 +1398,44 @@ fn configureHttp(
     const materialize = b.addSystemCommand(&.{ "npm", "run", "contracts:generate" });
     materialize.setCwd(b.path("../.."));
     const modules = createPublicServiceModules(b, target, optimize, abi_library);
-    const imports = [_]std.Build.Module.Import{
+    const http_imports = [_]std.Build.Module.Import{
         .{ .name = "shared", .module = modules.shared },
         .{ .name = "persistence", .module = modules.persistence },
         .{ .name = "migrations", .module = modules.migrations },
+    };
+    const http = b.createModule(.{
+        .root_source_file = b.path("src/http/root.zig"),
+        .target = target,
+        .optimize = optimize,
+        .imports = &http_imports,
+    });
+    const composition_imports = [_]std.Build.Module.Import{
+        .{ .name = "shared", .module = modules.shared },
+        .{ .name = "persistence", .module = modules.persistence },
+        .{ .name = "migrations", .module = modules.migrations },
+        .{ .name = "http", .module = http },
+    };
+    const composition = b.createModule(.{
+        .root_source_file = b.path("src/main.zig"),
+        .target = target,
+        .optimize = optimize,
+        .imports = &composition_imports,
+    });
+    const executable = b.addExecutable(.{
+        .name = "invoice-manager-api",
+        .root_module = composition,
+    });
+    executable.step.dependOn(&materialize.step);
+
+    const test_config = b.addOptions();
+    test_config.addOptionPath("api_executable_path", executable.getEmittedBin());
+    const test_imports = [_]std.Build.Module.Import{
+        .{ .name = "shared", .module = modules.shared },
+        .{ .name = "persistence", .module = modules.persistence },
+        .{ .name = "migrations", .module = modules.migrations },
+        .{ .name = "http", .module = http },
+        .{ .name = "composition", .module = composition },
+        .{ .name = "http_test_config", .module = test_config.createModule() },
     };
     addGroupTestsAfter(
         b,
@@ -1409,22 +1443,11 @@ fn configureHttp(
         .http,
         target,
         optimize,
-        &imports,
+        &test_imports,
         &materialize.step,
         test_step,
     );
 
-    const runtime_module = b.createModule(.{
-        .root_source_file = b.path("src/main.zig"),
-        .target = target,
-        .optimize = optimize,
-        .imports = &imports,
-    });
-    const executable = b.addExecutable(.{
-        .name = "invoice-manager-api",
-        .root_module = runtime_module,
-    });
-    executable.step.dependOn(&materialize.step);
     const run = b.addRunArtifact(executable);
     if (b.args) |args| run.addArgs(args);
     run_step.dependOn(&run.step);
