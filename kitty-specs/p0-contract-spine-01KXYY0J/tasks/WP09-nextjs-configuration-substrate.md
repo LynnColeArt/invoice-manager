@@ -16,9 +16,10 @@ merge_target_branch: feat/p0-contract-spine
 branch_strategy: Planning artifacts for this mission were generated on feat/p0-contract-spine. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/p0-contract-spine unless the human explicitly redirects the landing branch.
 subtasks:
 - T042
+- T059
 phase: Phase 3
 assignee: ''
-agent: "codex-wp09-lock-review"
+agent: "codex-wp09-config-fix"
 history: []
 agent_profile: frontend-freddy
 authoritative_surface: apps/web/
@@ -70,10 +71,12 @@ application or test source, generate contracts, or claim runtime acceptance.
 - WP02 owns canonical cross-runtime values and fixtures; configuration must not redefine them.
 - WP03 owns the contract workspace export and all generated TypeScript; configuration may
   resolve its declared package export but never a generated filesystem path.
-- WP10 owns all app source, adapters, component/accessibility tests, proxy E2E, and runtime
-  evidence. It consumes WP01 metadata/lock and WP09 configuration without editing either.
+- WP10 owns all app source, the App Router proxy handler, adapters,
+  component/accessibility tests, proxy E2E/process lifecycle, and runtime evidence. It consumes
+  WP01 metadata/lock and WP09 configuration without editing either.
 - WP09 owns only paths matched by `apps/web/*config*`.
-- Use App Router, server components by default, and a server-only same-origin proxy seam.
+- Use App Router and server components by default. WP09 supplies runtime-neutral configuration
+  for a server-only same-origin Route Handler but owns no rewrite or proxy behavior.
 - Keep P0 foundation-only; configuration must not smuggle in a product framework or feature.
 
 ## Hard Ownership Boundary
@@ -143,12 +146,14 @@ already declared exactly and resolved immutably by WP01.
 13. Resolve WP03 contracts by its stable workspace package export, never through a path alias
     into `tools/contracts/.generated/typescript/v1/`.
 14. Create `apps/web/next.config.ts` for deterministic App Router/server behavior.
-15. Define `/api/v1/:path*` as the server-side proxy/rewrite contract consumed by WP10.
-16. Read the internal Zig origin only from a server-only environment variable and fail clearly
-    for missing or invalid configuration.
+15. Do not define an external `rewrites()` destination for `/api/v1/:path*`; WP10 owns the public
+    App Router handler and its fixed-origin transport policy.
+16. Do not read or validate the internal Zig origin while loading `next.config.ts`. Normal format,
+    lint, typecheck, component-test, and production-build commands must be origin-independent.
 17. Forbid `NEXT_PUBLIC_*` backend origins, request-controlled destinations, browser-direct Zig
     URLs, CORS workarounds, remote fonts/images, analytics, telemetry, and experimental flags.
-18. Preserve path/query semantics without adding feature routes or product behavior.
+18. Leave origin validation, path/query policy, redirect handling, response limits, and canonical
+    safe failures to WP10's owned Route Handler.
 19. Keep both configs free of timestamps, host paths, branch names, random ports, network
     discovery, or filesystem scans outside the workspace contract.
 
@@ -166,8 +171,24 @@ already declared exactly and resolved immutably by WP01.
 26. Restrict E2E discovery to WP10 foundation tests and use a fixed local Next.js origin.
 27. Define bounded startup/readiness/test timeouts and deterministic retries/workers.
 28. Do not mock away the Zig boundary or expose its origin to browser code.
-29. Leave service startup, fixtures, assertions, screenshots, and performance measurement to
-    WP10; a configuration path reference never grants WP09 ownership of its target.
+29. Leave service startup, origin injection, fixtures, assertions, screenshots, and performance
+    measurement to WP10's `http-smoke.mjs`; Playwright's Next child inherits that harness's
+    server-only environment, and a configuration path never grants WP09 ownership of its target.
+
+### Subtask T059 – Corrective Runtime-Neutral Next Configuration
+
+Correct only the analysis-proven incompatibility in accepted WP09 output:
+
+1. Remove eager `INVOICE_MANAGER_API_ORIGIN` parsing and the external rewrite from
+   `next.config.ts`; preserve every unrelated accepted setting byte-for-byte where practical.
+2. Keep configuration loading origin-independent so literal bare `npm run web:check` can format,
+   lint, typecheck, test, and build without Zig or a runtime service variable.
+3. Keep the accepted Playwright production Next.js server configuration; it inherits the fixed
+   server-only origin from WP10's outer lifecycle harness and must not publish it to browser code.
+4. Re-run the exact static declaration/lock inventory and prove root metadata, both workspace
+   manifests, and lock bytes are unchanged. Runtime execution remains WP10's gate.
+
+No package, lock, application source, test source, or sixth config file is authorized.
 
 ## Static and Deterministic Validation
 
@@ -196,7 +217,9 @@ Run validation without installing packages or importing config modules through d
 
 ## Explicit WP10 Handoff
 
-- WP10 consumes accepted WP09 configs and WP01's immutable app manifest/root lock unchanged.
+- WP10 consumes corrected runtime-neutral WP09 configs and WP01's immutable app manifest/root
+  lock unchanged.
+- WP10 implements `/api/v1/*` in its owned Route Handler; WP09 has no external rewrite.
 - WP10 materializes WP03 generated exports before typecheck/build as its prompt requires.
 - WP10 runs the real format/lint/type/component/build, proxy E2E, and performance evidence.
 - Any config incompatibility returns to WP09 with the exact file and diagnostic.
@@ -209,7 +232,8 @@ Run validation without installing packages or importing config modules through d
 - [ ] Every config expectation maps to an exact app declaration and immutable root-lock entry.
 - [ ] WP01-owned npm metadata and root lock remain byte-identical before/after validation.
 - [ ] Strict TypeScript, Flat ESLint, deterministic Vitest, and Playwright configs exist.
-- [ ] Server-only same-origin proxy configuration exposes no browser backend origin.
+- [ ] `next.config.ts` has no external rewrite/eager origin requirement and normal builds are
+  runtime-origin independent.
 - [ ] No package metadata, lock, app source/test, contract, or generated output changed.
 - [ ] Static validation passes without installation, package execution, build, or generation.
 - [ ] Runtime, E2E, and performance evidence is explicitly deferred to WP10.
@@ -221,7 +245,10 @@ Run validation without installing packages or importing config modules through d
 - **An install silently mutates state**: prohibit all installs and hash metadata/lock inputs.
 - **Config smuggles implementation scope**: own only config; source/tests remain WP10-owned.
 - **Generated contracts gain a second path**: resolve only WP03's stable package export.
-- **Proxy leaks the Zig origin**: keep it server-only with no public environment variable.
+- **Config regains proxy behavior**: reject external rewrites; the WP10 Route Handler is the sole
+  public transport boundary.
+- **Lifecycle relies on operator shell state**: require WP10's harness to supply the fixed
+  server-only origin inherited by Playwright's production Next.js child.
 
 ## Reviewer Guidance
 
@@ -230,7 +257,8 @@ Run validation without installing packages or importing config modules through d
 - Review changed paths before content; reject anything outside `apps/web/*config*`.
 - Reproduce the expectation inventory against WP01's read-only app manifest and root lock.
 - Confirm every imported/referenced tool and version-sensitive option has an exact lock entry.
-- Inspect configs for server-only origin handling, strictness, bounded tests, and stable paths.
+- Inspect configs for absence of external rewrites/eager origin reads, strictness, bounded tests,
+  and stable paths.
 - Confirm no npm metadata/lock, source, test, generated artifact, dependency tree, or cache changed.
 - Reject install/build/test evidence as out of sequence and enforce WP01/WP10 failure routing.
 
@@ -248,4 +276,10 @@ Run validation without installing packages or importing config modules through d
 - 2026-07-20T23:37:48Z – codex – shell_pid=827787 – Started implementation via action command
 - 2026-07-20T23:37:58Z – codex – shell_pid=827787 – GREEN static dependency revalidation: all five WP09 config files remain byte-identical to c396d18. Exact Node 24 syntax checks passed without importing package code; all 20 app declarations still map to exact public-registry lock versions and SHA-512 integrity or the WP03 workspace link; web/workspace maps and the stable ./v1 export match; canonical lock has 610 entries and one hoisted js-yaml@4.3.0; strict TypeScript and server-only policy checks pass. No npm install, package execution, generated output, node_modules, or config/source change occurred. New metadata hashes: package 262d99dd, web f31c4513, lock 6ea2ffb8.
 - 2026-07-20T23:38:14Z – codex – shell_pid=827787 – No config/source change: canonical WP01 lock passed WP09-authorized static declaration, integrity, workspace, strictness, and server-only policy checks without package execution; ready for independent re-attestation.
+- 2026-07-21T14:46:43Z – codex – Corrective planning after blocked analysis: remove the
+  framework rewrite/eager origin read; WP10 now owns the fixed-origin App Router boundary and
+  complete runtime lifecycle.
 - 2026-07-20T23:38:43Z – codex-wp09-lock-review – shell_pid=1807838 – Started review via action command
+- 2026-07-20T23:44:31Z – user – shell_pid=1807838 – Review passed: five unchanged configs pass static Node24, exact 20-declaration canonical-lock, workspace-export, strictness, and server-only policy re-attestation without package execution
+- 2026-07-21T15:01:13Z – codex-wp09-lock-review – shell_pid=1807838 – Moved to planned
+- 2026-07-21T15:26:51Z – codex-wp09-config-fix – shell_pid=1807838 – Started implementation via action command

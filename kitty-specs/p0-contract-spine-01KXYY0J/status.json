@@ -1,28 +1,28 @@
 {
-  "event_count": 71,
-  "last_event_id": "01KY0YAT89570AJY4853NE176E",
-  "materialized_at": "2026-07-20T23:38:43.337539+00:00",
+  "event_count": 223,
+  "last_event_id": "01KY2MJWCSBSFK5GNV52SZGAZJ",
+  "materialized_at": "2026-07-21T15:26:50.769508+00:00",
   "mission_number": "",
   "mission_slug": "p0-contract-spine-01KXYY0J",
   "mission_type": "software-dev",
   "summary": {
-    "approved": 3,
+    "approved": 8,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
     "done": 0,
     "for_review": 0,
     "in_progress": 1,
-    "in_review": 1,
-    "planned": 7
+    "in_review": 0,
+    "planned": 3
   },
   "work_packages": {
     "WP01": {
       "actor": "user",
-      "force_count": 3,
+      "force_count": 4,
       "lane": "approved",
-      "last_event_id": "01KY0XSHGKZY2R78D9PAGM8WNK",
-      "last_transition_at": "2026-07-20T23:29:17.331429+00:00"
+      "last_event_id": "01KY2MGD45R2PK059AMAWT94WQ",
+      "last_transition_at": "2026-07-21T15:25:29.605571+00:00"
     },
     "WP02": {
       "actor": "user",
@@ -39,46 +39,46 @@
       "last_transition_at": "2026-07-20T23:37:00.558447+00:00"
     },
     "WP04": {
-      "actor": "codex:gpt-5:implementer-ivan:implementer",
-      "force_count": 0,
-      "lane": "in_progress",
-      "last_event_id": "01KY0F941M5NP46DWK7NM1HQ9Y",
-      "last_transition_at": "2026-07-20T19:15:39.188298+00:00"
+      "actor": "user",
+      "force_count": 13,
+      "lane": "approved",
+      "last_event_id": "01KY2DHHTE7N1X6QH7CW4A8CC9",
+      "last_transition_at": "2026-07-21T13:23:47.150803+00:00"
     },
     "WP05": {
-      "actor": "finalize-tasks",
-      "force_count": 0,
-      "lane": "planned",
-      "last_event_id": "01KXZ6H0P0KZ7FNHM9ZF5EVA9N",
-      "last_transition_at": "2026-07-20T07:23:26.272826+00:00"
+      "actor": "user",
+      "force_count": 3,
+      "lane": "approved",
+      "last_event_id": "01KY2EY5X5Q5GJM9XXWXEMQS97",
+      "last_transition_at": "2026-07-21T13:48:09.509897+00:00"
     },
     "WP06": {
-      "actor": "finalize-tasks",
-      "force_count": 0,
-      "lane": "planned",
-      "last_event_id": "01KXZ6H0RK2P0PQNZRXN7AE77T",
-      "last_transition_at": "2026-07-20T07:23:26.355200+00:00"
+      "actor": "user",
+      "force_count": 2,
+      "lane": "approved",
+      "last_event_id": "01KY1Y332YG6B1AP6S79NSM9PJ",
+      "last_transition_at": "2026-07-21T08:53:44.670972+00:00"
     },
     "WP07": {
-      "actor": "finalize-tasks",
-      "force_count": 0,
-      "lane": "planned",
-      "last_event_id": "01KXZ6H0V57HV3KZ4PYM99A4HX",
-      "last_transition_at": "2026-07-20T07:23:26.437313+00:00"
+      "actor": "user",
+      "force_count": 4,
+      "lane": "approved",
+      "last_event_id": "01KY2FTE337VVFSVZ73YCPNR8G",
+      "last_transition_at": "2026-07-21T14:03:35.395621+00:00"
     },
     "WP08": {
-      "actor": "finalize-tasks",
-      "force_count": 0,
-      "lane": "planned",
-      "last_event_id": "01KXZ6H0XRF5958KCTBDX8VPP6",
-      "last_transition_at": "2026-07-20T07:23:26.520128+00:00"
+      "actor": "user",
+      "force_count": 1,
+      "lane": "approved",
+      "last_event_id": "01KY2HZ9TG1ZY945101X3MK6D4",
+      "last_transition_at": "2026-07-21T14:41:12.016305+00:00"
     },
     "WP09": {
-      "actor": "codex-wp09-lock-review",
-      "force_count": 1,
-      "lane": "in_review",
-      "last_event_id": "01KY0YAT89570AJY4853NE176E",
-      "last_transition_at": "2026-07-20T23:38:43.337539+00:00"
+      "actor": "codex-wp09-config-fix",
+      "force_count": 2,
+      "lane": "in_progress",
+      "last_event_id": "01KY2MJWCSBSFK5GNV52SZGAZJ",
+      "last_transition_at": "2026-07-21T15:26:50.769508+00:00"
     },
     "WP10": {
       "actor": "finalize-tasks",

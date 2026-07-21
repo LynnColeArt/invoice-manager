@@ -7,6 +7,10 @@ reviewed_at: '2026-07-20T23:01:35Z'
 reviewer_agent: codex
 verdict: rejected
 wp_id: WP01
+review_artifact_override_at: "2026-07-21T15:25:29Z"
+review_artifact_override_actor: "operator"
+review_artifact_override_wp_id: "WP01"
+review_artifact_override_reason: "Arbiter override: superseded rejected review-cycle-3 is closed by committed parseable approval review-cycle-7 at 4e8f592 after independent empty-cache rev1228 provisioning, idempotency, exact substrate, ownership, and immutable-hash verification; implementation e89d3bb passes all corrective requirements."
 ---
 
 # WP01 correction feedback: newly published js-yaml advisory
