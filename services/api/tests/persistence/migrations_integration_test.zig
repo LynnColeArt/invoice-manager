@@ -84,6 +84,89 @@ test "DDL failure discards dirty state reopens durable state and blocks later wo
     try reopenFailure(std.testing.allocator, std.testing.io, true);
 }
 
+test "executor setup OOM is exact allocation cleanup with a recoverable store" {
+    const allocator = std.testing.allocator;
+    const io = std.testing.io;
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const database_path = try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/wp07-executor-oom.shovel", .{tmp.sub_path});
+    defer allocator.free(database_path);
+    var store = try migrations.testing.openStoreWithFaults(allocator, io, database_path, .{ .executor_registration = true });
+    defer store.shutdown() catch {};
+    var calls: usize = 0;
+    var diagnostic = migrations.RunDiagnostic{};
+    try std.testing.expectError(
+        error.AllocationFailureCleanup,
+        migrations.testing.runObservedWithDiagnostic(
+            allocator,
+            io,
+            &store,
+            &.{.{ .owner = "p0", .path = migrationRoot(io) }},
+            "2026-07-21T12:34:56.789Z",
+            &calls,
+            &diagnostic,
+        ),
+    );
+    try std.testing.expectEqual(migrations.CriticalCategory.allocation_failure_cleanup, diagnostic.primary.?);
+    try std.testing.expectEqual(.ready, store.state());
+    try std.testing.expectEqual(@as(usize, 0), calls);
+    try std.testing.expectEqual(@as(usize, 1), migrations.testing.discardCount(&store));
+    try std.testing.expectEqual(@as(usize, 1), migrations.testing.reopenCount(&store));
+}
+
+test "dirty discard is recovery quarantine rather than reopen failure" {
+    const allocator = std.testing.allocator;
+    const io = std.testing.io;
+    const bad_id = "018f6f10-7b7a-7c2d-8e65-0f7b1c2d3e50";
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const root_path = try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/p0", .{tmp.sub_path});
+    defer allocator.free(root_path);
+    try writeMigration(allocator, io, root_path, bootstrap_id, "bootstrap_migration_history", &.{}, "[]", bootstrap_script);
+    const database_path = try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/wp07-dirty-discard.shovel", .{tmp.sub_path});
+    defer allocator.free(database_path);
+    var store = try migrations.testing.openStoreWithFaults(allocator, io, database_path, .{});
+    defer store.shutdown() catch {};
+    var calls: usize = 0;
+    _ = try migrations.testing.runObserved(
+        allocator,
+        io,
+        &store,
+        &.{.{ .owner = "p0", .path = root_path }},
+        "2026-07-21T12:34:56.789Z",
+        &calls,
+    );
+    try writeMigration(
+        allocator,
+        io,
+        root_path,
+        bad_id,
+        "dirty_discard_failure",
+        &.{bootstrap_id},
+        "[\"018f6f10-7b7a-7c2d-8e65-0f7b1c2d3e4f\"]",
+        "CREATE TABLE broken (\n",
+    );
+    migrations.testing.setFaults(&store, .{ .dirty_discard = true });
+    var diagnostic = migrations.RunDiagnostic{};
+    try std.testing.expectError(
+        error.RecoveryQuarantine,
+        migrations.testing.runObservedWithDiagnostic(
+            allocator,
+            io,
+            &store,
+            &.{.{ .owner = "p0", .path = root_path }},
+            "2026-07-21T12:34:56.789Z",
+            &calls,
+            &diagnostic,
+        ),
+    );
+    try std.testing.expectEqual(migrations.CriticalCategory.recovery_quarantine, diagnostic.primary.?);
+    try std.testing.expectEqual(@as(?migrations.CriticalCategory, null), diagnostic.consequence);
+    try std.testing.expectEqual(.quarantined, store.state());
+    try std.testing.expectEqual(@as(usize, 1), migrations.testing.discardCount(&store));
+    try std.testing.expectEqual(@as(usize, 0), migrations.testing.reopenCount(&store));
+}
+
 test "durability completion retries persistence and never replays migration DDL" {
     const cases = [_]migrations.CriticalCategory{
         .checkpoint_failure,
