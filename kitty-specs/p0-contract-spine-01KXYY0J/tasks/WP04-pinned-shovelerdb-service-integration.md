@@ -27,7 +27,7 @@ subtasks:
 - T019
 phase: Phase 2 - Service Dependency Integration
 assignee: ''
-agent: "codex-wp04-least-authority-fix"
+agent: "codex-wp04-cycle18-reviewer"
 history: []
 agent_profile: reviewer-renata
 authoritative_surface: deps/shovelerdb/
@@ -597,3 +597,7 @@ Review `THIRD_PARTY_NOTICES.md` and the complete upstream license as acceptance-
 - 2026-07-21T11:01:40Z – codex-wp04-cycle16-reviewer – shell_pid=1807838 – Started review via action command
 - 2026-07-21T11:08:55Z – user – shell_pid=1807838 – Moved to planned
 - 2026-07-21T11:09:50Z – codex-wp04-least-authority-fix – shell_pid=1807838 – Started implementation via action command
+- 2026-07-21T11:13:17Z – codex-wp04-least-authority-fix – shell_pid=1807838 – RED cycle 17: committed permanent least-authority fixture 1e9027d before product changes. Exact command cd services/api && zig build test-build-discovery --summary all failed 19/20. The adversarial synthetic src/http/root.zig imported persistence; nested zig build test-http unexpectedly succeeded 8/8 and its HTTP test passed 1/1 instead of failing with no module named 'persistence', proving the current HTTP module is over-capable.
+- 2026-07-21T11:16:24Z – codex-wp04-least-authority-fix – shell_pid=1807838 – GREEN cycle 17: product commit da7e7e3 follows public RED 1e9027d and removes only persistence/migrations capabilities from production http_imports. Exact discovery passed 20/20; the permanent negative proves synthetic HTTP importing persistence fails nested zig build test-http with no module named 'persistence', while positive composition imports/touches shared, persistence, migrations, and http and launches the emitted invoice-manager-api. Two cold-cache discovery replays passed 20/20. Zig 0.16.0 format and base build passed; adapter 4/4 Debug and ReleaseSafe; real ABI integration 5/5 twice in Debug and 5/5 ReleaseSafe; stable step inventory unchanged; absent-WP08 test-http and run remain fail-closed. Generated Zig caches/output removed.
+- 2026-07-21T11:16:51Z – codex-wp04-least-authority-fix – shell_pid=1807838 – Cycle 17 least-authority correction ready at RED 1e9027d and product da7e7e3. Discovery and cold-cache negative capability proof 20/20; full ABI matrix green. Ruff diff-scoped check: 0 Python files, exit 0.
+- 2026-07-21T11:17:19Z – codex-wp04-cycle18-reviewer – shell_pid=1807838 – Started review via action command
