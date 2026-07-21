@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const migrations = @import("migrations");
 
 const bootstrap_id = "018f6f10-7b7a-7c2d-8e65-0f7b1c2d3e4f";
@@ -185,6 +186,27 @@ test "valid descriptors are discovered recursively beneath an owner root" {
     );
     defer allocator.free(expected_source_path);
     try std.testing.expectEqualStrings(expected_source_path, discovered.descriptors[0].source_path);
+}
+
+test "unknown or unsupported directory entries fail closed" {
+    if (builtin.os.tag != .linux) return error.SkipZigTest;
+    const allocator = std.testing.allocator;
+    const io = std.testing.io;
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const root_path = try temporaryPath(allocator, &tmp, "p0");
+    defer allocator.free(root_path);
+    try std.Io.Dir.createDirPath(.cwd(), io, root_path);
+    const fifo_path = try std.fmt.allocPrintSentinel(allocator, "{s}/unknown-entry", .{root_path}, 0);
+    defer allocator.free(fifo_path);
+    try std.testing.expectEqual(
+        std.os.linux.E.SUCCESS,
+        std.os.linux.errno(std.os.linux.mknod(fifo_path, std.os.linux.S.IFIFO | 0o600, 0)),
+    );
+    try std.testing.expectError(
+        error.DiscoveryFailure,
+        discoverFailure(allocator, io, &.{.{ .owner = "p0", .path = root_path }}),
+    );
 }
 
 const DigestVector = struct {
