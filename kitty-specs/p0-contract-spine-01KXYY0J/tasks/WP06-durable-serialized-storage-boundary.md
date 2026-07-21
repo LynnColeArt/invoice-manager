@@ -26,7 +26,7 @@ subtasks:
 - T030
 phase: Phase 3
 assignee: ''
-agent: "codex-wp06-fresh-review"
+agent: "codex"
 history: []
 agent_profile: implementer-ivan
 authoritative_surface: services/api/src/platform/persistence/
@@ -560,3 +560,5 @@ and the final full verification matrix.
 - 2026-07-21T06:35:30Z – codex – shell_pid=1807838 – Implementation complete at 8f0bded with test evidence at 49234b5; Debug and ReleaseSafe persistence/ABI matrices pass and exact owned coverage is 562/624 with 20/20 critical branches.
 - 2026-07-21T06:38:31Z – codex-wp06-fresh-review – shell_pid=1807838 – Started review via action command
 - 2026-07-21T06:47:18Z – user – shell_pid=1807838 – Review passed: cycle 2 approved at product 8f0bded; value-token lifecycle, shutdown reclamation, alias leases, persistence-only completion, adapter opacity, corrupt/crash safety, RED chronology, and exact coverage 562/624 with 20/20 probes verified independently
+- 2026-07-21T08:31:16Z – codex – shell_pid=1807838 – WP07 integration review proved the public Store cannot distinguish newly created storage from existing malformed/deleted history; add only an atomic migration-agnostic fresh-initialization operation.
+- 2026-07-21T08:32:10Z – codex – shell_pid=1807838 – Started implementation via action command
