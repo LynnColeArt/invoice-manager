@@ -322,6 +322,22 @@ test "stable step names and aggregate order are exact" {
     );
 }
 
+test "aggregate invocations are rooted at the canonical repository build file" {
+    const invocation = registry.aggregateInvocation("test-http", "-Doptimize=Debug");
+    try std.testing.expectEqualStrings("../..", invocation.cwd_from_service_root);
+    try std.testing.expectEqualDeep(
+        [_][]const u8{
+            "zig",
+            "build",
+            "test-http",
+            "-Doptimize=Debug",
+            "--build-file",
+            "services/api/build.zig",
+        },
+        invocation.argv,
+    );
+}
+
 test "isolated HTTP roots compile against the complete service graph and emitted API" {
     const allocator = std.testing.allocator;
     var fixture = try prepareHttpFixture(
@@ -362,7 +378,7 @@ test "isolated HTTP roots compile against the complete service graph and emitted
     defer allocator.free(result.stderr);
 }
 
-test "nested service invocation pins HTTP artifacts to canonical repository root" {
+test "canonical build-file invocation pins emitted API and configured run cwd" {
     const allocator = std.testing.allocator;
     var fixture = try prepareHttpFixture(
         allocator,
@@ -400,10 +416,23 @@ test "nested service invocation pins HTTP artifacts to canonical repository root
             "}\n",
     );
 
+    const services_path = std.fs.path.dirname(fixture.api_path) orelse
+        return error.InvalidFixtureApiPath;
+    const repository_path = std.fs.path.dirname(services_path) orelse
+        return error.InvalidFixtureServicesPath;
     const test_result = try expectCommandExit(
         allocator,
-        fixture.api_path,
-        &.{ "zig", "build", "test-http", "-j16", "--summary", "all" },
+        repository_path,
+        &.{
+            "zig",
+            "build",
+            "test-http",
+            "-j16",
+            "--summary",
+            "all",
+            "--build-file",
+            "services/api/build.zig",
+        },
         0,
     );
     defer allocator.free(test_result.stdout);
