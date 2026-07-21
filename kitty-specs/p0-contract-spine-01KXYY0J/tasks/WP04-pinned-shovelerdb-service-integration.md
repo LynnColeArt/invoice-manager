@@ -27,7 +27,7 @@ subtasks:
 - T019
 phase: Phase 2 - Service Dependency Integration
 assignee: ''
-agent: "codex-wp04-pc-review"
+agent: "codex-wp04-http-corrector"
 history: []
 agent_profile: reviewer-renata
 authoritative_surface: deps/shovelerdb/
@@ -578,3 +578,7 @@ Review `THIRD_PARTY_NOTICES.md` and the complete upstream license as acceptance-
 - 2026-07-21T05:02:57Z – codex – shell_pid=1807838 – RED: WP04-COVERAGE-DIRECT-ORIGIN-010; commit 0c83f9c; command: (cd services/api && zig build test-build-discovery --summary all); expected: public discovery adversarial cases require one-byte return-PC bias, direct-origin-only ownership mask, missing/ambiguous fail-closed behavior, owned-only numerator/denominator, and explicit domain-only instrumentation policy; observed: exit 1 with three compile errors because shovelerdb_coverage_runner_core lacks originatingInstructionPc/directOriginFromFrames and build.zig lacks coverageInstrumentationEnabled, before any production correction.
 - 2026-07-21T05:04:12Z – codex – shell_pid=1807838 – RED refinement: WP04-COVERAGE-DIRECT-FRAME-010; commit 4b280ef; the public adversarial contract now requires first/canonical direct frame precedence, proves later owned inline/caller frames cannot confer ownership, and requires a missing direct frame to fail even when a later frame appears owned. The same discovery command remains RED on the three intentionally absent production APIs.
 - 2026-07-21T05:16:58Z – codex-wp04-pc-review – shell_pid=1807838 – Started review via action command
+- 2026-07-21T05:25:14Z – codex-wp04-pc-review – shell_pid=1807838 – Arbiter override of stale cycle-10/11 rejection: independent review-cycle-12 proves Zig 0.16 __sancov_pcs1 entries are exact instruction PCs, retracts the false pc-1 premise while preserving audit history, verifies 435/435 owned source reconciliation, and finds zero blockers.
+- 2026-07-21T07:23:58Z – codex-wp04-http-readiness – shell_pid=2029247 – REVIEW cycle 13: rejected WP08 HTTP build readiness. review-cycle-13.md records three blockers: missing named shared/persistence/migrations graph with uninstrumented probes, materializer sibling race instead of per-Compile prerequisite, and missing fail-closed run step/executable.
+- 2026-07-21T07:24:41Z – codex-wp04-http-readiness – shell_pid=2031118 – Review cycle 13 rejects the WP08 HTTP consumer seam; reopen only the three build defects recorded in review-cycle-13.md.
+- 2026-07-21T07:25:17Z – codex-wp04-http-corrector – shell_pid=1807838 – Started implementation via action command
