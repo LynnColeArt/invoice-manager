@@ -79,7 +79,7 @@ test "applied-history corruption and immutable drift fail through the public run
 
 test "DDL failure discards dirty state reopens durable state and blocks later work" {
     try expectPublicError(error.DdlFailure, ddlFailure(std.testing.allocator, std.testing.io, false));
-    try expectPublicError(error.LaterMigrationBlocked, ddlFailure(std.testing.allocator, std.testing.io, true));
+    try expectPublicError(error.DdlFailure, ddlFailure(std.testing.allocator, std.testing.io, true));
     try reopenFailure(std.testing.allocator, std.testing.io, false);
     try reopenFailure(std.testing.allocator, std.testing.io, true);
 }
@@ -509,17 +509,21 @@ test "partial multi-statement DDL is absent after discard and durable reopen" {
     defer store.shutdown() catch {};
     var failed_calls: usize = 0;
     var observed_error: ?anyerror = null;
-    _ = migrations.testing.runObserved(
+    var diagnostic = migrations.RunDiagnostic{};
+    _ = migrations.testing.runObservedWithDiagnostic(
         allocator,
         io,
         &store,
         &.{.{ .owner = "p0", .path = root_path }},
         "2026-07-21T12:34:56.789Z",
         &failed_calls,
+        &diagnostic,
     ) catch |err| {
         observed_error = err;
     };
-    try std.testing.expectEqual(error.LaterMigrationBlocked, observed_error.?);
+    try std.testing.expectEqual(error.DdlFailure, observed_error.?);
+    try std.testing.expectEqual(migrations.CriticalCategory.ddl_failure, diagnostic.primary.?);
+    try std.testing.expectEqual(migrations.CriticalCategory.later_migration_blocked, diagnostic.consequence.?);
     try std.testing.expectEqual(@as(usize, 1), failed_calls);
     try std.testing.expectEqual(.ready, store.state());
     try std.testing.expect(migrations.testing.discardCount(&store) > 0);
@@ -828,7 +832,7 @@ pub fn exerciseCritical(
         .applied_script_drift,
         => expectPublicError(migrations.expectedError(category), historyFailure(allocator, io, category)),
         .ddl_failure => expectPublicError(error.DdlFailure, ddlFailure(allocator, io, false)),
-        .later_migration_blocked => expectPublicError(error.LaterMigrationBlocked, ddlFailure(allocator, io, true)),
+        .later_migration_blocked => expectPublicError(error.DdlFailure, ddlFailure(allocator, io, true)),
         .reopen_failure => reopenFailure(allocator, io, false),
         .recovery_quarantine => reopenFailure(allocator, io, true),
         .checkpoint_failure,
