@@ -27,7 +27,7 @@ phase: Phase 2 - Service Dependency Integration
 assignee: ''
 agent: "codex"
 history: []
-agent_profile: implementer-ivan
+agent_profile: reviewer-renata
 authoritative_surface: deps/shovelerdb/
 create_intent:
 - services/api/build.zig
@@ -44,7 +44,7 @@ owned_files:
 - services/api/src/platform/persistence/shovelerdb*
 - services/api/tests/persistence/shovelerdb*
 - THIRD_PARTY_NOTICES*
-role: implementer
+role: reviewer
 tags: []
 task_type: implement
 shell_pid: "1807838"
