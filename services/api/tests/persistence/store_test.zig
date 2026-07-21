@@ -238,6 +238,7 @@ test "canonical aliases share one exclusive lease and release it on shutdown" {
 }
 
 test "fresh initialization succeeds only for a newly created store" {
+    if (isLeaseProbeProcess()) return;
     const allocator = std.testing.allocator;
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
@@ -259,13 +260,15 @@ test "fresh initialization succeeds only for a newly created store" {
 }
 
 test "fresh initialization denies existing empty and nonempty stores without invoking callbacks" {
+    if (isLeaseProbeProcess()) return;
     const allocator = std.testing.allocator;
 
     var empty_tmp = std.testing.tmpDir(.{});
     defer empty_tmp.cleanup();
     const empty_path = try databasePath(allocator, &empty_tmp, "fresh-existing-empty");
     defer allocator.free(empty_path);
-    try std.Io.Dir.writeFile(.cwd(), std.testing.io, .{ .sub_path = empty_path, .data = "" });
+    var empty_creator = try persistence.Store.open(allocator, std.testing.io, empty_path);
+    try empty_creator.shutdown();
     var empty_store = try persistence.Store.open(allocator, std.testing.io, empty_path);
     defer empty_store.shutdown() catch {};
     var empty_context = FreshContext{};
@@ -296,6 +299,7 @@ test "fresh initialization denies existing empty and nonempty stores without inv
 }
 
 test "second and concurrent fresh initialization attempts are denied atomically" {
+    if (isLeaseProbeProcess()) return;
     const allocator = std.testing.allocator;
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
@@ -340,6 +344,7 @@ test "second and concurrent fresh initialization attempts are denied atomically"
 }
 
 test "failed fresh initialization recovers and remains eligible until durability completes" {
+    if (isLeaseProbeProcess()) return;
     const allocator = std.testing.allocator;
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
@@ -364,6 +369,7 @@ test "failed fresh initialization recovers and remains eligible until durability
 }
 
 test "fresh initialization durability completion never replays its callback" {
+    if (isLeaseProbeProcess()) return;
     const allocator = std.testing.allocator;
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
@@ -395,6 +401,7 @@ test "fresh initialization durability completion never replays its callback" {
 }
 
 test "fresh initialization recovery cleanup releases ownership without recategorizing the file" {
+    if (isLeaseProbeProcess()) return;
     const allocator = std.testing.allocator;
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
