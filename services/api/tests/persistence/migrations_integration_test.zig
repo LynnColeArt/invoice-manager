@@ -99,6 +99,13 @@ test "durability completion retries persistence and never replays migration DDL"
         try std.testing.expectEqual(@as(usize, 1), evidence.application_calls);
         try std.testing.expect(!evidence.initial.isReady());
         try std.testing.expectEqual(migrations.ReadinessStatus.durability_unconfirmed, evidence.initial.status);
+        try std.testing.expectEqual(
+            if (case == .checkpoint_failure)
+                migrations.CriticalCategory.committed_not_durable
+            else
+                migrations.CriticalCategory.checkpointed_not_durable,
+            evidence.initial.durability_boundary.?,
+        );
         try std.testing.expect(!evidence.completed.isReady());
         try std.testing.expectEqual(@as(usize, 1), evidence.application_calls);
     }
@@ -658,16 +665,20 @@ fn reopenFailure(allocator: std.mem.Allocator, io: std.Io, quarantine: bool) !vo
     var store = try migrations.testing.openStoreWithFaults(allocator, io, database_path, .{ .reopen = true });
     defer store.shutdown() catch {};
     var observed_error: ?anyerror = null;
-    _ = migrations.run(
+    var diagnostic = migrations.RunDiagnostic{};
+    _ = migrations.runWithDiagnostic(
         allocator,
         io,
         &store,
         &.{.{ .owner = "p0", .path = migrationRoot(io) }},
         "2026-07-21T12:34:56.789Z",
+        &diagnostic,
     ) catch |err| {
         observed_error = err;
     };
     try std.testing.expectEqual(error.ReopenFailure, observed_error.?);
+    try std.testing.expectEqual(migrations.CriticalCategory.reopen_failure, diagnostic.primary.?);
+    try std.testing.expectEqual(migrations.CriticalCategory.recovery_quarantine, diagnostic.consequence.?);
     if (quarantine) {
         try std.testing.expectEqual(.quarantined, store.state());
         try std.testing.expect(migrations.testing.discardCount(&store) > 0);
@@ -760,15 +771,23 @@ fn ddlFailure(allocator: std.mem.Allocator, io: std.Io, expect_later_blocked: bo
     defer allocator.free(database_path);
     var store = try migrations.testing.openStoreWithFaults(allocator, io, database_path, .{});
     defer store.shutdown() catch {};
-    _ = migrations.run(
+    var diagnostic = migrations.RunDiagnostic{};
+    _ = migrations.runWithDiagnostic(
         allocator,
         io,
         &store,
         &.{.{ .owner = "p0", .path = root_path }},
         "2026-07-21T12:34:56.789Z",
+        &diagnostic,
     ) catch |err| {
         try std.testing.expect(migrations.testing.discardCount(&store) > 0);
         try std.testing.expect(migrations.testing.reopenCount(&store) > 0);
+        try std.testing.expectEqual(migrations.CriticalCategory.ddl_failure, diagnostic.primary.?);
+        if (expect_later_blocked) {
+            try std.testing.expectEqual(migrations.CriticalCategory.later_migration_blocked, diagnostic.consequence.?);
+        } else {
+            try std.testing.expectEqual(@as(?migrations.CriticalCategory, null), diagnostic.consequence);
+        }
         return err;
     };
     return error.TestUnexpectedResult;
