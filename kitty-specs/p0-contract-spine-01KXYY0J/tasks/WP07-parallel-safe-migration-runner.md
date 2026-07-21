@@ -27,7 +27,7 @@ subtasks:
 - T036
 phase: Phase 4
 assignee: ''
-agent: "reviewer-renata"
+agent: "codex"
 history: []
 agent_profile: implementer-ivan
 authoritative_surface: services/api/src/platform/persistence/migrations
@@ -531,3 +531,5 @@ root scripts, or WP06 internals; missing stable wiring is an upstream WP04 failu
 - 2026-07-21T10:04:30Z – codex – shell_pid=2266124 – GREEN correction at product commit efbecdc with test commits f21afe9..a31b80b: pinned Zig 0.16 formatting; Debug test-migration, test-migration-integration, mandatory npm run migration:negative, coverage-migration, and aggregate coverage all pass. ReleaseSafe test-migration, test-migration-integration, migration-negative, and coverage-migration pass. Exact migration coverage is 571/631 owned production PCs (90.49%), 36/36 critical branches, 38 passed, 0 skipped; aggregate shared 221/243 and persistence 577/641 also pass; diff check is clean.
 - 2026-07-21T10:04:55Z – codex – shell_pid=2266124 – Correction complete at efbecdc; test-first commits f21afe9..a31b80b; Debug and ReleaseSafe WP07 gates pass; exact coverage 571/631 (90.49%) with 36/36 branches; aggregate coverage passes.
 - 2026-07-21T10:06:37Z – reviewer-renata – shell_pid=1807838 – Started review via action command
+- 2026-07-21T10:16:53Z – user – shell_pid=1807838 – Moved to planned
+- 2026-07-21T10:19:52Z – codex – shell_pid=1807838 – Started implementation via action command
