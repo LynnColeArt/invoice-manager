@@ -1,0 +1,444 @@
+{
+  "fixture_version": "1",
+  "schema_id": "https://invoice-manager.invalid/contracts/common/v1/schema.json",
+  "purpose": "Synthetic valid boundary evidence for canonical P0 cross-language wire values.",
+  "consumer_handoff": {
+    "definitions": [
+      "EntityId",
+      "CurrencyCode",
+      "CanonicalInt64",
+      "NonNegativeInt64",
+      "Money",
+      "LocalDate",
+      "UtcInstant",
+      "Sha256Digest",
+      "RequestId"
+    ],
+    "schema_resolution": "WP03 must resolve this schema ID from the repository registry without a network fetch and enable JSON Schema date and date-time format assertion.",
+    "runtime_semantics": "WP05 must recheck every signed 64-bit range, supported year, Gregorian date, and UTC clock invariant in Zig; TypeScript consumers must perform equivalent semantic checks where they accept untrusted wire values.",
+    "generated_types": "WP03 must generate and workspace-export integer-string or BigInt-safe types. WP10 must consume those exports without authoritative number arithmetic. WP09 is config-only and consumes no fixtures.",
+    "domain_narrowing": "Domain missions may narrow Money signs or allowed currencies only in their own schemas and validators; this shared contract remains signed and structurally open to every three-letter uppercase code.",
+    "uuid_ordering": "UUIDv7 values are opaque identifiers; this corpus does not assert timestamp or business ordering.",
+    "data_classification": "All values are invented synthetic boundary data and contain no client, bank, invoice, credential, token, or private-key material."
+  },
+  "case_counts": {
+    "total": 42,
+    "by_definition": {
+      "CanonicalInt64": 7,
+      "CurrencyCode": 3,
+      "EntityId": 6,
+      "LocalDate": 7,
+      "Money": 7,
+      "NonNegativeInt64": 3,
+      "RequestId": 1,
+      "Sha256Digest": 3,
+      "UtcInstant": 5
+    },
+    "by_validation_layer": {
+      "schema_and_runtime": 42
+    }
+  },
+  "required_case_ids": [
+    "canonical-int64-i64-max",
+    "canonical-int64-i64-min",
+    "canonical-int64-minus-one",
+    "canonical-int64-one",
+    "canonical-int64-unsafe-negative",
+    "canonical-int64-unsafe-positive",
+    "canonical-int64-zero",
+    "currency-code-eur",
+    "currency-code-usd",
+    "currency-code-zzz-open-policy",
+    "entity-id-hex-high",
+    "entity-id-hex-low",
+    "entity-id-normal-variant-8",
+    "entity-id-variant-9",
+    "entity-id-variant-a",
+    "entity-id-variant-b",
+    "local-date-30-day-month-end",
+    "local-date-31-day-month-end",
+    "local-date-leap-2000",
+    "local-date-leap-2024",
+    "local-date-normal-mid-month",
+    "local-date-supported-year-max",
+    "local-date-supported-year-min",
+    "money-eur-positive",
+    "money-i64-max",
+    "money-i64-min",
+    "money-negative",
+    "money-positive",
+    "money-usd-zero",
+    "money-zzz-open-currency",
+    "nonnegative-int64-i64-max",
+    "nonnegative-int64-one",
+    "nonnegative-int64-zero",
+    "request-id-entity-alias",
+    "sha256-digest-all-f",
+    "sha256-digest-all-zero",
+    "sha256-digest-mixed",
+    "utc-instant-epoch",
+    "utc-instant-leap-day",
+    "utc-instant-millisecond-001",
+    "utc-instant-millisecond-999",
+    "utc-instant-year-boundary"
+  ],
+  "cases": [
+    {
+      "case_id": "canonical-int64-i64-max",
+      "definition": "CanonicalInt64",
+      "value": "9223372036854775807",
+      "expectation": "valid",
+      "validation_layer": "schema_and_runtime",
+      "reason": "Largest signed 64-bit integer."
+    },
+    {
+      "case_id": "canonical-int64-i64-min",
+      "definition": "CanonicalInt64",
+      "value": "-9223372036854775808",
+      "expectation": "valid",
+      "validation_layer": "schema_and_runtime",
+      "reason": "Smallest signed 64-bit integer."
+    },
+    {
+      "case_id": "canonical-int64-minus-one",
+      "definition": "CanonicalInt64",
+      "value": "-1",
+      "expectation": "valid",
+      "validation_layer": "schema_and_runtime",
+      "reason": "Canonical negative unit."
+    },
+    {
+      "case_id": "canonical-int64-one",
+      "definition": "CanonicalInt64",
+      "value": "1",
+      "expectation": "valid",
+      "validation_layer": "schema_and_runtime",
+      "reason": "Canonical positive unit."
+    },
+    {
+      "case_id": "canonical-int64-unsafe-negative",
+      "definition": "CanonicalInt64",
+      "value": "-9007199254740993",
+      "expectation": "valid",
+      "validation_layer": "schema_and_runtime",
+      "reason": "Negative value below the JavaScript safe-integer boundary remains exact as a string."
+    },
+    {
+      "case_id": "canonical-int64-unsafe-positive",
+      "definition": "CanonicalInt64",
+      "value": "9007199254740993",
+      "expectation": "valid",
+      "validation_layer": "schema_and_runtime",
+      "reason": "Positive value above the JavaScript safe-integer boundary remains exact as a string."
+    },
+    {
+      "case_id": "canonical-int64-zero",
+      "definition": "CanonicalInt64",
+      "value": "0",
+      "expectation": "valid",
+      "validation_layer": "schema_and_runtime",
+      "reason": "The sole canonical zero spelling."
+    },
+    {
+      "case_id": "currency-code-eur",
+      "definition": "CurrencyCode",
+      "value": "EUR",
+      "expectation": "valid",
+      "validation_layer": "schema_and_runtime",
+      "reason": "Familiar uppercase structural currency example."
+    },
+    {
+      "case_id": "currency-code-usd",
+      "definition": "CurrencyCode",
+      "value": "USD",
+      "expectation": "valid",
+      "validation_layer": "schema_and_runtime",
+      "reason": "Familiar uppercase structural currency example."
+    },
+    {
+      "case_id": "currency-code-zzz-open-policy",
+      "definition": "CurrencyCode",
+      "value": "ZZZ",
+      "expectation": "valid",
+      "validation_layer": "schema_and_runtime",
+      "reason": "Synthetic non-launch code proves P0 has no business currency allowlist."
+    },
+    {
+      "case_id": "entity-id-hex-high",
+      "definition": "EntityId",
+      "value": "ffffffff-ffff-7fff-bfff-ffffffffffff",
+      "expectation": "valid",
+      "validation_layer": "schema_and_runtime",
+      "reason": "Hex-heavy upper boundary while preserving version 7 and RFC variant bits."
+    },
+    {
+      "case_id": "entity-id-hex-low",
+      "definition": "EntityId",
+      "value": "00000000-0000-7000-8000-000000000000",
+      "expectation": "valid",
+      "validation_layer": "schema_and_runtime",
+      "reason": "Hex-heavy lower boundary while preserving version 7 and RFC variant bits."
+    },
+    {
+      "case_id": "entity-id-normal-variant-8",
+      "definition": "EntityId",
+      "value": "01890f3e-2c4a-7d5e-8abc-0123456789ab",
+      "expectation": "valid",
+      "validation_layer": "schema_and_runtime",
+      "reason": "Normal lowercase UUIDv7 using RFC variant nibble 8."
+    },
+    {
+      "case_id": "entity-id-variant-9",
+      "definition": "EntityId",
+      "value": "01890f3e-2c4a-7d5e-9abc-0123456789ab",
+      "expectation": "valid",
+      "validation_layer": "schema_and_runtime",
+      "reason": "RFC-compatible variant nibble 9."
+    },
+    {
+      "case_id": "entity-id-variant-a",
+      "definition": "EntityId",
+      "value": "01890f3e-2c4a-7d5e-aabc-0123456789ab",
+      "expectation": "valid",
+      "validation_layer": "schema_and_runtime",
+      "reason": "RFC-compatible variant nibble a."
+    },
+    {
+      "case_id": "entity-id-variant-b",
+      "definition": "EntityId",
+      "value": "01890f3e-2c4a-7d5e-babc-0123456789ab",
+      "expectation": "valid",
+      "validation_layer": "schema_and_runtime",
+      "reason": "RFC-compatible variant nibble b."
+    },
+    {
+      "case_id": "local-date-30-day-month-end",
+      "definition": "LocalDate",
+      "value": "2024-04-30",
+      "expectation": "valid",
+      "validation_layer": "schema_and_runtime",
+      "reason": "Valid end of a 30-day month."
+    },
+    {
+      "case_id": "local-date-31-day-month-end",
+      "definition": "LocalDate",
+      "value": "2024-01-31",
+      "expectation": "valid",
+      "validation_layer": "schema_and_runtime",
+      "reason": "Valid end of a 31-day month."
+    },
+    {
+      "case_id": "local-date-leap-2000",
+      "definition": "LocalDate",
+      "value": "2000-02-29",
+      "expectation": "valid",
+      "validation_layer": "schema_and_runtime",
+      "reason": "Century year divisible by 400 is a Gregorian leap year."
+    },
+    {
+      "case_id": "local-date-leap-2024",
+      "definition": "LocalDate",
+      "value": "2024-02-29",
+      "expectation": "valid",
+      "validation_layer": "schema_and_runtime",
+      "reason": "Year divisible by four and not by 100 is a Gregorian leap year."
+    },
+    {
+      "case_id": "local-date-normal-mid-month",
+      "definition": "LocalDate",
+      "value": "2030-06-15",
+      "expectation": "valid",
+      "validation_layer": "schema_and_runtime",
+      "reason": "Ordinary synthetic mid-month civil date."
+    },
+    {
+      "case_id": "local-date-supported-year-max",
+      "definition": "LocalDate",
+      "value": "9999-12-31",
+      "expectation": "valid",
+      "validation_layer": "schema_and_runtime",
+      "reason": "Conservative maximum supported four-digit Gregorian year."
+    },
+    {
+      "case_id": "local-date-supported-year-min",
+      "definition": "LocalDate",
+      "value": "0001-01-01",
+      "expectation": "valid",
+      "validation_layer": "schema_and_runtime",
+      "reason": "Conservative minimum supported four-digit Gregorian year; year zero is excluded at runtime."
+    },
+    {
+      "case_id": "money-eur-positive",
+      "definition": "Money",
+      "value": {
+        "currency": "EUR",
+        "minor_units": "12500"
+      },
+      "expectation": "valid",
+      "validation_layer": "schema_and_runtime",
+      "reason": "Familiar EUR amount in canonical minor units."
+    },
+    {
+      "case_id": "money-i64-max",
+      "definition": "Money",
+      "value": {
+        "currency": "USD",
+        "minor_units": "9223372036854775807"
+      },
+      "expectation": "valid",
+      "validation_layer": "schema_and_runtime",
+      "reason": "Largest signed minor-unit value would lose precision if converted to a JavaScript number."
+    },
+    {
+      "case_id": "money-i64-min",
+      "definition": "Money",
+      "value": {
+        "currency": "EUR",
+        "minor_units": "-9223372036854775808"
+      },
+      "expectation": "valid",
+      "validation_layer": "schema_and_runtime",
+      "reason": "Smallest signed minor-unit value remains valid at the shared wire layer."
+    },
+    {
+      "case_id": "money-negative",
+      "definition": "Money",
+      "value": {
+        "currency": "USD",
+        "minor_units": "-1"
+      },
+      "expectation": "valid",
+      "validation_layer": "schema_and_runtime",
+      "reason": "Negative Money is intentionally valid before domain-specific narrowing."
+    },
+    {
+      "case_id": "money-positive",
+      "definition": "Money",
+      "value": {
+        "currency": "USD",
+        "minor_units": "1"
+      },
+      "expectation": "valid",
+      "validation_layer": "schema_and_runtime",
+      "reason": "Canonical positive minor-unit value."
+    },
+    {
+      "case_id": "money-usd-zero",
+      "definition": "Money",
+      "value": {
+        "currency": "USD",
+        "minor_units": "0"
+      },
+      "expectation": "valid",
+      "validation_layer": "schema_and_runtime",
+      "reason": "Canonical zero USD amount."
+    },
+    {
+      "case_id": "money-zzz-open-currency",
+      "definition": "Money",
+      "value": {
+        "currency": "ZZZ",
+        "minor_units": "9007199254740993"
+      },
+      "expectation": "valid",
+      "validation_layer": "schema_and_runtime",
+      "reason": "Synthetic non-launch currency and JS-unsafe minor units jointly pin the open exact wire contract."
+    },
+    {
+      "case_id": "nonnegative-int64-i64-max",
+      "definition": "NonNegativeInt64",
+      "value": "9223372036854775807",
+      "expectation": "valid",
+      "validation_layer": "schema_and_runtime",
+      "reason": "Largest supported nonnegative signed 64-bit counter."
+    },
+    {
+      "case_id": "nonnegative-int64-one",
+      "definition": "NonNegativeInt64",
+      "value": "1",
+      "expectation": "valid",
+      "validation_layer": "schema_and_runtime",
+      "reason": "Canonical positive counter unit."
+    },
+    {
+      "case_id": "nonnegative-int64-zero",
+      "definition": "NonNegativeInt64",
+      "value": "0",
+      "expectation": "valid",
+      "validation_layer": "schema_and_runtime",
+      "reason": "Canonical zero counter."
+    },
+    {
+      "case_id": "request-id-entity-alias",
+      "definition": "RequestId",
+      "value": "01890f3e-2c4a-7d5e-8abc-0123456789ab",
+      "expectation": "valid",
+      "validation_layer": "schema_and_runtime",
+      "reason": "RequestId uses the exact EntityId representation."
+    },
+    {
+      "case_id": "sha256-digest-all-f",
+      "definition": "Sha256Digest",
+      "value": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "expectation": "valid",
+      "validation_layer": "schema_and_runtime",
+      "reason": "Upper hexadecimal-value boundary encoded with lowercase characters."
+    },
+    {
+      "case_id": "sha256-digest-all-zero",
+      "definition": "Sha256Digest",
+      "value": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "expectation": "valid",
+      "validation_layer": "schema_and_runtime",
+      "reason": "Lower digest-byte boundary with the canonical algorithm prefix."
+    },
+    {
+      "case_id": "sha256-digest-mixed",
+      "definition": "Sha256Digest",
+      "value": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "expectation": "valid",
+      "validation_layer": "schema_and_runtime",
+      "reason": "Mixed lowercase hexadecimal digest."
+    },
+    {
+      "case_id": "utc-instant-epoch",
+      "definition": "UtcInstant",
+      "value": "1970-01-01T00:00:00.000Z",
+      "expectation": "valid",
+      "validation_layer": "schema_and_runtime",
+      "reason": "Unix epoch with exact millisecond precision."
+    },
+    {
+      "case_id": "utc-instant-leap-day",
+      "definition": "UtcInstant",
+      "value": "2024-02-29T12:34:56.123Z",
+      "expectation": "valid",
+      "validation_layer": "schema_and_runtime",
+      "reason": "Valid leap-day UTC instant."
+    },
+    {
+      "case_id": "utc-instant-millisecond-001",
+      "definition": "UtcInstant",
+      "value": "2030-06-15T12:34:56.001Z",
+      "expectation": "valid",
+      "validation_layer": "schema_and_runtime",
+      "reason": "Lower nonzero millisecond boundary."
+    },
+    {
+      "case_id": "utc-instant-millisecond-999",
+      "definition": "UtcInstant",
+      "value": "2030-06-15T12:34:56.999Z",
+      "expectation": "valid",
+      "validation_layer": "schema_and_runtime",
+      "reason": "Upper millisecond boundary."
+    },
+    {
+      "case_id": "utc-instant-year-boundary",
+      "definition": "UtcInstant",
+      "value": "2024-01-01T00:00:00.000Z",
+      "expectation": "valid",
+      "validation_layer": "schema_and_runtime",
+      "reason": "First canonical millisecond after a UTC year boundary."
+    }
+  ]
+}
