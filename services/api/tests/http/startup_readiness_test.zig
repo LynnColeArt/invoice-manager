@@ -20,16 +20,9 @@ test "startup configuration is infrastructure-only bounded and loopback-safe" {
     try std.testing.expectError(error.InvalidPort, composition.parseConfig(&environment));
 }
 
-test "neither store-only nor migration-only readiness can construct a listener capability" {
-    try std.testing.expectError(error.NotReady, http.server.compositionRootReadyContext(false, false));
-    try std.testing.expectError(error.NotReady, http.server.compositionRootReadyContext(true, false));
-    try std.testing.expectError(error.NotReady, http.server.compositionRootReadyContext(false, true));
-}
-
-test "both typed readiness decisions precede socket construction and ephemeral bind" {
-    const ready = try http.server.compositionRootReadyContext(true, true);
+test "ephemeral listener construction is available to black-box tests" {
     const address = try std.Io.net.IpAddress.parse("127.0.0.1", 0);
-    var listener = try http.server.Listener.listen(std.testing.io, address, ready);
+    var listener = try http.server.Listener.listen(std.testing.io, address);
     defer listener.deinit(std.testing.io);
     try std.testing.expect(listener.address().getPort() != 0);
 }

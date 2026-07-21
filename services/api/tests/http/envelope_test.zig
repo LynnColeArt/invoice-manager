@@ -42,3 +42,10 @@ test "internal diagnostics are never translated into public response bytes" {
     try std.testing.expect(std.mem.indexOf(u8, body, hostile) == null);
     try std.testing.expect(std.mem.indexOf(u8, body, "/secret/") == null);
 }
+
+test "invalid UTF-8 is rejected instead of serialized into a JSON string" {
+    try std.testing.expectError(
+        error.InvalidUtf8,
+        envelope.failure(std.testing.allocator, request_id, "invalid_request", "\xff", &.{}),
+    );
+}

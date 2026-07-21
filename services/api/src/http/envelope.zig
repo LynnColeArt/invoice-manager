@@ -15,6 +15,7 @@ pub const EnvelopeError = error{
     InvalidFieldPath,
     MessageTooLong,
     TooManyFieldFailures,
+    InvalidUtf8,
 };
 
 pub fn successReady(
@@ -39,6 +40,7 @@ pub fn failure(
     try validateRequestId(request_id);
     try validateCode(code);
     if (message.len > maximum_error_message_bytes) return error.MessageTooLong;
+    if (!std.unicode.utf8ValidateSlice(message)) return error.InvalidUtf8;
     if (fields.len > maximum_field_failures) return error.TooManyFieldFailures;
 
     var output: std.ArrayList(u8) = .empty;
@@ -53,6 +55,7 @@ pub fn failure(
             try validatePointer(field.path);
             try validateCode(field.code);
             if (field.message.len > maximum_error_message_bytes) return error.MessageTooLong;
+            if (!std.unicode.utf8ValidateSlice(field.message)) return error.InvalidUtf8;
             if (index != 0) try output.append(allocator, ',');
             try output.appendSlice(allocator, "{\"path\":");
             try appendJsonString(&output, allocator, field.path);
@@ -100,7 +103,8 @@ fn appendJsonString(
     output: *std.ArrayList(u8),
     allocator: std.mem.Allocator,
     value: []const u8,
-) std.mem.Allocator.Error!void {
+) (EnvelopeError || std.mem.Allocator.Error)!void {
+    if (!std.unicode.utf8ValidateSlice(value)) return error.InvalidUtf8;
     try output.append(allocator, '"');
     for (value) |byte| switch (byte) {
         '"' => try output.appendSlice(allocator, "\\\""),
@@ -108,7 +112,12 @@ fn appendJsonString(
         '\n' => try output.appendSlice(allocator, "\\n"),
         '\r' => try output.appendSlice(allocator, "\\r"),
         '\t' => try output.appendSlice(allocator, "\\t"),
-        0...8, 11...12, 14...0x1f => try output.appendSlice(allocator, "?"),
+        0...8, 11...12, 14...0x1f => {
+            const digits = "0123456789abcdef";
+            try output.appendSlice(allocator, "\\u00");
+            try output.append(allocator, digits[byte >> 4]);
+            try output.append(allocator, digits[byte & 0x0f]);
+        },
         else => try output.append(allocator, byte),
     };
     try output.append(allocator, '"');

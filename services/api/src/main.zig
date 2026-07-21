@@ -31,43 +31,55 @@ pub fn parseConfig(environ: *const std.process.Environ.Map) ConfigError!Config {
     return .{ .bind_address = bind_address, .port = port, .database_path = database_path };
 }
 
-pub fn main(init: std.process.Init) !void {
-    const config = parseConfig(init.environ_map) catch {
-        std.debug.print("[api:error] invalid startup configuration\n", .{});
-        return error.InvalidConfiguration;
+pub fn main(init: std.process.Init) u8 {
+    run(init) catch {
+        std.debug.print("[api:error] startup failed\n", .{});
+        return 1;
     };
-    var store = persistence.Store.open(init.gpa, init.io, config.database_path) catch {
-        std.debug.print("[api:error] durable store unavailable\n", .{});
+    return 0;
+}
+
+fn run(init: std.process.Init) !void {
+    const config = try parseConfig(init.environ_map);
+    var store = persistence.Store.open(init.gpa, init.io, config.database_path) catch
         return error.StoreUnavailable;
+    var store_open = true;
+    errdefer if (store_open) store.shutdown() catch {
+        std.debug.print("[api:error] safe shutdown failed\n", .{});
     };
-    defer store.shutdown() catch {};
     if (store.state() != .ready) return error.StoreUnavailable;
-    const migration_readiness = establishMigrationReadiness(init.gpa, init.io, &store) catch {
-        std.debug.print("[api:error] startup migrations unavailable\n", .{});
+    const migration_readiness = establishMigrationReadiness(init.gpa, init.io, &store) catch
         return error.MigrationsUnavailable;
-    };
-    const ready = http.server.compositionRootReadyContext(store.state() == .ready, migration_readiness.isReady()) catch
-        return error.ServiceNotReady;
+    if (!migration_readiness.isReady() or store.state() != .ready) return error.ServiceNotReady;
+
+    var inventory = try http.route_inventory.loadCanonical(init.gpa);
+    defer inventory.deinit();
+    try http.route_inventory.validateP0(&inventory);
+    const bindings = [_]http.route_inventory.HandlerBinding{.{
+        .operation_id = "P0Health",
+        .handler = http.health.respond,
+    }};
+    try http.route_inventory.validateBindings(&inventory, &bindings);
     const address = std.Io.net.IpAddress.parse(config.bind_address, config.port) catch
         return error.InvalidConfiguration;
-    var listener = try http.server.Listener.listen(init.io, address, ready);
-    defer listener.deinit(init.io);
+    // Socket construction is deliberately the final startup action, after
+    // typed store readiness, migrations, inventory, and binding validation.
+    var listener = try http.server.Listener.listen(init.io, address);
     std.debug.print("[api:ready] listening\n", .{});
 
     var handler_calls: usize = 0;
     var dispatch_context = http.server.DispatchContext{
-        .ready = true,
         .handler_calls = &handler_calls,
         .io = init.io,
     };
     while (true) {
-        try listener.serveOne(init.gpa, init.io, .{
-            .operation_id = "P0Health",
-            .method = "get",
-            .path = "/api/v1/health",
-            .access = "public",
-        }, &dispatch_context);
+        _ = listener.serveOne(init.gpa, init.io, &inventory, &bindings, &dispatch_context) catch |err| switch (err) {
+            error.Canceled => break,
+        };
     }
+    listener.deinit(init.io);
+    store.shutdown() catch return error.ShutdownFailed;
+    store_open = false;
 }
 
 pub fn establishMigrationReadiness(
@@ -79,6 +91,15 @@ pub fn establishMigrationReadiness(
         .owner = "p0",
         .path = "services/api/migrations/p0",
     }};
+    return establishMigrationReadinessAt(allocator, io, store, roots);
+}
+
+pub fn establishMigrationReadinessAt(
+    allocator: std.mem.Allocator,
+    io: std.Io,
+    store: *persistence.Store,
+    roots: []const migrations.OwnerRoot,
+) !migrations.Readiness {
     var readiness = try migrations.run(
         allocator,
         io,
@@ -87,17 +108,30 @@ pub fn establishMigrationReadiness(
         "2026-07-21T00:00:00.000Z",
     );
     if (readiness.status == .durability_unconfirmed) {
-        readiness = try migrations.completeDurability(store, readiness);
-    }
-    if (readiness.status == .revalidation_required) {
-        readiness = try migrations.run(
-            allocator,
-            io,
-            store,
-            roots,
-            "2026-07-21T00:00:00.000Z",
-        );
+        readiness = try completeAndRevalidate(allocator, io, store, roots, readiness);
     }
     if (!readiness.isReady()) return error.MigrationsNotReady;
     return readiness;
+}
+
+pub fn completeAndRevalidate(
+    allocator: std.mem.Allocator,
+    io: std.Io,
+    store: *persistence.Store,
+    roots: []const migrations.OwnerRoot,
+    prior: migrations.Readiness,
+) !migrations.Readiness {
+    const completed = try migrations.completeDurability(store, prior);
+    if (completed.status != .revalidation_required or completed.isReady()) {
+        return error.MigrationsNotReady;
+    }
+    const revalidated = try migrations.run(
+        allocator,
+        io,
+        store,
+        roots,
+        "2026-07-21T00:00:00.000Z",
+    );
+    if (!revalidated.isReady()) return error.MigrationsNotReady;
+    return revalidated;
 }

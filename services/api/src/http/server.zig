@@ -1,42 +1,15 @@
 const std = @import("std");
 const envelope = @import("envelope.zig");
 const error_mapping = @import("error_mapping.zig");
-const health = @import("health.zig");
+const route_inventory = @import("route_inventory.zig");
 
 pub const maximum_header_bytes = 16 * 1024;
 pub const maximum_request_line_bytes = 2 * 1024;
 pub const maximum_body_bytes = 16 * 1024;
 pub const content_type = "application/json; charset=utf-8";
-
-const ReadyProof = struct {};
-const ready_proof = ReadyProof{};
-
-/// A listener capability whose proof pointer can only be minted by the
-/// dependency-readiness admission function below. HTTP code never imports
-/// persistence or migration implementation details.
-pub const ReadyContext = struct {
-    proof: *const ReadyProof,
-
-    fn valid(self: ReadyContext) bool {
-        return self.proof == &ready_proof;
-    }
-};
-
-/// Composition-root admission point. Callers must pass the typed public
-/// readiness results; a false dependency result cannot produce a capability.
-pub fn compositionRootReadyContext(
-    store_ready: bool,
-    migrations_ready: bool,
-) error{NotReady}!ReadyContext {
-    if (!store_ready or !migrations_ready) return error.NotReady;
-    return .{ .proof = &ready_proof };
-}
-
-pub const RouteMetadata = struct {
-    operation_id: []const u8,
-    method: []const u8,
-    path: []const u8,
-    access: []const u8,
+pub const header_read_timeout = std.Io.Clock.Duration{
+    .raw = .fromSeconds(2),
+    .clock = .awake,
 };
 
 pub const Request = struct {
@@ -45,7 +18,6 @@ pub const Request = struct {
 };
 
 pub const DispatchContext = struct {
-    ready: bool,
     handler_calls: *usize,
     io: std.Io,
 };
@@ -99,34 +71,35 @@ fn hexDigit(nibble: u8) u8 {
 
 pub fn dispatch(
     allocator: std.mem.Allocator,
-    route: ?RouteMetadata,
+    inventory: *const route_inventory.Inventory,
+    bindings: []const route_inventory.HandlerBinding,
     request: Request,
     context: *DispatchContext,
 ) !Response {
     var request_id_storage: [36]u8 = undefined;
     const generated_request_id = try requestId(context.io, &request_id_storage);
 
-    const metadata = route orelse return failureResponse(allocator, generated_request_id, .not_found);
-    if (!std.mem.eql(u8, request.path, metadata.path)) {
-        return failureResponse(allocator, generated_request_id, .not_found);
-    }
-    // Route inventory methods are canonical lowercase values. HTTP parsing
-    // translates the wire enum once; comparison against inventory is exact.
-    if (!std.mem.eql(u8, request.method, metadata.method)) {
-        return failureResponse(allocator, generated_request_id, .method_not_allowed);
-    }
-    if (!context.ready) return failureResponse(allocator, generated_request_id, .not_ready);
-    if (!std.mem.eql(u8, metadata.operation_id, "P0Health")) {
-        return failureResponse(allocator, generated_request_id, .not_found);
-    }
+    const resolved = switch (route_inventory.resolve(inventory, bindings, request.method, request.path)) {
+        .found => |value| value,
+        .method_not_allowed => return failureResponse(allocator, generated_request_id, .method_not_allowed),
+        .not_found => return failureResponse(allocator, generated_request_id, .not_found),
+    };
 
     context.handler_calls.* += 1;
+    const body = resolved.binding.handler(allocator, generated_request_id) catch
+        return failureResponse(allocator, generated_request_id, .internal);
     return .{
         .allocator = allocator,
         .status = 200,
         .reason = "OK",
-        .body = try health.respond(allocator, generated_request_id),
+        .body = body,
     };
+}
+
+pub fn notReadyResponse(allocator: std.mem.Allocator, io: std.Io) !Response {
+    var request_id_storage: [36]u8 = undefined;
+    const generated_request_id = try requestId(io, &request_id_storage);
+    return failureResponse(allocator, generated_request_id, .not_ready);
 }
 
 fn failureResponse(
@@ -152,8 +125,10 @@ fn failureResponse(
 pub const Listener = struct {
     server: std.Io.net.Server,
 
-    pub fn listen(io: std.Io, bind_address_value: std.Io.net.IpAddress, ready: ReadyContext) !Listener {
-        if (!ready.valid()) return error.NotReady;
+    /// The composition root calls this only after it has consumed the typed
+    /// WP06/WP07 readiness results. This module has no dependency capability
+    /// with which to mint or bypass persistence readiness.
+    pub fn listen(io: std.Io, bind_address_value: std.Io.net.IpAddress) !Listener {
         var bind_address = bind_address_value;
         return .{ .server = try bind_address.listen(io, .{ .reuse_address = true }) };
     }
@@ -172,10 +147,14 @@ pub const Listener = struct {
         self: *Listener,
         allocator: std.mem.Allocator,
         io: std.Io,
-        route: RouteMetadata,
+        inventory: *const route_inventory.Inventory,
+        bindings: []const route_inventory.HandlerBinding,
         context: *DispatchContext,
-    ) !void {
-        const stream = try self.server.accept(io);
+    ) error{Canceled}!ServeOutcome {
+        const stream = self.server.accept(io) catch |err| switch (err) {
+            error.Canceled => return error.Canceled,
+            else => return .accept_failed,
+        };
         defer stream.close(io);
 
         var read_buffer: [maximum_header_bytes]u8 = undefined;
@@ -183,43 +162,109 @@ pub const Listener = struct {
         var write_buffer: [4096]u8 = undefined;
         var socket_writer = stream.writer(io, &write_buffer);
         var http_server = std.http.Server.init(&socket_reader.interface, &socket_writer.interface);
-        var request = http_server.receiveHead() catch {
-            if (socket_reader.err) |read_error| if (read_error == error.Canceled) return error.Canceled;
-            try writeMappedRaw(stream, io, allocator, .malformed_request, context);
-            return;
+        var select_buffer: [2]HeaderSelect = undefined;
+        var select = std.Io.Select(HeaderSelect).init(io, &select_buffer);
+        select.async(.head, receiveHead, .{ &http_server, &socket_reader });
+        select.async(.timeout, waitHeaderTimeout, .{io});
+        const selected = select.await() catch |err| switch (err) {
+            error.Canceled => {
+                select.cancelDiscard();
+                return error.Canceled;
+            },
+        };
+        select.cancelDiscard();
+        var request = switch (selected) {
+            .timeout => return .header_timeout,
+            .head => |result| switch (result) {
+                .request => |value| value,
+                .canceled => return error.Canceled,
+                .invalid => {
+                    writeMappedRaw(stream, io, allocator, .malformed_request, context) catch |err| switch (err) {
+                        error.Canceled => return error.Canceled,
+                        else => return .disconnected,
+                    };
+                    return .malformed;
+                },
+            },
         };
 
         const first_line_end = std.mem.indexOf(u8, request.head_buffer, "\r\n") orelse {
-            try respondMapped(&request, allocator, .malformed_request, context);
-            return;
+            respondMapped(&request, allocator, .malformed_request, context) catch return .disconnected;
+            return .malformed;
         };
         if (first_line_end > maximum_request_line_bytes or
             (request.head.content_length orelse 0) > maximum_body_bytes)
         {
-            try respondMapped(&request, allocator, .malformed_request, context);
-            return;
+            respondMapped(&request, allocator, .malformed_request, context) catch return .disconnected;
+            return .malformed;
+        }
+        if (request.head.transfer_encoding != .none or
+            (request.head.content_length != null and request.head.transfer_encoding != .none))
+        {
+            respondMapped(&request, allocator, .malformed_request, context) catch return .disconnected;
+            return .malformed;
         }
         const method = canonicalMethod(request.head.method) orelse {
-            try respondMapped(&request, allocator, .method_not_allowed, context);
-            return;
+            respondMapped(&request, allocator, .method_not_allowed, context) catch return .disconnected;
+            return .served;
         };
-        var response = try dispatch(allocator, route, .{
+        var response = dispatch(allocator, inventory, bindings, .{
             .method = method,
             .path = request.head.target,
-        }, context);
+        }, context) catch {
+            respondMapped(&request, allocator, .internal, context) catch return .disconnected;
+            return .served;
+        };
         defer response.deinit();
         request.respond(response.body, .{
             .status = @enumFromInt(response.status),
             .reason = response.reason,
             .keep_alive = false,
             .extra_headers = &.{.{ .name = "content-type", .value = content_type }},
-        }) catch |err| {
+        }) catch {
             if (socket_writer.err) |write_error| if (write_error == error.Canceled) return error.Canceled;
-            return err;
+            return .disconnected;
         };
-        _ = stream.shutdown(io, .both) catch |err| if (err == error.Canceled) return error.Canceled;
+        stream.shutdown(io, .both) catch |err| switch (err) {
+            error.Canceled => return error.Canceled,
+            else => return .disconnected,
+        };
+        return .served;
     }
 };
+
+pub const ServeOutcome = enum {
+    served,
+    malformed,
+    disconnected,
+    header_timeout,
+    accept_failed,
+};
+
+const ReceiveHeadResult = union(enum) {
+    request: std.http.Server.Request,
+    invalid,
+    canceled,
+};
+
+const HeaderSelect = union(enum) {
+    head: ReceiveHeadResult,
+    timeout: void,
+};
+
+fn receiveHead(
+    http_server: *std.http.Server,
+    socket_reader: *std.Io.net.Stream.Reader,
+) ReceiveHeadResult {
+    return .{ .request = http_server.receiveHead() catch {
+        if (socket_reader.err) |read_error| if (read_error == error.Canceled) return .canceled;
+        return .invalid;
+    } };
+}
+
+fn waitHeaderTimeout(io: std.Io) void {
+    header_read_timeout.sleep(io) catch {};
+}
 
 fn canonicalMethod(method: std.http.Method) ?[]const u8 {
     return switch (method) {
