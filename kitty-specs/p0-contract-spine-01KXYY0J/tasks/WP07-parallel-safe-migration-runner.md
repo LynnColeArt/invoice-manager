@@ -27,7 +27,7 @@ subtasks:
 - T036
 phase: Phase 4
 assignee: ''
-agent: "codex"
+agent: "reviewer-renata"
 history: []
 agent_profile: implementer-ivan
 authoritative_surface: services/api/src/platform/persistence/migrations
@@ -49,7 +49,7 @@ owned_files:
 role: implementer
 tags: []
 task_type: implement
-shell_pid: "2266124"
+shell_pid: "1807838"
 ---
 
 # Work Package Prompt: WP07 – Parallel-Safe Migration Runner
@@ -520,3 +520,14 @@ root scripts, or WP06 internals; missing stable wiring is an upstream WP04 failu
 - 2026-07-21T08:14:30Z – codex – shell_pid=1807838 – Started review via action command
 - 2026-07-21T08:27:12Z – user – shell_pid=1807838 – Moved to planned
 - 2026-07-21T08:54:52Z – codex – shell_pid=2266124 – Started implementation via action command
+- 2026-07-21T08:57:56Z – codex – shell_pid=2266124 – RED correction: cd services/api && zig build test-migration-integration exited 1 with 5/6 tests passing. Permanent public-boundary test commit f21afe9 proved history-read checkpoint persistence completion incorrectly returned Ready at migrations_integration_test.zig:193; the clean rerun applied exactly one pending migration with one already-applied bootstrap and no bootstrap DDL replay.
+- 2026-07-21T08:59:51Z – codex – shell_pid=2266124 – RED correction batch: commit 6df2215 extends the public revalidation regression across checkpoint, directory-sync, and unsupported-directory-sync at the first planned migration of a two-migration DAG. cd services/api && zig build test-migration-integration exited 1 with 5/7 passing; both permanent failures show completeDurability incorrectly returns Ready, while each clean rerun applies only the remaining migration and does not replay the durably committed bootstrap.
+- 2026-07-21T09:01:22Z – codex – shell_pid=2266124 – RED correction batch: commit 84064b4 adds public runObserved cases for a nonempty unrelated store, an existing malformed history table, and a previously initialized store with deleted history. cd services/api && zig build test-migration-integration exited 1 with 5/10 passing; each new case observed one bootstrap replacement DDL call where zero is required, proving StatementObjectFailed is incorrectly treated as fresh without WP06 initializeFresh eligibility.
+- 2026-07-21T09:02:14Z – codex – shell_pid=2266124 – RED correction batch: commit 84b9b66 adds public discovery tests for owner-basename binding, normalized lexical aliases, final-root and ancestor symlink escape, and recursive descriptor discovery. cd services/api && zig build test-migration exited 1 with 4/9 passing and no leaks: wrong basenames/aliases/ancestor symlinks were accepted, final symlink mapped DiscoveryFailure instead of SymlinkEscape, and nested descriptor discovery returned DirectoryMismatch.
+- 2026-07-21T09:05:35Z – codex – shell_pid=2266124 – Correction RED checkpoint e0d0ef7: added a green no-op rerun proof (zero migration DDL and byte-identical durable history) plus a public multi-statement partial-DDL recovery characterization. Focused integration gate is intentionally 6/12: the partial-DDL case currently reports DdlFailure instead of LaterMigrationBlocked; the test also permanently requires discard/reopen rollback, unchanged durable bytes, and no later migration effect.
+- 2026-07-21T09:12:34Z – codex – shell_pid=2266124 – Correction RED checkpoint 949a3fe: integration and negative scenarios now compare actual errors from the public runner and assert typed readiness/quarantine/counter consequences; synthetic LaterMigrationBlocked, RecoveryQuarantine, and completion expected-error returns were removed. Current integration is intentionally 4/12 and negative 4/13, adding direct failures for LaterMigrationBlocked and non-ready durability completion.
+- 2026-07-21T09:18:07Z – codex – shell_pid=2266124 – Correction RED checkpoint c009114: public diagnostic assertions now require typed durability boundary, DDL-primary plus later-work consequence, and reopen-primary plus quarantine consequence. Focused integration currently fails compilation only because RunDiagnostic/runWithDiagnostic and Readiness.durability_boundary are intentionally not implemented yet.
+- 2026-07-21T10:04:28Z – codex – shell_pid=2266124 – Correction RED evidence, preserved in chronological test-only commits before product commit efbecdc: f21afe9 through a31b80b locked durability revalidation, ambiguous-history refusal, normalized/no-follow recursive discovery, public primary/consequence diagnostics, partial-DDL rollback, exact OOM/discard recovery, middle-migration continuation, unknown-entry fail-closed behavior, and exhaustive cleanup coverage. The public Debug gates failed at each new boundary before the corresponding production correction; final pre-threshold coverage reports were 534/627 and 567/631 with 36/36 critical branches.
+- 2026-07-21T10:04:30Z – codex – shell_pid=2266124 – GREEN correction at product commit efbecdc with test commits f21afe9..a31b80b: pinned Zig 0.16 formatting; Debug test-migration, test-migration-integration, mandatory npm run migration:negative, coverage-migration, and aggregate coverage all pass. ReleaseSafe test-migration, test-migration-integration, migration-negative, and coverage-migration pass. Exact migration coverage is 571/631 owned production PCs (90.49%), 36/36 critical branches, 38 passed, 0 skipped; aggregate shared 221/243 and persistence 577/641 also pass; diff check is clean.
+- 2026-07-21T10:04:55Z – codex – shell_pid=2266124 – Correction complete at efbecdc; test-first commits f21afe9..a31b80b; Debug and ReleaseSafe WP07 gates pass; exact coverage 571/631 (90.49%) with 36/36 branches; aggregate coverage passes.
+- 2026-07-21T10:06:37Z – reviewer-renata – shell_pid=1807838 – Started review via action command
