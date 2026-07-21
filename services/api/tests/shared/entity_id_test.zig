@@ -24,6 +24,24 @@ test "EntityId rejects noncanonical forms by stable category" {
     try std.testing.expectError(shared.EntityIdParseError.InvalidVariant, shared.EntityId.parse("01890f3e-2c4a-7d5e-7abc-0123456789ab"));
 }
 
+test "EntityId rejects a hyphen at every noncanonical offset without aborting" {
+    try std.testing.expectError(
+        shared.EntityIdParseError.InvalidSyntax,
+        shared.EntityId.parse("01890f3e-2c4a-7d5e-8abc-0123456789-b"),
+    );
+
+    const canonical = "01890f3e-2c4a-7d5e-8abc-0123456789ab";
+    for (canonical, 0..) |_, index| {
+        if (index == 8 or index == 13 or index == 18 or index == 23) continue;
+        var malformed: [36]u8 = canonical.*;
+        malformed[index] = '-';
+        try std.testing.expectError(
+            shared.EntityIdParseError.InvalidSyntax,
+            shared.EntityId.parse(&malformed),
+        );
+    }
+}
+
 test "EntityId equality compares canonical bytes" {
     const left = try shared.EntityId.parse("00000000-0000-7000-8000-000000000000");
     const same = try shared.EntityId.parse("00000000-0000-7000-8000-000000000000");

@@ -17,29 +17,28 @@ pub const EntityId = struct {
             shared_coverage.hit(.entity_id_length);
             return ParseError.InvalidLength;
         }
-        const hyphens = [_]usize{ 8, 13, 18, 23 };
-        for (hyphens) |index| {
-            if (text[index] != '-') {
+        var bytes: [16]u8 = undefined;
+        var nibble_index: usize = 0;
+        for (text, 0..) |byte, text_index| {
+            const expects_hyphen = text_index == 8 or text_index == 13 or
+                text_index == 18 or text_index == 23;
+            if (expects_hyphen) {
+                if (byte == '-') continue;
                 shared_coverage.hit(.entity_id_syntax);
                 return ParseError.InvalidSyntax;
             }
-        }
 
-        var bytes: [16]u8 = undefined;
-        var text_index: usize = 0;
-        var byte_index: usize = 0;
-        while (byte_index < bytes.len) : (byte_index += 1) {
-            while (text_index < text.len and text[text_index] == '-') text_index += 1;
-            const high = hexNibble(text[text_index]) orelse {
+            const nibble = hexNibble(byte) orelse {
                 shared_coverage.hit(.entity_id_syntax);
                 return ParseError.InvalidSyntax;
             };
-            const low = hexNibble(text[text_index + 1]) orelse {
-                shared_coverage.hit(.entity_id_syntax);
-                return ParseError.InvalidSyntax;
-            };
-            bytes[byte_index] = high << 4 | low;
-            text_index += 2;
+            const byte_index = nibble_index / 2;
+            if (nibble_index % 2 == 0) {
+                bytes[byte_index] = nibble << 4;
+            } else {
+                bytes[byte_index] |= nibble;
+            }
+            nibble_index += 1;
         }
         if (bytes[6] >> 4 != 7) {
             shared_coverage.hit(.entity_id_version);
