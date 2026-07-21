@@ -31,7 +31,7 @@ subtasks:
 - T047
 phase: Phase 3
 assignee: ''
-agent: codex
+agent: "codex-wp10-implementation"
 history: []
 agent_profile: node-norris
 authoritative_surface: apps/web/
@@ -66,6 +66,7 @@ owned_files:
 role: implementer
 tags: []
 task_type: implement
+shell_pid: "1807838"
 ---
 
 # Work Package Prompt: WP10 – Next.js Foundation Shell and Proxy
@@ -450,3 +451,4 @@ build, or aggregate check; a stale prior output does not satisfy this ordering.
 - 2026-07-21T14:46:43Z – codex – Corrective task design after blocked analysis: WP10 owns the
   fixed-origin App Router handler and complete real-process/adversarial lifecycle; WP09 supplies
   runtime-neutral configuration and WP01 supplies exact browser provisioning.
+- 2026-07-21T16:20:15Z – codex-wp10-implementation – shell_pid=1807838 – Assigned agent via action command
