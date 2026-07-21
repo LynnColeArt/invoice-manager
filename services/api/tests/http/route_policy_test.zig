@@ -17,6 +17,12 @@ fn healthBindings() [1]route_inventory.HandlerBinding {
     }};
 }
 
+fn parseCanonicalForAllocationCheck(allocator: std.mem.Allocator) !void {
+    var inventory = try route_inventory.parseOwned(allocator, canonical_bytes);
+    defer inventory.deinit();
+    try route_inventory.validateP0(&inventory);
+}
+
 test "WP08-ROUTE-POLICY-001 protected canonical mutation never invokes the actual handler" {
     const allocator = std.testing.allocator;
     var inventory = try route_inventory.loadCanonical(allocator);
@@ -61,6 +67,14 @@ test "canonical inventory has one exact public P0 health route and no domain rou
     try std.testing.expect(inventory.byOperation("P0Health") != null);
     try std.testing.expect(inventory.byOperation("CreateInvoice") == null);
     try std.testing.expect(inventory.byOperation("ListClients") == null);
+}
+
+test "canonical inventory owns and releases every partial allocation" {
+    try std.testing.checkAllAllocationFailures(
+        std.testing.allocator,
+        parseCanonicalForAllocationCheck,
+        .{},
+    );
 }
 
 test "P0 startup rejects missing and extra otherwise-valid inventory routes" {

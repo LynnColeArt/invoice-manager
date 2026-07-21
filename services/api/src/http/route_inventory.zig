@@ -157,14 +157,17 @@ pub fn loadCanonical(allocator: std.mem.Allocator) !Inventory {
 }
 
 pub fn parseOwned(allocator: std.mem.Allocator, bytes: []const u8) !Inventory {
-    var dynamic = std.json.parseFromSlice(std.json.Value, allocator, bytes, .{}) catch |err|
-        return if (err == error.DuplicateField) error.ClosedShapeViolation else error.InvalidJson;
+    var dynamic = std.json.parseFromSlice(std.json.Value, allocator, bytes, .{}) catch |err| return switch (err) {
+        error.OutOfMemory => error.OutOfMemory,
+        error.DuplicateField => error.ClosedShapeViolation,
+        else => error.InvalidJson,
+    };
     defer dynamic.deinit();
     try validateClosedShape(dynamic.value);
 
     var parsed = std.json.parseFromSlice(WireInventory, allocator, bytes, .{
         .allocate = .alloc_always,
-    }) catch return error.InvalidJson;
+    }) catch |err| return if (err == error.OutOfMemory) error.OutOfMemory else error.InvalidJson;
     defer parsed.deinit();
     if (parsed.value.format_version != 1) return error.UnsupportedVersion;
 
