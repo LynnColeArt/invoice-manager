@@ -25,9 +25,9 @@ subtasks:
 - T019
 phase: Phase 2 - Service Dependency Integration
 assignee: ''
-agent: "codex-wp04-review"
+agent: "codex"
 history: []
-agent_profile: implementer-ivan
+agent_profile: reviewer-renata
 authoritative_surface: deps/shovelerdb/
 create_intent:
 - services/api/build.zig
@@ -44,7 +44,7 @@ owned_files:
 - services/api/src/platform/persistence/shovelerdb*
 - services/api/tests/persistence/shovelerdb*
 - THIRD_PARTY_NOTICES*
-role: implementer
+role: reviewer
 tags: []
 task_type: implement
 shell_pid: "1807838"
@@ -520,3 +520,7 @@ Review `THIRD_PARTY_NOTICES.md` and the complete upstream license as acceptance-
 - 2026-07-20T23:45:47Z – codex:gpt-5:implementer-ivan:implementer – shell_pid=1807838 – Implementation 31408bc plus canonical-lock integration replay complete: exact ShovelerDB pin/provenance, adapter, real ABI Debug/ReleaseSafe, discovery, clean-source and tamper gates green; ready for independent review.
 - 2026-07-20T23:46:26Z – codex-wp04-review – shell_pid=1807838 – Started review via action command
 - 2026-07-20T23:53:45Z – user – shell_pid=1807838 – Moved to planned
+- 2026-07-20T23:56:01Z – codex – shell_pid=1807838 – Started implementation via action command
+- 2026-07-21T00:01:18Z – codex – shell_pid=1807838 – RED: WP04-COVERAGE-MIGRATION-002; command: in isolated /tmp/wp04-coverage-red with only migrations/p0 plus exact ordinary migrations_test.zig, migrations_integration_test.zig, and migrations_negative_test.zig, run (cd services/api && zig build coverage-migration --summary all); expected: nonzero failure because src/platform/persistence/migrations.zig, dedicated coverage execution, >=90% measurement, and critical-branch evidence are absent; observed: exit 0, 12/12 build steps and 3/3 unrelated ordinary tests passed, reproducing review cycle 1's vacuous coverage blocker.
+- 2026-07-21T00:28:59Z – codex – shell_pid=1807838 – GREEN: WP04-COVERAGE-MIGRATION-002; exact Zig 0.16 dedicated migrations_coverage_test.zig artifact compiled only migrations*.zig in the instrumented module and kept named shared/persistence dependencies, probe, contract, harness, and runner uninstrumented. Valid synthetic producer measured 73/73 live migration PCs and 36/36 exact critical production probes. Adversarial copies failed for no source/no measurement, renamed root, unknown critical label, forbidden relative store import, wrong critical branch execution, impossible/fabricated measurement, and 73/106 below-threshold coverage. Aggregate coverage propagated BelowThreshold after valid shared/persistence gates.
+- 2026-07-21T00:29:00Z – codex – shell_pid=1807838 – GREEN: WP04-CYCLE2-REGRESSION; implementation 9bd5806 plus coordination merge 7ac7eb0. Zig format/build passed; adapter 4/4; real ABI integration 3/3 Debug and ReleaseSafe; discovery 10/10. Fresh isolated copy passed build and all WP04 gates twice across deleted caches with no sibling/private path. Exact Node 24.18.0/npm 11.16.0 offline ci, verify:substrate, full and production audits passed with 0 vulnerabilities. Provenance change, missing c_api.zig, and changed ABI source failed before storage use. Ruff diff-scoped check: 0 Python files, exit 0.
