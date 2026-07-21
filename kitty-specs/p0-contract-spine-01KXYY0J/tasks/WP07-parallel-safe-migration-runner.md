@@ -27,7 +27,7 @@ subtasks:
 - T036
 phase: Phase 4
 assignee: ''
-agent: "codex-wp07-fixture-fix"
+agent: "codex-wp07-cycle5-reviewer"
 history: []
 agent_profile: implementer-ivan
 authoritative_surface: services/api/src/platform/persistence/migrations
@@ -542,3 +542,5 @@ root scripts, or WP06 internals; missing stable wiring is an upstream WP04 failu
 - 2026-07-21T13:32:18Z – codex-wp07-cycle4-reviewer – shell_pid=1807838 – Started review via action command
 - 2026-07-21T13:37:03Z – user – shell_pid=1807838 – Moved to planned
 - 2026-07-21T13:48:22Z – codex-wp07-fixture-fix – shell_pid=1807838 – Started implementation via action command
+- 2026-07-21T13:57:40Z – codex-wp07-fixture-fix – shell_pid=1807838 – Cycle 4 source-anchored unit and coverage correction 2e478dc ready for review
+- 2026-07-21T13:57:51Z – codex-wp07-cycle5-reviewer – shell_pid=1807838 – Started review via action command
