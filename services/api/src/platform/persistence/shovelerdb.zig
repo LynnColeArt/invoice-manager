@@ -29,6 +29,7 @@ pub const ErrorCategory = enum {
     internal,
     abi_mismatch,
     embedded_nul,
+    binding_arity_mismatch,
 };
 
 pub const Version = struct {
@@ -163,14 +164,55 @@ pub const Adapter = struct {
         text: []const u8,
         comptime suffix: []const u8,
     ) !OwnedResult {
-        const literal = try encodeTextLiteral(allocator, text);
-        defer allocator.free(literal);
+        return self.executeBound(allocator, &.{ prefix, suffix }, &.{text});
+    }
 
-        const sql = try allocator.allocSentinel(u8, prefix.len + literal.len + suffix.len, 0);
+    /// Interleaves compile-time-reviewed SQL fragments with independently
+    /// encoded runtime text values. No runtime fragment or identifier enters
+    /// this boundary.
+    pub fn executeBound(
+        self: *Adapter,
+        allocator: std.mem.Allocator,
+        comptime fragments: []const []const u8,
+        values: []const []const u8,
+    ) !OwnedResult {
+        if (fragments.len == 0 or fragments.len - 1 != values.len) {
+            return error.BindingArityMismatch;
+        }
+        inline for (fragments) |fragment| {
+            if (std.mem.indexOfScalar(u8, fragment, 0) != null) return error.EmbeddedNul;
+        }
+        for (values) |value| {
+            if (std.mem.indexOfScalar(u8, value, 0) != null) return error.EmbeddedNul;
+        }
+
+        var statement: std.ArrayList(u8) = .empty;
+        defer statement.deinit(allocator);
+        inline for (fragments, 0..) |fragment, index| {
+            try statement.appendSlice(allocator, fragment);
+            if (index < values.len) {
+                const literal = try encodeTextLiteral(allocator, values[index]);
+                defer allocator.free(literal);
+                try statement.appendSlice(allocator, literal);
+            }
+        }
+
+        const sql = try allocator.dupeZ(u8, statement.items);
         defer allocator.free(sql);
-        @memcpy(sql[0..prefix.len], prefix);
-        @memcpy(sql[prefix.len .. prefix.len + literal.len], literal);
-        @memcpy(sql[prefix.len + literal.len ..], suffix);
+        return self.executeOwned(allocator, sql);
+    }
+
+    /// Executes one exact runtime statement for a separately constrained
+    /// startup capability. Bytes are only copied into sentinel form: no trim,
+    /// newline conversion, splitting, or identifier construction occurs here.
+    pub fn executeScript(
+        self: *Adapter,
+        allocator: std.mem.Allocator,
+        script: []const u8,
+    ) !OwnedResult {
+        if (std.mem.indexOfScalar(u8, script, 0) != null) return error.EmbeddedNul;
+        const sql = try allocator.dupeZ(u8, script);
+        defer allocator.free(sql);
         return self.executeOwned(allocator, sql);
     }
 
@@ -258,6 +300,7 @@ pub fn category(err: anyerror) ErrorCategory {
         error.Unsupported => .unsupported,
         error.AbiMismatch => .abi_mismatch,
         error.EmbeddedNul => .embedded_nul,
+        error.BindingArityMismatch => .binding_arity_mismatch,
         else => .internal,
     };
 }
@@ -466,4 +509,8 @@ test "stable categories contain no engine prose" {
     try std.testing.expectEqual(ErrorCategory.parse, category(error.Parse));
     try std.testing.expectEqual(ErrorCategory.persistence, category(error.Persistence));
     try std.testing.expectEqual(ErrorCategory.embedded_nul, category(error.EmbeddedNul));
+    try std.testing.expectEqual(
+        ErrorCategory.binding_arity_mismatch,
+        category(error.BindingArityMismatch),
+    );
 }

@@ -29,7 +29,7 @@ phase: Phase 2 - Service Dependency Integration
 assignee: ''
 agent: "codex"
 history: []
-agent_profile: implementer-ivan
+agent_profile: reviewer-renata
 authoritative_surface: deps/shovelerdb/
 create_intent:
 - services/api/build.zig
@@ -46,7 +46,7 @@ owned_files:
 - services/api/src/platform/persistence/shovelerdb*
 - services/api/tests/persistence/shovelerdb*
 - THIRD_PARTY_NOTICES*
-role: implementer
+role: reviewer
 tags: []
 task_type: implement
 shell_pid: "1807838"
@@ -564,3 +564,11 @@ Review `THIRD_PARTY_NOTICES.md` and the complete upstream license as acceptance-
 - 2026-07-21T03:24:02Z – codex – shell_pid=1384230 – GREEN: WP04-COVERAGE-DIAGNOSTIC-007; implementation 40d6661 supplies WP05/WP06/WP07 and exact source patterns, reduces observed DWARF evidence to basename, removes the raw address, and catches runner errors without a source trace. Fresh lane-f coverage remains 185/205 with 20/20 probes and 42/42 tests; removing adapter fuzz=false now fails before ratio with stable coverage-persistence, owning WP06, expected pattern, shovelerdb.zig, and OutOfScopeCoverageSite lines, with no absolute source path or address in the diagnostic.
 - 2026-07-21T03:25:24Z – codex – shell_pid=1384230 – Cycle 7 corrected: sanitized ownership diagnostics; 0/205 adapter PCs
 - 2026-07-21T03:25:53Z – codex – shell_pid=1807838 – Started review via action command
+- 2026-07-21T03:30:36Z – user – shell_pid=1807838 – Arbiter override: historical review-cycle-6 adapter-PC contamination and review-cycle-7 diagnostic privacy blockers are independently remediated by 40d6661. Complete real lane-f PC map is 205/205 WP06-owned with adapter/other zero; coverage is 185/205 and 20/20 probes. Removing adapter fuzz=false fails before ratio with stable coverage-persistence, WP06, expected pattern, shovelerdb.zig, and OutOfScopeCoverageSite lines containing no absolute path or raw address. Shared/migration, no-shared, discovery, ABI, provenance, and scope regressions pass.
+- 2026-07-21T04:06:25Z – codex – shell_pid=1807838 – Started implementation via action command
+- 2026-07-21T04:14:50Z – codex:implementer-ivan – RED: WP04-ADAPTER-CAPABILITIES-008; after adding public-adapter integration cases and before changing production, `(cd services/api && zig build test-shovelerdb-integration --summary all)` failed at compile time because `shovelerdb.Adapter` had no `executeBound` and no `executeScript`. The committed RED cases require one five-field round trip with independently escaped canonical ID, apostrophe, empty text, injection-shaped digest, and newline-bearing UTC text; exact arity and embedded-NUL rejection before engine execution; allocation-failure cleanup; one exact runtime statement with leading/trailing whitespace; engine rejection of a second statement; and continued handle usability.
+- 2026-07-21T04:17:27Z – codex:implementer-ivan – GREEN: WP04-ADAPTER-CAPABILITIES-008; production now provides `Adapter.executeBound` with compile-time fragments, exact arity, centralized per-value text encoding, and no runtime fragments, plus `Adapter.executeScript` that copies one exact NUL-free statement into sentinel form without trimming, newline conversion, or splitting. `(cd services/api && zig build test-shovelerdb-adapter --summary all)` passed 4/4 and `zig build test-shovelerdb-integration --summary all` passed 5/5, including the five-field byte-exact round trip and every RED failure/cleanup case. ReleaseSafe adapter passed 4/4, ReleaseSafe integration passed 5/5, discovery passed 17/17, and the base ABI build passed.
+- 2026-07-21T04:22:48Z – codex:implementer-ivan – GREEN: WP04-CYCLE8-REGRESSION; a fresh `git archive HEAD` under `/tmp` with no worktree cache, output, sibling ShovelerDB checkout, or nested Git metadata passed the Zig 0.16.0 base build, adapter 4/4 and integration 5/5 in both Debug and ReleaseSafe, plus all 17/17 discovery and adversarial coverage-contract tests. Public GitHub HEAD/main resolves exactly `021e3b3d9247a181252329d6ba7ec8d2ed943a97`; recomputed vendored source `6bb2b4215aa50a8ffbbff3278aea4f32c4fc0f906da817037c44095cfd19480b`, LICENSE `240a15a1d0f34d3abca462cdb7e5fb89470967563f16b0e71169e51c1e74cf2b`, and header `177535ee08de90ee3f68f708046f19815e283f1072102afb594f6697708f676a` match committed provenance. Integration executes the real C ABI and verifies runtime/header 0.1.0. Cycle 8 changes only the adapter, its public integration tests, and this handoff log; the accepted coverage build/runner remains byte-unchanged from `40d6661`, preserving `.fuzz = false` isolation and its fail-closed ownership/adversarial diagnostics.
+- 2026-07-21T04:22:49Z – codex:implementer-ivan – Cycle 8 implementation commits `0c32098` (chronological public RED) and `69458f9` (production GREEN) are ready for independent review; reviewer profile restored for governed handoff.
+- 2026-07-21T04:25:36Z – codex – shell_pid=1549469 – Cycle 8 public RED, production GREEN, clean-source matrix, provenance, ABI, discovery, and coverage-isolation regressions complete at 0c32098/69458f9
+- 2026-07-21T04:27:12Z – codex – shell_pid=1807838 – Started review via action command
