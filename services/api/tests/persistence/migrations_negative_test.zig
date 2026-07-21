@@ -1,5 +1,6 @@
 const std = @import("std");
 const migrations = @import("migrations");
+const scenarios = @import("migrations_integration_test.zig");
 
 test "migration negative matrix executes every stable failure category" {
     const cases = [_]migrations.CriticalCategory{
@@ -45,7 +46,7 @@ test "migration negative matrix executes every stable failure category" {
     for (cases) |case| {
         try std.testing.expectError(
             migrations.expectedError(case),
-            migrations.testing.exerciseCritical(std.testing.allocator, std.testing.io, case),
+            scenarios.exerciseCritical(std.testing.allocator, std.testing.io, case),
         );
         executed += 1;
     }
