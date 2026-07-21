@@ -1,0 +1,372 @@
+name: Foundation
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - feat/p0-contract-spine
+
+permissions:
+  contents: read
+
+env:
+  NPM_VERSION: 11.16.0
+  ZIG_VERSION: 0.16.0
+  ZIG_URL: https://ziglang.org/download/0.16.0/zig-x86_64-linux-0.16.0.tar.xz
+  ZIG_SHA256: 70e49664a74374b48b51e6f3fdfbf437f6395d42509050588bd49abe52ba3d00
+
+jobs:
+  contracts:
+    name: foundation / contracts
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out exact source and recursive submodules
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          submodules: recursive
+      - name: Install exact Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 24.18.0
+          check-latest: false
+      - name: Install exact npm and Zig
+        shell: bash
+        run: |
+          npm install --global "npm@${NPM_VERSION}"
+          curl --fail --silent --show-error --location "${ZIG_URL}" --output "${RUNNER_TEMP}/zig.tar.xz"
+          echo "${ZIG_SHA256}  ${RUNNER_TEMP}/zig.tar.xz" | sha256sum --check --strict
+          tar --extract --file "${RUNNER_TEMP}/zig.tar.xz" --directory "${RUNNER_TEMP}"
+          echo "${RUNNER_TEMP}/zig-x86_64-linux-${ZIG_VERSION}" >> "${GITHUB_PATH}"
+          test "$(npm --version)" = "${NPM_VERSION}"
+          test "$("${RUNNER_TEMP}/zig-x86_64-linux-${ZIG_VERSION}/zig" version)" = "${ZIG_VERSION}"
+          test -f deps/shovelerdb/PROVENANCE
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Validate contracts
+        run: npm run contracts:check
+
+  web:
+    name: foundation / web
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out exact source and recursive submodules
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          submodules: recursive
+      - name: Install exact Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 24.18.0
+          check-latest: false
+      - name: Install exact npm and Zig
+        shell: bash
+        run: |
+          npm install --global "npm@${NPM_VERSION}"
+          curl --fail --silent --show-error --location "${ZIG_URL}" --output "${RUNNER_TEMP}/zig.tar.xz"
+          echo "${ZIG_SHA256}  ${RUNNER_TEMP}/zig.tar.xz" | sha256sum --check --strict
+          tar --extract --file "${RUNNER_TEMP}/zig.tar.xz" --directory "${RUNNER_TEMP}"
+          echo "${RUNNER_TEMP}/zig-x86_64-linux-${ZIG_VERSION}" >> "${GITHUB_PATH}"
+          test "$(npm --version)" = "${NPM_VERSION}"
+          test "$("${RUNNER_TEMP}/zig-x86_64-linux-${ZIG_VERSION}/zig" version)" = "${ZIG_VERSION}"
+          test -f deps/shovelerdb/PROVENANCE
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Validate web
+        run: npm run web:check
+
+  api:
+    name: foundation / api
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out exact source and recursive submodules
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          submodules: recursive
+      - name: Install exact Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 24.18.0
+          check-latest: false
+      - name: Install exact npm and Zig
+        shell: bash
+        run: |
+          npm install --global "npm@${NPM_VERSION}"
+          curl --fail --silent --show-error --location "${ZIG_URL}" --output "${RUNNER_TEMP}/zig.tar.xz"
+          echo "${ZIG_SHA256}  ${RUNNER_TEMP}/zig.tar.xz" | sha256sum --check --strict
+          tar --extract --file "${RUNNER_TEMP}/zig.tar.xz" --directory "${RUNNER_TEMP}"
+          echo "${RUNNER_TEMP}/zig-x86_64-linux-${ZIG_VERSION}" >> "${GITHUB_PATH}"
+          test "$(npm --version)" = "${NPM_VERSION}"
+          test "$("${RUNNER_TEMP}/zig-x86_64-linux-${ZIG_VERSION}/zig" version)" = "${ZIG_VERSION}"
+          test -f deps/shovelerdb/PROVENANCE
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Validate Zig service
+        run: npm run api:check
+
+  migration_negative:
+    name: foundation / migration-negative
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out exact source and recursive submodules
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          submodules: recursive
+      - name: Install exact Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 24.18.0
+          check-latest: false
+      - name: Install exact npm and Zig
+        shell: bash
+        run: |
+          npm install --global "npm@${NPM_VERSION}"
+          curl --fail --silent --show-error --location "${ZIG_URL}" --output "${RUNNER_TEMP}/zig.tar.xz"
+          echo "${ZIG_SHA256}  ${RUNNER_TEMP}/zig.tar.xz" | sha256sum --check --strict
+          tar --extract --file "${RUNNER_TEMP}/zig.tar.xz" --directory "${RUNNER_TEMP}"
+          echo "${RUNNER_TEMP}/zig-x86_64-linux-${ZIG_VERSION}" >> "${GITHUB_PATH}"
+          test "$(npm --version)" = "${NPM_VERSION}"
+          test "$("${RUNNER_TEMP}/zig-x86_64-linux-${ZIG_VERSION}/zig" version)" = "${ZIG_VERSION}"
+          test -f deps/shovelerdb/PROVENANCE
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Validate migration failures
+        run: npm run migration:negative
+
+  persistence:
+    name: foundation / persistence
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out exact source and recursive submodules
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          submodules: recursive
+      - name: Install exact Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 24.18.0
+          check-latest: false
+      - name: Install exact npm and Zig
+        shell: bash
+        run: |
+          npm install --global "npm@${NPM_VERSION}"
+          curl --fail --silent --show-error --location "${ZIG_URL}" --output "${RUNNER_TEMP}/zig.tar.xz"
+          echo "${ZIG_SHA256}  ${RUNNER_TEMP}/zig.tar.xz" | sha256sum --check --strict
+          tar --extract --file "${RUNNER_TEMP}/zig.tar.xz" --directory "${RUNNER_TEMP}"
+          echo "${RUNNER_TEMP}/zig-x86_64-linux-${ZIG_VERSION}" >> "${GITHUB_PATH}"
+          test "$(npm --version)" = "${NPM_VERSION}"
+          test "$("${RUNNER_TEMP}/zig-x86_64-linux-${ZIG_VERSION}/zig" version)" = "${ZIG_VERSION}"
+          test -f deps/shovelerdb/PROVENANCE
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Validate durable persistence
+        run: npm run persistence:integration
+
+  http_proxy:
+    name: foundation / http-proxy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/playwright-http
+    steps:
+      - name: Check out exact source and recursive submodules
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          submodules: recursive
+      - name: Install exact Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 24.18.0
+          check-latest: false
+      - name: Install exact npm and Zig
+        shell: bash
+        run: |
+          npm install --global "npm@${NPM_VERSION}"
+          curl --fail --silent --show-error --location "${ZIG_URL}" --output "${RUNNER_TEMP}/zig.tar.xz"
+          echo "${ZIG_SHA256}  ${RUNNER_TEMP}/zig.tar.xz" | sha256sum --check --strict
+          tar --extract --file "${RUNNER_TEMP}/zig.tar.xz" --directory "${RUNNER_TEMP}"
+          echo "${RUNNER_TEMP}/zig-x86_64-linux-${ZIG_VERSION}" >> "${GITHUB_PATH}"
+          test "$(npm --version)" = "${NPM_VERSION}"
+          test "$("${RUNNER_TEMP}/zig-x86_64-linux-${ZIG_VERSION}/zig" version)" = "${ZIG_VERSION}"
+          test -f deps/shovelerdb/PROVENANCE
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Validate real same-origin proxy
+        run: npm run http:smoke
+
+  runtime_license:
+    name: foundation / runtime-license
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out exact source and recursive submodules
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          submodules: recursive
+      - name: Install exact Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 24.18.0
+          check-latest: false
+      - name: Install exact npm and Zig
+        shell: bash
+        run: |
+          npm install --global "npm@${NPM_VERSION}"
+          curl --fail --silent --show-error --location "${ZIG_URL}" --output "${RUNNER_TEMP}/zig.tar.xz"
+          echo "${ZIG_SHA256}  ${RUNNER_TEMP}/zig.tar.xz" | sha256sum --check --strict
+          tar --extract --file "${RUNNER_TEMP}/zig.tar.xz" --directory "${RUNNER_TEMP}"
+          echo "${RUNNER_TEMP}/zig-x86_64-linux-${ZIG_VERSION}" >> "${GITHUB_PATH}"
+          test "$(npm --version)" = "${NPM_VERSION}"
+          test "$("${RUNNER_TEMP}/zig-x86_64-linux-${ZIG_VERSION}/zig" version)" = "${ZIG_VERSION}"
+          test -f deps/shovelerdb/PROVENANCE
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Test license policy mutations
+        run: npm exec --workspace @invoice-manager/contracts -- vitest run --root .. licenses/tests/license-audit.test.ts
+      - name: Validate runtime licenses
+        run: npm run licenses:check
+
+  verify_foundation:
+    name: foundation / aggregate-diagnostic
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/playwright-aggregate
+    steps:
+      - name: Check out exact source and recursive submodules
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          submodules: recursive
+      - name: Install exact Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 24.18.0
+          check-latest: false
+      - name: Install exact npm and Zig
+        shell: bash
+        run: |
+          npm install --global "npm@${NPM_VERSION}"
+          curl --fail --silent --show-error --location "${ZIG_URL}" --output "${RUNNER_TEMP}/zig.tar.xz"
+          echo "${ZIG_SHA256}  ${RUNNER_TEMP}/zig.tar.xz" | sha256sum --check --strict
+          tar --extract --file "${RUNNER_TEMP}/zig.tar.xz" --directory "${RUNNER_TEMP}"
+          echo "${RUNNER_TEMP}/zig-x86_64-linux-${ZIG_VERSION}" >> "${GITHUB_PATH}"
+          test "$(npm --version)" = "${NPM_VERSION}"
+          test "$("${RUNNER_TEMP}/zig-x86_64-linux-${ZIG_VERSION}/zig" version)" = "${ZIG_VERSION}"
+          test -f deps/shovelerdb/PROVENANCE
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Run aggregate diagnostics
+        run: npm run verify:foundation
+
+  bootstrap_foundation:
+    name: foundation / bootstrap-clean
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      FOUNDATION_HOME: ${{ runner.temp }}/foundation-bootstrap-home
+      FOUNDATION_NPM_CACHE: ${{ runner.temp }}/foundation-bootstrap-npm
+      FOUNDATION_PLAYWRIGHT_CACHE: ${{ runner.temp }}/foundation-bootstrap-playwright
+    steps:
+      - name: Check out exact source and recursive submodules
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          submodules: recursive
+      - name: Install exact Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 24.18.0
+          check-latest: false
+      - name: Install exact npm and Zig without project caches
+        shell: bash
+        run: |
+          npm install --global "npm@${NPM_VERSION}"
+          curl --fail --silent --show-error --location "${ZIG_URL}" --output "${RUNNER_TEMP}/zig.tar.xz"
+          echo "${ZIG_SHA256}  ${RUNNER_TEMP}/zig.tar.xz" | sha256sum --check --strict
+          tar --extract --file "${RUNNER_TEMP}/zig.tar.xz" --directory "${RUNNER_TEMP}"
+          echo "${RUNNER_TEMP}/zig-x86_64-linux-${ZIG_VERSION}" >> "${GITHUB_PATH}"
+          test "$(npm --version)" = "${NPM_VERSION}"
+          test "$("${RUNNER_TEMP}/zig-x86_64-linux-${ZIG_VERSION}/zig" version)" = "${ZIG_VERSION}"
+          test -f deps/shovelerdb/PROVENANCE
+          test ! -e node_modules
+          test ! -e apps/web/.next
+          mkdir -p "${FOUNDATION_HOME}" "${FOUNDATION_NPM_CACHE}" "${FOUNDATION_PLAYWRIGHT_CACHE}"
+          test -z "$(find "${FOUNDATION_HOME}" "${FOUNDATION_NPM_CACHE}" "${FOUNDATION_PLAYWRIGHT_CACHE}" -mindepth 1 -print -quit)"
+      - name: Run literal clean bootstrap wrapper
+        env:
+          HOME: ${{ env.FOUNDATION_HOME }}
+          npm_config_cache: ${{ env.FOUNDATION_NPM_CACHE }}
+          PLAYWRIGHT_BROWSERS_PATH: ${{ env.FOUNDATION_PLAYWRIGHT_CACHE }}
+        run: npm run bootstrap:foundation
+
+  verify_foundation_clean:
+    name: foundation / verify-clean
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      FOUNDATION_HOME: ${{ runner.temp }}/foundation-verify-home
+      FOUNDATION_NPM_CACHE: ${{ runner.temp }}/foundation-verify-npm
+      FOUNDATION_PLAYWRIGHT_CACHE: ${{ runner.temp }}/foundation-verify-playwright
+    steps:
+      - name: Check out exact source and recursive submodules
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          submodules: recursive
+      - name: Install exact Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 24.18.0
+          check-latest: false
+      - name: Install exact npm and Zig without project caches
+        shell: bash
+        run: |
+          npm install --global "npm@${NPM_VERSION}"
+          curl --fail --silent --show-error --location "${ZIG_URL}" --output "${RUNNER_TEMP}/zig.tar.xz"
+          echo "${ZIG_SHA256}  ${RUNNER_TEMP}/zig.tar.xz" | sha256sum --check --strict
+          tar --extract --file "${RUNNER_TEMP}/zig.tar.xz" --directory "${RUNNER_TEMP}"
+          echo "${RUNNER_TEMP}/zig-x86_64-linux-${ZIG_VERSION}" >> "${GITHUB_PATH}"
+          test "$(npm --version)" = "${NPM_VERSION}"
+          test "$("${RUNNER_TEMP}/zig-x86_64-linux-${ZIG_VERSION}/zig" version)" = "${ZIG_VERSION}"
+          test -f deps/shovelerdb/PROVENANCE
+          test ! -e node_modules
+          test ! -e apps/web/.next
+          mkdir -p "${FOUNDATION_HOME}" "${FOUNDATION_NPM_CACHE}" "${FOUNDATION_PLAYWRIGHT_CACHE}"
+          test -z "$(find "${FOUNDATION_HOME}" "${FOUNDATION_NPM_CACHE}" "${FOUNDATION_PLAYWRIGHT_CACHE}" -mindepth 1 -print -quit)"
+      - name: Run literal clean verification wrapper
+        env:
+          HOME: ${{ env.FOUNDATION_HOME }}
+          npm_config_cache: ${{ env.FOUNDATION_NPM_CACHE }}
+          PLAYWRIGHT_BROWSERS_PATH: ${{ env.FOUNDATION_PLAYWRIGHT_CACHE }}
+        run: npm run verify:foundation:clean
+
+  foundation:
+    name: foundation / required
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    if: ${{ always() }}
+    needs:
+      - contracts
+      - web
+      - api
+      - migration_negative
+      - persistence
+      - http_proxy
+      - runtime_license
+      - verify_foundation
+      - bootstrap_foundation
+      - verify_foundation_clean
+    steps:
+      - name: Require every foundation result
+        shell: bash
+        run: |
+          for result in ${{ join(needs.*.result, ' ') }}; do
+            if [[ "${result}" != "success" ]]; then
+              echo "[foundation:error] required job result=${result}"
+              exit 1
+            fi
+          done
+          echo "[foundation:ok] all focused and clean-wrapper jobs passed"

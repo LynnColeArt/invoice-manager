@@ -1,0 +1,151 @@
+{
+  "schema": "invoice-manager.runtime-license-policy/v1",
+  "project_license": "GPL-2.0-only",
+  "target": {
+    "os": "linux",
+    "cpu": "x64",
+    "libc": "glibc"
+  },
+  "compatible_combined_runtime": [
+    "0BSD",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "GPL-2.0-only",
+    "ISC",
+    "MIT",
+    "MIT-0"
+  ],
+  "incompatible_combined_runtime": [
+    "Apache-2.0",
+    "GPL-3.0-only",
+    "LGPL-3.0-or-later"
+  ],
+  "license_selections": {},
+  "notice_evidence": {
+    "npm:@img/colour@1.1.0": {
+      "path": "node_modules/@img/colour/LICENSE.md",
+      "sha256": "e2eaa4603c14cb26f301e88648c12a853fa3f0f5da6d4b0972958c666e7f2ab8"
+    },
+    "npm:@img/sharp-linux-x64@0.34.5": {
+      "path": "node_modules/@img/sharp-linux-x64/LICENSE",
+      "sha256": "73ba74dfaa520b49a401b5d21459a8523a146f3b7518a833eea5efa85130bf68"
+    },
+    "npm:@swc/helpers@0.5.15": {
+      "path": "node_modules/@swc/helpers/LICENSE",
+      "sha256": "d96eba1f1881334d50ffc144276dfa98e147a415e7c591ecdfcb81680361dc91"
+    },
+    "npm:baseline-browser-mapping@2.10.44": {
+      "path": "node_modules/baseline-browser-mapping/LICENSE.txt",
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+    },
+    "npm:caniuse-lite@1.0.30001806": {
+      "path": "node_modules/caniuse-lite/LICENSE",
+      "sha256": "fd3a263fe19ed8faa9068b43abaebafc02c77897b0c6fc09abc04bb592e5f16e"
+    },
+    "npm:detect-libc@2.1.2": {
+      "path": "node_modules/detect-libc/LICENSE",
+      "sha256": "b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1"
+    },
+    "npm:nanoid@3.3.16": {
+      "path": "node_modules/nanoid/LICENSE",
+      "sha256": "da4db1480d9beea3483a2eda5c53b22238d0827d57da162b48f122e04d2d9987"
+    },
+    "npm:next@16.2.10": {
+      "path": "node_modules/next/license.md",
+      "sha256": "ee765244e2d59f5234d474f62e0766fa0c8b99af967fdd4c0cb8dcb0c76ea224"
+    },
+    "npm:picocolors@1.1.1": {
+      "path": "node_modules/picocolors/LICENSE",
+      "sha256": "6582629e2979466878f6014313dcc2f3756c9616148682227ce3063dde310750"
+    },
+    "npm:postcss@8.5.10": {
+      "path": "node_modules/postcss/LICENSE",
+      "sha256": "5be1f3465bba68a626777f984878814aaf35e7ef8e9fd314d469bcf887050fb8"
+    },
+    "npm:react@19.2.7": {
+      "path": "node_modules/react/LICENSE",
+      "sha256": "da6d3703ed11cbe42bd212c725957c98da23cbff1998c05fa4b3d976d1a58e93"
+    },
+    "npm:react-dom@19.2.7": {
+      "path": "node_modules/react-dom/LICENSE",
+      "sha256": "da6d3703ed11cbe42bd212c725957c98da23cbff1998c05fa4b3d976d1a58e93"
+    },
+    "npm:scheduler@0.27.0": {
+      "path": "node_modules/scheduler/LICENSE",
+      "sha256": "da6d3703ed11cbe42bd212c725957c98da23cbff1998c05fa4b3d976d1a58e93"
+    },
+    "npm:semver@7.8.4": {
+      "path": "node_modules/semver/LICENSE",
+      "sha256": "4ec3d4c66cd87f5c8d8ad911b10f99bf27cb00cdfcff82621956e379186b016b"
+    },
+    "npm:sharp@0.34.5": {
+      "path": "node_modules/sharp/LICENSE",
+      "sha256": "73ba74dfaa520b49a401b5d21459a8523a146f3b7518a833eea5efa85130bf68"
+    },
+    "npm:source-map-js@1.2.1": {
+      "path": "node_modules/source-map-js/LICENSE",
+      "sha256": "6cb0631f71c7749763fd3dd1d5bee52dd1070ec17f2edc1710079ad070bd2fbd"
+    },
+    "npm:styled-jsx@5.1.6": {
+      "path": "node_modules/styled-jsx/license.md",
+      "sha256": "24d4a4580df855c345705b3016404f0c9da7e7674dc3b21a3ce7d0e5d0c37e2d"
+    },
+    "npm:tslib@2.8.1": {
+      "path": "node_modules/tslib/LICENSE.txt",
+      "sha256": "210b19e543130388c68654b7497e967119ce17145f66ab7d85688fbd70f08751"
+    }
+  },
+  "source_components": {
+    "shovelerdb": {
+      "commit": "021e3b3d9247a181252329d6ba7ec8d2ed943a97",
+      "source": "https://github.com/LynnColeArt/ShovelerDB.git",
+      "spdx_expression": "GPL-2.0-only",
+      "license_path": "deps/shovelerdb/LICENSE",
+      "license_sha256": "240a15a1d0f34d3abca462cdb7e5fb89470967563f16b0e71169e51c1e74cf2b",
+      "notice_path": "THIRD_PARTY_NOTICES.md",
+      "notice_sha256": "759b231a154dbc903e40d7a81661fa20d9e3b9d0269233b3bf21c825a73e509a",
+      "provenance_path": "deps/shovelerdb/PROVENANCE",
+      "source_tree_sha256": "6bb2b4215aa50a8ffbbff3278aea4f32c4fc0f906da817037c44095cfd19480b"
+    },
+    "zig_stdlib": {
+      "version": "0.16.0",
+      "source": "https://ziglang.org/download/0.16.0/",
+      "spdx_expression": "MIT",
+      "version_path": ".zig-version",
+      "required_license_sha256": "5c537d6853e005298a285d508cff9ac7192cea23576c840d485b2b586a7ff177",
+      "committed_license_path": null
+    }
+  },
+  "next_vendored_runtime": [
+    {
+      "identity": "native-url",
+      "manifest_path": "node_modules/next/dist/compiled/native-url/package.json",
+      "notice_path": "node_modules/next/dist/compiled/native-url/LICENSE",
+      "notice_sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    {
+      "identity": "web-vitals",
+      "manifest_path": "node_modules/next/dist/compiled/web-vitals/package.json",
+      "notice_path": "node_modules/next/dist/compiled/web-vitals/LICENSE",
+      "notice_sha256": "bfdeded4040e05da31ca9b6239dc83bd23fa26ac8db87342a7ca4363f68916ff"
+    },
+    {
+      "identity": "web-vitals-attribution",
+      "manifest_path": "node_modules/next/dist/compiled/web-vitals-attribution/package.json",
+      "notice_path": "node_modules/next/dist/compiled/web-vitals-attribution/LICENSE",
+      "notice_sha256": "bfdeded4040e05da31ca9b6239dc83bd23fa26ac8db87342a7ca4363f68916ff"
+    },
+    {
+      "identity": "@opentelemetry/api",
+      "manifest_path": "node_modules/next/dist/compiled/@opentelemetry/api/package.json",
+      "notice_path": "node_modules/next/dist/compiled/@opentelemetry/api/LICENSE",
+      "notice_sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+    },
+    {
+      "identity": "@vercel/routing-utils",
+      "manifest_path": "node_modules/next/dist/compiled/@vercel/routing-utils/package.json",
+      "notice_path": "node_modules/next/dist/compiled/@vercel/routing-utils/LICENSE",
+      "notice_sha256": "b070d77bfb2c52a1dd6996de0ce5f64c49a0ca55c889b163a963ddf5cb001ee2"
+    }
+  ]
+}
