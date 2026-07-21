@@ -26,7 +26,7 @@ subtasks:
 - T041
 phase: Phase 4 - Application Boundaries
 assignee: ''
-agent: codex
+agent: "codex-wp08-implementer"
 history: []
 agent_profile: implementer-ivan
 authoritative_surface: services/api/src/http/
@@ -54,6 +54,7 @@ owned_files:
 role: implementer
 tags: []
 task_type: implement
+shell_pid: "1807838"
 ---
 
 # Work Package Prompt: WP08 – Zig Health and Route-Policy Boundary
@@ -478,3 +479,5 @@ No implementation entries yet.
 
 Use `spec-kitty agent tasks move-task WP08 --to <status>`; never edit status
 events or frontmatter state by hand.
+- 2026-07-21T10:38:55Z – codex-wp08-implementer – shell_pid=1807838 – Assigned agent via action command
+- 2026-07-21T11:24:36Z – codex-wp08-implementer – shell_pid=1807838 – RED WP08-ROUTE-POLICY-001: exact repository-root command 'zig build test-http --build-file services/api/build.zig' materialized fresh canonical inventory (format_version=1, routes=1), mutated owned in-memory P0Health access public->protected, traversed actual dispatch, and failed as expected: handler_calls expected 0, observed 1; 5/6 HTTP tests passed and only this qualifying case failed. Test commit 6a63d78 precedes route-policy enforcement.
