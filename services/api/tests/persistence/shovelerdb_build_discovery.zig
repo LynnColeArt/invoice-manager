@@ -1,5 +1,6 @@
 const std = @import("std");
 const registry = @import("build_registry");
+const discovery_test_config = @import("discovery_test_config");
 const coverage = registry.migration_coverage_contract;
 
 const HttpFixture = struct {
@@ -114,15 +115,19 @@ fn prepareHttpFixture(
     fixture.api_path = try std.fs.path.join(allocator, &.{ root_path, "services/api" });
     errdefer allocator.free(fixture.api_path);
 
+    const source_api_path = discovery_test_config.service_root;
+
     var api_dir = try fixture.tmp.dir.createDirPathOpen(std.testing.io, "services/api", .{});
     api_dir.close(std.testing.io);
 
     const deps_path = try std.fs.path.join(allocator, &.{ root_path, "deps" });
     defer allocator.free(deps_path);
+    const source_deps_path = try std.fs.path.join(allocator, &.{ source_api_path, "../../deps" });
+    defer allocator.free(source_deps_path);
     const copy_deps = try expectCommandExit(
         allocator,
         null,
-        &.{ "cp", "-a", "../../deps", deps_path },
+        &.{ "cp", "-a", source_deps_path, deps_path },
         0,
     );
     defer allocator.free(copy_deps.stdout);
@@ -130,10 +135,12 @@ fn prepareHttpFixture(
 
     const fixture_src = try std.fs.path.join(allocator, &.{ fixture.api_path, "src" });
     defer allocator.free(fixture_src);
+    const source_src = try std.fs.path.join(allocator, &.{ source_api_path, "src" });
+    defer allocator.free(source_src);
     const copy_src = try expectCommandExit(
         allocator,
         null,
-        &.{ "cp", "-a", "src", fixture_src },
+        &.{ "cp", "-a", source_src, fixture_src },
         0,
     );
     defer allocator.free(copy_src.stdout);
@@ -141,10 +148,12 @@ fn prepareHttpFixture(
 
     const fixture_build = try std.fs.path.join(allocator, &.{ fixture.api_path, "build.zig" });
     defer allocator.free(fixture_build);
+    const source_build = try std.fs.path.join(allocator, &.{ source_api_path, "build.zig" });
+    defer allocator.free(source_build);
     const copy_build = try expectCommandExit(
         allocator,
         null,
-        &.{ "cp", "build.zig", fixture_build },
+        &.{ "cp", source_build, fixture_build },
         0,
     );
     defer allocator.free(copy_build.stdout);
@@ -152,10 +161,12 @@ fn prepareHttpFixture(
 
     const fixture_zon = try std.fs.path.join(allocator, &.{ fixture.api_path, "build.zig.zon" });
     defer allocator.free(fixture_zon);
+    const source_zon = try std.fs.path.join(allocator, &.{ source_api_path, "build.zig.zon" });
+    defer allocator.free(source_zon);
     const copy_zon = try expectCommandExit(
         allocator,
         null,
-        &.{ "cp", "build.zig.zon", fixture_zon },
+        &.{ "cp", source_zon, fixture_zon },
         0,
     );
     defer allocator.free(copy_zon.stdout);
@@ -163,10 +174,12 @@ fn prepareHttpFixture(
 
     const fixture_notice = try std.fs.path.join(allocator, &.{ root_path, "THIRD_PARTY_NOTICES.md" });
     defer allocator.free(fixture_notice);
+    const source_notice = try std.fs.path.join(allocator, &.{ source_api_path, "../../THIRD_PARTY_NOTICES.md" });
+    defer allocator.free(source_notice);
     const copy_notice = try expectCommandExit(
         allocator,
         null,
-        &.{ "cp", "../../THIRD_PARTY_NOTICES.md", fixture_notice },
+        &.{ "cp", source_notice, fixture_notice },
         0,
     );
     defer allocator.free(copy_notice.stdout);
