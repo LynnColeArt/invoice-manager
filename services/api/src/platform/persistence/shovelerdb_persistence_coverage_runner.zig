@@ -2,21 +2,21 @@ const std = @import("std");
 const runner = @import("shovelerdb_coverage_runner_core.zig");
 const fuzz = std.Build.abi.fuzz;
 
-extern fn invoice_manager_migration_coverage_reset() void;
-extern fn invoice_manager_migration_coverage_hit_bits() u64;
-extern fn invoice_manager_migration_coverage_required_bits() u64;
+extern fn invoice_manager_persistence_coverage_reset() void;
+extern fn invoice_manager_persistence_coverage_hit_bits() u64;
+extern fn invoice_manager_persistence_coverage_required_bits() u64;
 
 const Config = struct {
-    pub const contract = @import("shovelerdb_coverage_contract.zig");
-    pub const label = "migration";
+    pub const contract = @import("shovelerdb_persistence_coverage_contract.zig");
+    pub const label = "persistence";
     pub fn reset() void {
-        invoice_manager_migration_coverage_reset();
+        invoice_manager_persistence_coverage_reset();
     }
     pub fn hitBits() u64 {
-        return invoice_manager_migration_coverage_hit_bits();
+        return invoice_manager_persistence_coverage_hit_bits();
     }
     pub fn requiredBits() u64 {
-        return invoice_manager_migration_coverage_required_bits();
+        return invoice_manager_persistence_coverage_required_bits();
     }
 };
 
@@ -27,7 +27,7 @@ pub fn main(init: std.process.Init.Minimal) !void {
 
 export fn runner_test_run(_: u32) void {}
 export fn runner_test_name(_: u32) fuzz.Slice {
-    return .fromSlice("migration-coverage");
+    return .fromSlice("persistence-coverage");
 }
 export fn runner_start_input_poller() void {}
 export fn runner_stop_input_poller() void {}

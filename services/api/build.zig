@@ -1,5 +1,7 @@
 const std = @import("std");
 pub const migration_coverage_contract = @import("src/platform/persistence/shovelerdb_coverage_contract.zig");
+pub const shared_coverage_contract = @import("src/platform/persistence/shovelerdb_shared_coverage_contract.zig");
+pub const persistence_coverage_contract = @import("src/platform/persistence/shovelerdb_persistence_coverage_contract.zig");
 
 pub const stable_step_names = [_][]const u8{
     "test-shovelerdb-adapter",
@@ -238,6 +240,13 @@ const Snapshot = struct {
         }
         return total;
     }
+
+    fn hasPath(self: Snapshot, path: []const u8) bool {
+        for (self.entries) |entry| {
+            if (std.mem.eql(u8, entry.path, path)) return true;
+        }
+        return false;
+    }
 };
 
 pub fn build(b: *std.Build) void {
@@ -456,6 +465,98 @@ fn pathExists(b: *std.Build, path: []const u8) bool {
     return true;
 }
 
+fn readSource(b: *std.Build, path: []const u8) ?[]const u8 {
+    return b.build_root.handle.readFileAlloc(
+        b.graph.io,
+        path,
+        b.allocator,
+        .limited(4 * 1024 * 1024),
+    ) catch null;
+}
+
+fn createCoverageProbeModule(
+    b: *std.Build,
+    target: std.Build.ResolvedTarget,
+    source: []const u8,
+) *std.Build.Module {
+    return b.createModule(.{
+        .root_source_file = b.path(source),
+        .target = target,
+        .optimize = .Debug,
+        .fuzz = false,
+    });
+}
+
+fn createSharedModule(
+    b: *std.Build,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    probe: *std.Build.Module,
+    instrumented: bool,
+) *std.Build.Module {
+    return b.createModule(.{
+        .root_source_file = b.path("src/shared/root.zig"),
+        .target = target,
+        .optimize = optimize,
+        .fuzz = instrumented,
+        .imports = &.{.{ .name = "shared_coverage_probe", .module = probe }},
+    });
+}
+
+fn createPersistenceModule(
+    b: *std.Build,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    adapter: *std.Build.Module,
+    shared: *std.Build.Module,
+    probe: *std.Build.Module,
+    instrumented: bool,
+) *std.Build.Module {
+    return b.createModule(.{
+        .root_source_file = b.path("src/platform/persistence/root.zig"),
+        .target = target,
+        .optimize = optimize,
+        .fuzz = instrumented,
+        .imports = &.{
+            .{ .name = "shovelerdb_adapter", .module = adapter },
+            .{ .name = "shared", .module = shared },
+            .{ .name = "persistence_coverage_probe", .module = probe },
+        },
+    });
+}
+
+fn addCoverageArtifact(
+    b: *std.Build,
+    target: std.Build.ResolvedTarget,
+    coverage_test: []const u8,
+    public_module_name: []const u8,
+    instrumented_module: *std.Build.Module,
+    artifact_name: []const u8,
+    runner_path: []const u8,
+    ordinary_dependencies: []const *std.Build.Step,
+    coverage_step: *std.Build.Step,
+) void {
+    const coverage_root = b.createModule(.{
+        .root_source_file = b.path(coverage_test),
+        .target = target,
+        .optimize = .Debug,
+        .fuzz = false,
+        .imports = &.{.{ .name = public_module_name, .module = instrumented_module }},
+    });
+    const coverage_artifact = b.addTest(.{
+        .name = artifact_name,
+        .root_module = coverage_root,
+        .use_llvm = true,
+        .test_runner = .{
+            .path = b.path(runner_path),
+            .mode = .simple,
+        },
+    });
+    const run_coverage = b.addRunArtifact(coverage_artifact);
+    for (ordinary_dependencies) |dependency| run_coverage.step.dependOn(dependency);
+    coverage_step.dependOn(&run_coverage.step);
+}
+
 fn configureShared(
     b: *std.Build,
     snapshot: Snapshot,
@@ -464,6 +565,7 @@ fn configureShared(
     test_step: *std.Build.Step,
     coverage_step: *std.Build.Step,
 ) void {
+    const coverage_test = "tests/shared/boundary_coverage_test.zig";
     const producer = pathExists(b, "src/shared") or snapshot.count(.shared) > 0;
     if (!producer) {
         const message = "[test-shared:error] expected tests/shared/*.zig and src/shared/** from owning WP05; observed producer absent, count 0";
@@ -476,14 +578,38 @@ fn configureShared(
         missingProducer(b, coverage_step, "[coverage-shared:error] WP05 producer present but shared coverage inputs are empty");
         return;
     }
-    const shared = b.createModule(.{
-        .root_source_file = b.path("src/shared/root.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
+    const probe = createCoverageProbeModule(
+        b,
+        target,
+        "src/platform/persistence/shovelerdb_shared_coverage_probe.zig",
+    );
+    const shared = createSharedModule(b, target, optimize, probe, false);
     const imports = [_]std.Build.Module.Import{.{ .name = "shared", .module = shared }};
     addGroupTests(b, snapshot, .shared, target, optimize, &imports, test_step);
-    coverage_step.dependOn(test_step);
+    if (!snapshot.hasPath(coverage_test) or !coverageScopeSourcesValid(b, .shared) or
+        !coverageRootContractValid(
+            b.allocator,
+            readSource(b, coverage_test) orelse "",
+            "shared",
+            "shared production declarations are analyzed",
+            &shared_coverage_contract.critical_branch_names,
+        ))
+    {
+        missingProducer(b, coverage_step, "[coverage-shared:error] exact boundary_coverage_test.zig, canonical shared module structure, scoped production imports, 24 exact probes, or executable declaration analysis is missing");
+        return;
+    }
+    const instrumented_shared = createSharedModule(b, target, .Debug, probe, true);
+    addCoverageArtifact(
+        b,
+        target,
+        coverage_test,
+        "shared",
+        instrumented_shared,
+        "shared-production-coverage",
+        "src/platform/persistence/shovelerdb_shared_coverage_runner.zig",
+        &.{test_step},
+        coverage_step,
+    );
 }
 
 fn configurePersistence(
@@ -497,6 +623,7 @@ fn configurePersistence(
     crash_step: *std.Build.Step,
     coverage_step: *std.Build.Step,
 ) void {
+    const coverage_test = "tests/persistence/durability_coverage_test.zig";
     const producer = pathExists(b, "src/platform/persistence/store.zig") or
         pathExists(b, "src/platform/persistence/durability.zig") or
         pathExists(b, "src/platform/persistence/directory_sync.zig") or
@@ -508,7 +635,9 @@ fn configurePersistence(
         missingProducer(b, coverage_step, "[coverage-persistence:error] expected nonempty WP06 unit/integration/crash roots; observed count 0");
         return;
     }
-    if (snapshot.count(.persistence_unit) == 0 or snapshot.count(.persistence_integration) == 0 or snapshot.count(.persistence_crash) == 0) {
+    if (snapshot.count(.persistence_unit) == 0 or snapshot.count(.persistence_integration) == 0 or snapshot.count(.persistence_crash) == 0 or
+        !pathExists(b, "src/platform/persistence/root.zig"))
+    {
         missingProducer(b, unit_step, "[test-persistence:error] WP06 producer present but unit/integration/crash classification is incomplete");
         missingProducer(b, integration_step, "[test-persistence-integration:error] WP06 producer present but expected integration root count is 0");
         missingProducer(b, crash_step, "[test-persistence-crash:error] WP06 producer present but expected crash root count is 0");
@@ -516,13 +645,62 @@ fn configurePersistence(
         return;
     }
     const adapter = createAdapterModule(b, target, optimize, abi_library);
-    const imports = [_]std.Build.Module.Import{.{ .name = "shovelerdb_adapter", .module = adapter }};
+    const shared_probe = createCoverageProbeModule(
+        b,
+        target,
+        "src/platform/persistence/shovelerdb_shared_coverage_probe.zig",
+    );
+    const shared = createSharedModule(b, target, optimize, shared_probe, false);
+    const persistence_probe = createCoverageProbeModule(
+        b,
+        target,
+        "src/platform/persistence/shovelerdb_persistence_coverage_probe.zig",
+    );
+    const persistence = createPersistenceModule(
+        b,
+        target,
+        optimize,
+        adapter,
+        shared,
+        persistence_probe,
+        false,
+    );
+    const imports = [_]std.Build.Module.Import{.{ .name = "persistence", .module = persistence }};
     addGroupTests(b, snapshot, .persistence_unit, target, optimize, &imports, unit_step);
     addGroupTests(b, snapshot, .persistence_integration, target, optimize, &imports, integration_step);
     addGroupTests(b, snapshot, .persistence_crash, target, optimize, &imports, crash_step);
-    coverage_step.dependOn(unit_step);
-    coverage_step.dependOn(integration_step);
-    coverage_step.dependOn(crash_step);
+    if (!snapshot.hasPath(coverage_test) or !coverageScopeSourcesValid(b, .persistence) or
+        !coverageRootContractValid(
+            b.allocator,
+            readSource(b, coverage_test) orelse "",
+            "persistence",
+            "persistence production declarations are analyzed",
+            &persistence_coverage_contract.critical_branch_names,
+        ))
+    {
+        missingProducer(b, coverage_step, "[coverage-persistence:error] exact durability_coverage_test.zig, canonical persistence module structure, scoped production imports, 20 exact probes, or executable declaration analysis is missing");
+        return;
+    }
+    const instrumented_persistence = createPersistenceModule(
+        b,
+        target,
+        .Debug,
+        adapter,
+        shared,
+        persistence_probe,
+        true,
+    );
+    addCoverageArtifact(
+        b,
+        target,
+        coverage_test,
+        "persistence",
+        instrumented_persistence,
+        "persistence-production-coverage",
+        "src/platform/persistence/shovelerdb_persistence_coverage_runner.zig",
+        &.{ unit_step, integration_step, crash_step },
+        coverage_step,
+    );
 }
 
 fn configureMigration(
@@ -559,41 +737,32 @@ fn configureMigration(
         missingProducer(b, coverage_step, "[coverage-migration:error] WP07 producer present but exact migrations.zig, migrations_coverage_test.zig, WP05/WP06 named module roots, or positive/negative inputs are incomplete");
         return;
     }
-    if (!migrationCoverageSourcesValid(b, migration_source, coverage_test)) {
-        missingProducer(b, coverage_step, "[coverage-migration:error] WP07 coverage inputs omit the canonical production probe import/hit calls or dedicated test imports the probe directly");
-        return;
-    }
-
     const adapter = createAdapterModule(b, target, optimize, abi_library);
-    const contract_module = b.createModule(.{
-        .root_source_file = b.path("src/platform/persistence/shovelerdb_coverage_contract.zig"),
-        .target = target,
-        .optimize = .Debug,
-        .fuzz = false,
-    });
-    const probe = b.createModule(.{
-        .root_source_file = b.path("src/platform/persistence/shovelerdb_coverage_probe.zig"),
-        .target = target,
-        .optimize = .Debug,
-        .fuzz = false,
-        .imports = &.{.{ .name = "migration_coverage_contract", .module = contract_module }},
-    });
-    const shared = b.createModule(.{
-        .root_source_file = b.path("src/shared/root.zig"),
-        .target = target,
-        .optimize = optimize,
-        .fuzz = false,
-    });
-    const persistence = b.createModule(.{
-        .root_source_file = b.path("src/platform/persistence/root.zig"),
-        .target = target,
-        .optimize = optimize,
-        .fuzz = false,
-        .imports = &.{
-            .{ .name = "shared", .module = shared },
-            .{ .name = "shovelerdb_adapter", .module = adapter },
-        },
-    });
+    const probe = createCoverageProbeModule(
+        b,
+        target,
+        "src/platform/persistence/shovelerdb_coverage_probe.zig",
+    );
+    const shared_probe = createCoverageProbeModule(
+        b,
+        target,
+        "src/platform/persistence/shovelerdb_shared_coverage_probe.zig",
+    );
+    const shared = createSharedModule(b, target, optimize, shared_probe, false);
+    const persistence_probe = createCoverageProbeModule(
+        b,
+        target,
+        "src/platform/persistence/shovelerdb_persistence_coverage_probe.zig",
+    );
+    const persistence = createPersistenceModule(
+        b,
+        target,
+        optimize,
+        adapter,
+        shared,
+        persistence_probe,
+        false,
+    );
     const migrations = createMigrationModule(
         b,
         migration_source,
@@ -615,6 +784,11 @@ fn configureMigration(
     addGroupTests(b, snapshot, .migration_integration, target, optimize, &normal_imports, integration_step);
     addGroupTests(b, snapshot, .migration_negative, target, optimize, &normal_imports, negative_step);
 
+    if (!migrationCoverageSourcesValid(b, migration_source, coverage_test)) {
+        missingProducer(b, coverage_step, "[coverage-migration:error] WP07 coverage inputs omit canonical Zig module/declaration structure, scoped production imports, exact production probe hits, or the dedicated coverage root");
+        return;
+    }
+
     const instrumented_migrations = createMigrationModule(
         b,
         migration_source,
@@ -626,33 +800,17 @@ fn configureMigration(
         persistence,
         true,
     );
-    const coverage_root = b.createModule(.{
-        .root_source_file = b.path(coverage_test),
-        .target = target,
-        .optimize = .Debug,
-        .fuzz = false,
-        .imports = &.{
-            .{ .name = "migrations", .module = instrumented_migrations },
-            .{ .name = "shovelerdb_adapter", .module = adapter },
-            .{ .name = "shared", .module = shared },
-            .{ .name = "persistence", .module = persistence },
-            .{ .name = "migration_coverage_contract", .module = contract_module },
-        },
-    });
-    const coverage_artifact = b.addTest(.{
-        .name = "migration-production-coverage",
-        .root_module = coverage_root,
-        .use_llvm = true,
-        .test_runner = .{
-            .path = b.path("src/platform/persistence/shovelerdb_coverage_runner.zig"),
-            .mode = .simple,
-        },
-    });
-    const run_coverage = b.addRunArtifact(coverage_artifact);
-    run_coverage.step.dependOn(unit_step);
-    run_coverage.step.dependOn(integration_step);
-    run_coverage.step.dependOn(negative_step);
-    coverage_step.dependOn(&run_coverage.step);
+    addCoverageArtifact(
+        b,
+        target,
+        coverage_test,
+        "migrations",
+        instrumented_migrations,
+        "migration-production-coverage",
+        "src/platform/persistence/shovelerdb_coverage_runner.zig",
+        &.{ unit_step, integration_step, negative_step },
+        coverage_step,
+    );
 }
 
 fn createMigrationModule(
@@ -682,121 +840,440 @@ fn createMigrationModule(
 
 pub fn migrationCoverageSourcesValid(
     b: *std.Build,
-    migration_source: []const u8,
+    _: []const u8,
     coverage_test: []const u8,
 ) bool {
-    const root_source = b.build_root.handle.readFileAlloc(
-        b.graph.io,
-        migration_source,
+    const test_source = readSource(b, coverage_test) orelse return false;
+    return coverageScopeSourcesValid(b, .migration) and coverageRootContractValid(
         b.allocator,
-        .limited(4 * 1024 * 1024),
-    ) catch return false;
-    if (std.mem.indexOf(
-        u8,
-        root_source,
-        "const migration_coverage = @import(\"migration_coverage_probe\");",
-    ) == null) return false;
+        test_source,
+        "migrations",
+        "migration production declarations are analyzed",
+        &migration_coverage_contract.critical_branch_names,
+    );
+}
 
-    var hit_found: [migration_coverage_contract.critical_branch_count]bool = @splat(false);
+pub fn migrationImportsCoverageScoped(source: []const u8) bool {
+    const named = [_][]const u8{
+        "std",
+        "builtin",
+        "shovelerdb_adapter",
+        "migration_coverage_probe",
+        "shared",
+        "persistence",
+    };
+    return importsLexicallyScoped(std.heap.page_allocator, source, &named, "migrations");
+}
+
+pub fn coverageTestContractValid(source: []const u8) bool {
+    return coverageRootContractValid(
+        std.heap.page_allocator,
+        source,
+        "migrations",
+        "migration production declarations are analyzed",
+        &migration_coverage_contract.critical_branch_names,
+    );
+}
+
+pub fn sharedCoverageTestContractValid(source: []const u8) bool {
+    return coverageRootContractValid(
+        std.heap.page_allocator,
+        source,
+        "shared",
+        "shared production declarations are analyzed",
+        &shared_coverage_contract.critical_branch_names,
+    );
+}
+
+pub fn persistenceCoverageTestContractValid(source: []const u8) bool {
+    return coverageRootContractValid(
+        std.heap.page_allocator,
+        source,
+        "persistence",
+        "persistence production declarations are analyzed",
+        &persistence_coverage_contract.critical_branch_names,
+    );
+}
+
+const CoverageScope = enum { shared, persistence, migration };
+
+fn coverageScopeSourcesValid(b: *std.Build, scope: CoverageScope) bool {
+    const directory = switch (scope) {
+        .shared => "src/shared",
+        .persistence, .migration => "src/platform/persistence",
+    };
+    const root_path = switch (scope) {
+        .shared => "src/shared/root.zig",
+        .persistence => "src/platform/persistence/root.zig",
+        .migration => "src/platform/persistence/migrations.zig",
+    };
+    const probe_module = switch (scope) {
+        .shared => "shared_coverage_probe",
+        .persistence => "persistence_coverage_probe",
+        .migration => "migration_coverage_probe",
+    };
+    const probe_binding = switch (scope) {
+        .shared => "shared_coverage",
+        .persistence => "persistence_coverage",
+        .migration => "migration_coverage",
+    };
+    const branch_names: []const []const u8 = switch (scope) {
+        .shared => &shared_coverage_contract.critical_branch_names,
+        .persistence => &persistence_coverage_contract.critical_branch_names,
+        .migration => &migration_coverage_contract.critical_branch_names,
+    };
+    const named_imports: []const []const u8 = switch (scope) {
+        .shared => &.{ "std", "builtin", "shared_coverage_probe" },
+        .persistence => &.{ "std", "builtin", "shared", "shovelerdb_adapter", "persistence_coverage_probe" },
+        .migration => &.{ "std", "builtin", "shared", "persistence", "shovelerdb_adapter", "migration_coverage_probe" },
+    };
+
     var dir = b.build_root.handle.openDir(
         b.graph.io,
-        "src/platform/persistence",
+        directory,
         .{ .iterate = true, .follow_symlinks = false },
     ) catch return false;
     defer dir.close(b.graph.io);
     var walker = dir.walk(b.allocator) catch return false;
     defer walker.deinit();
+    var files: std.ArrayList([]const u8) = .empty;
     while (walker.next(b.graph.io) catch return false) |entry| {
-        if (!std.mem.startsWith(u8, entry.path, "migrations") or
-            !std.mem.endsWith(u8, entry.path, ".zig")) continue;
+        if (!scopeOwnsSource(scope, entry.path)) continue;
         if (entry.kind != .file) return false;
-        const full_path = std.fmt.allocPrint(
-            b.allocator,
-            "src/platform/persistence/{s}",
-            .{entry.path},
-        ) catch return false;
-        const source = b.build_root.handle.readFileAlloc(
-            b.graph.io,
-            full_path,
-            b.allocator,
-            .limited(4 * 1024 * 1024),
-        ) catch return false;
-        if (!migrationImportsCoverageScoped(source)) return false;
-        for (migration_coverage_contract.critical_branch_names, 0..) |branch_name, index| {
-            const required_hit = std.fmt.allocPrint(
-                b.allocator,
-                "migration_coverage.hit(.{s})",
-                .{branch_name},
-            ) catch return false;
-            hit_found[index] = hit_found[index] or std.mem.indexOf(u8, source, required_hit) != null;
+        const full_path = std.fmt.allocPrint(b.allocator, "{s}/{s}", .{ directory, entry.path }) catch return false;
+        files.append(b.allocator, full_path) catch return false;
+    }
+    std.mem.sort([]const u8, files.items, {}, struct {
+        fn lessThan(_: void, left: []const u8, right: []const u8) bool {
+            return std.mem.lessThan(u8, left, right);
         }
+    }.lessThan);
+    if (!sliceContains(files.items, root_path)) return false;
+
+    const hit_found = b.allocator.alloc(bool, branch_names.len) catch return false;
+    @memset(hit_found, false);
+    for (files.items) |path| {
+        const source = readSource(b, path) orelse return false;
+        if (!productionSourceValid(
+            b.allocator,
+            source,
+            path,
+            files.items,
+            named_imports,
+            probe_module,
+            probe_binding,
+            branch_names,
+            hit_found,
+        )) return false;
     }
     for (hit_found) |found| if (!found) return false;
-
-    const test_source = b.build_root.handle.readFileAlloc(
-        b.graph.io,
-        coverage_test,
-        b.allocator,
-        .limited(4 * 1024 * 1024),
-    ) catch return false;
-    return coverageTestContractValid(test_source);
+    return true;
 }
 
-pub fn migrationImportsCoverageScoped(source: []const u8) bool {
-    const import_prefix = "@import(\"";
-    if (countOccurrences(source, "@import(") != countOccurrences(source, import_prefix)) return false;
-    var remaining = source;
-    while (std.mem.indexOf(u8, remaining, import_prefix)) |start| {
-        const value_start = start + import_prefix.len;
-        const after_start = remaining[value_start..];
-        const end = std.mem.indexOf(u8, after_start, "\")") orelse return false;
-        const value = after_start[0..end];
-        const allowed = std.mem.eql(u8, value, "std") or
-            std.mem.eql(u8, value, "builtin") or
-            std.mem.eql(u8, value, "shovelerdb_adapter") or
-            std.mem.eql(u8, value, "migration_coverage_probe") or
-            std.mem.eql(u8, value, "shared") or
-            std.mem.eql(u8, value, "persistence") or
-            (std.mem.startsWith(u8, value, "migrations") and std.mem.endsWith(u8, value, ".zig"));
-        if (!allowed) return false;
-        remaining = after_start[end + 2 ..];
+fn scopeOwnsSource(scope: CoverageScope, relative_path: []const u8) bool {
+    if (!std.mem.endsWith(u8, relative_path, ".zig")) return false;
+    return switch (scope) {
+        .shared => true,
+        .persistence => blk: {
+            if (std.mem.indexOfScalar(u8, relative_path, '/') != null) break :blk false;
+            break :blk std.mem.eql(u8, relative_path, "root.zig") or
+                std.mem.startsWith(u8, relative_path, "store") or
+                std.mem.startsWith(u8, relative_path, "durability") or
+                std.mem.startsWith(u8, relative_path, "directory_sync") or
+                std.mem.startsWith(u8, relative_path, "diagnostic");
+        },
+        .migration => std.mem.indexOfScalar(u8, relative_path, '/') == null and
+            std.mem.startsWith(u8, relative_path, "migrations"),
+    };
+}
+
+fn productionSourceValid(
+    allocator: std.mem.Allocator,
+    source: []const u8,
+    source_path: []const u8,
+    scope_files: []const []const u8,
+    named_imports: []const []const u8,
+    probe_module: []const u8,
+    probe_binding: []const u8,
+    branch_names: []const []const u8,
+    hit_found: []bool,
+) bool {
+    var parsed = ParsedSource.init(allocator, source) orelse return false;
+    defer parsed.deinit(allocator);
+    const tree = &parsed.tree;
+    const probe_decl = canonicalBinding(tree, probe_binding, probe_module);
+    if (!probe_decl.valid) return false;
+
+    var probe_imports: usize = 0;
+    var probe_calls: usize = 0;
+    var i: usize = 0;
+    while (i < tree.tokens.len) : (i += 1) {
+        const token: std.zig.Ast.TokenIndex = @intCast(i);
+        const tag = tree.tokenTag(token);
+        if (tag == .builtin and (std.mem.eql(u8, tree.tokenSlice(token), "@extern") or
+            std.mem.eql(u8, tree.tokenSlice(token), "@export") or
+            std.mem.eql(u8, tree.tokenSlice(token), "@disableInstrumentation") or
+            std.mem.eql(u8, tree.tokenSlice(token), "@ptrFromInt"))) return false;
+        if ((tag == .identifier or tag == .string_literal) and
+            (std.mem.indexOf(u8, tree.tokenSlice(token), "__sancov") != null or
+                std.mem.indexOf(u8, tree.tokenSlice(token), "invoice_manager_shared_coverage") != null or
+                std.mem.indexOf(u8, tree.tokenSlice(token), "invoice_manager_persistence_coverage") != null or
+                std.mem.indexOf(u8, tree.tokenSlice(token), "invoice_manager_migration_coverage") != null)) return false;
+        if ((tag == .keyword_const or tag == .keyword_var) and i + 1 < tree.tokens.len and
+            tree.tokenTag(@intCast(i + 1)) == .identifier and
+            std.mem.eql(u8, tree.tokenSlice(@intCast(i + 1)), probe_binding) and
+            (probe_decl.token == null or probe_decl.token.? != token)) return false;
+        if (tag == .builtin and std.mem.eql(u8, tree.tokenSlice(token), "@import")) {
+            const imported = importValue(tree, i) orelse return false;
+            if (std.mem.eql(u8, imported, probe_module)) {
+                probe_imports += 1;
+                if (probe_decl.token == null or i != @as(usize, probe_decl.token.?) + 3) return false;
+            }
+            if (!sliceContains(named_imports, imported) and
+                !relativeImportResolves(source_path, imported, scope_files)) return false;
+        }
+        if (tag == .identifier and std.mem.eql(u8, tree.tokenSlice(token), probe_binding) and
+            tokenSequence(tree, i, &.{ .identifier, .period, .identifier, .l_paren, .period, .identifier, .r_paren }) and
+            std.mem.eql(u8, tree.tokenSlice(@intCast(i + 2)), "hit"))
+        {
+            const branch_name = tree.tokenSlice(@intCast(i + 5));
+            const branch_index = indexOf(branch_names, branch_name) orelse return false;
+            hit_found[branch_index] = true;
+            probe_calls += 1;
+        }
+    }
+    if (probe_calls == 0) return probe_imports == 0 and probe_decl.token == null;
+    return probe_imports == 1 and probe_decl.token != null;
+}
+
+fn coverageRootContractValid(
+    allocator: std.mem.Allocator,
+    source: []const u8,
+    module_name: []const u8,
+    declaration_test_name: []const u8,
+    branch_names: []const []const u8,
+) bool {
+    var parsed = ParsedSource.init(allocator, source) orelse return false;
+    defer parsed.deinit(allocator);
+    const tree = &parsed.tree;
+    const std_decl = canonicalBinding(tree, "std", "std");
+    const module_decl = canonicalBinding(tree, module_name, module_name);
+    if (!std_decl.valid or !module_decl.valid or std_decl.token == null or module_decl.token == null) return false;
+
+    var std_imports: usize = 0;
+    var module_imports: usize = 0;
+    var i: usize = 0;
+    while (i < tree.tokens.len) : (i += 1) {
+        const token: std.zig.Ast.TokenIndex = @intCast(i);
+        const tag = tree.tokenTag(token);
+        if (tag == .builtin and (std.mem.eql(u8, tree.tokenSlice(token), "@extern") or
+            std.mem.eql(u8, tree.tokenSlice(token), "@export") or
+            std.mem.eql(u8, tree.tokenSlice(token), "@disableInstrumentation") or
+            std.mem.eql(u8, tree.tokenSlice(token), "@ptrFromInt"))) return false;
+        if ((tag == .identifier or tag == .string_literal) and
+            (std.mem.indexOf(u8, tree.tokenSlice(token), "__sancov") != null or
+                std.mem.indexOf(u8, tree.tokenSlice(token), "invoice_manager_shared_coverage") != null or
+                std.mem.indexOf(u8, tree.tokenSlice(token), "invoice_manager_persistence_coverage") != null or
+                std.mem.indexOf(u8, tree.tokenSlice(token), "invoice_manager_migration_coverage") != null)) return false;
+        if ((tag == .keyword_const or tag == .keyword_var) and i + 1 < tree.tokens.len and
+            tree.tokenTag(@intCast(i + 1)) == .identifier)
+        {
+            const name = tree.tokenSlice(@intCast(i + 1));
+            if (std.mem.eql(u8, name, "std") and token != std_decl.token.?) return false;
+            if (std.mem.eql(u8, name, module_name) and token != module_decl.token.?) return false;
+        }
+        if (tag == .builtin and std.mem.eql(u8, tree.tokenSlice(token), "@import")) {
+            const imported = importValue(tree, i) orelse return false;
+            if (std.mem.eql(u8, imported, "std")) {
+                std_imports += 1;
+                if (i != @as(usize, std_decl.token.?) + 3) return false;
+            } else if (std.mem.eql(u8, imported, module_name)) {
+                module_imports += 1;
+                if (i != @as(usize, module_decl.token.?) + 3) return false;
+            } else return false;
+        }
+    }
+    if (std_imports != 1 or module_imports != 1) return false;
+
+    const critical_seen = allocator.alloc(bool, branch_names.len) catch return false;
+    defer allocator.free(critical_seen);
+    @memset(critical_seen, false);
+    var declaration_tests: usize = 0;
+    for (tree.rootDecls()) |node| {
+        if (tree.nodeTag(node) != .test_decl) continue;
+        const name_token = tree.nodeData(node).opt_token_and_node[0].unwrap() orelse continue;
+        const name = stringLiteralValue(tree.tokenSlice(name_token)) orelse return false;
+        if (std.mem.eql(u8, name, declaration_test_name)) {
+            declaration_tests += 1;
+            if (!declarationTestExact(tree, node, module_name)) return false;
+            continue;
+        }
+        if (!std.mem.startsWith(u8, name, migration_coverage_contract.critical_test_prefix)) continue;
+        const branch_name = name[migration_coverage_contract.critical_test_prefix.len..];
+        const branch_index = indexOf(branch_names, branch_name) orelse return false;
+        if (critical_seen[branch_index]) return false;
+        critical_seen[branch_index] = true;
+    }
+    if (declaration_tests != 1) return false;
+    for (critical_seen) |seen| if (!seen) return false;
+    return true;
+}
+
+const BindingResult = struct {
+    token: ?std.zig.Ast.TokenIndex = null,
+    valid: bool = true,
+};
+
+fn canonicalBinding(tree: *const std.zig.Ast, binding: []const u8, module_name: []const u8) BindingResult {
+    var result: BindingResult = .{};
+    for (tree.rootDecls()) |node| {
+        if (!bindingDeclExact(tree, node, binding, module_name)) continue;
+        if (result.token != null) return .{ .valid = false };
+        result.token = tree.firstToken(node);
+    }
+    return result;
+}
+
+fn bindingDeclExact(
+    tree: *const std.zig.Ast,
+    node: std.zig.Ast.Node.Index,
+    binding: []const u8,
+    module_name: []const u8,
+) bool {
+    const first = tree.firstToken(node);
+    const last = tree.lastToken(node);
+    if (@as(usize, last) != @as(usize, first) + 6) return false;
+    if (!tokenSequence(tree, first, &.{ .keyword_const, .identifier, .equal, .builtin, .l_paren, .string_literal, .r_paren })) return false;
+    return std.mem.eql(u8, tree.tokenSlice(first + 1), binding) and
+        std.mem.eql(u8, tree.tokenSlice(first + 3), "@import") and
+        std.mem.eql(u8, stringLiteralValue(tree.tokenSlice(first + 5)) orelse return false, module_name);
+}
+
+fn declarationTestExact(
+    tree: *const std.zig.Ast,
+    node: std.zig.Ast.Node.Index,
+    module_name: []const u8,
+) bool {
+    const first = tree.firstToken(node);
+    const last = tree.lastToken(node);
+    if (@as(usize, last) != @as(usize, first) + 12) return false;
+    if (!tokenSequence(tree, first, &.{
+        .keyword_test,
+        .string_literal,
+        .l_brace,
+        .identifier,
+        .period,
+        .identifier,
+        .period,
+        .identifier,
+        .l_paren,
+        .identifier,
+        .r_paren,
+        .semicolon,
+        .r_brace,
+    })) return false;
+    return std.mem.eql(u8, tree.tokenSlice(first + 3), "std") and
+        std.mem.eql(u8, tree.tokenSlice(first + 5), "testing") and
+        std.mem.eql(u8, tree.tokenSlice(first + 7), "refAllDecls") and
+        std.mem.eql(u8, tree.tokenSlice(first + 9), module_name);
+}
+
+fn importsLexicallyScoped(
+    allocator: std.mem.Allocator,
+    source: []const u8,
+    named_imports: []const []const u8,
+    relative_prefix: []const u8,
+) bool {
+    var parsed = ParsedSource.init(allocator, source) orelse return false;
+    defer parsed.deinit(allocator);
+    const tree = &parsed.tree;
+    var i: usize = 0;
+    while (i < tree.tokens.len) : (i += 1) {
+        const token: std.zig.Ast.TokenIndex = @intCast(i);
+        if (tree.tokenTag(token) != .builtin or !std.mem.eql(u8, tree.tokenSlice(token), "@import")) continue;
+        const imported = importValue(tree, i) orelse return false;
+        if (sliceContains(named_imports, imported)) continue;
+        if (std.mem.indexOfAny(u8, imported, "/\\") != null or std.mem.indexOf(u8, imported, "..") != null or
+            !std.mem.startsWith(u8, imported, relative_prefix) or !std.mem.endsWith(u8, imported, ".zig")) return false;
     }
     return true;
 }
 
-pub fn coverageTestContractValid(source: []const u8) bool {
-    if (std.mem.indexOf(u8, source, "const std = @import(\"std\");") == null or
-        std.mem.indexOf(u8, source, "@import(\"migrations\")") == null or
-        std.mem.indexOf(u8, source, "std.testing.refAllDecls(migrations);") == null or
-        std.mem.indexOf(u8, source, "migration_coverage_probe") != null or
-        std.mem.indexOf(u8, source, "shovelerdb_coverage_probe") != null or
-        countOccurrences(source, migration_coverage_contract.critical_test_prefix) !=
-            migration_coverage_contract.critical_branch_count)
-    {
-        return false;
+fn relativeImportResolves(
+    source_path: []const u8,
+    imported: []const u8,
+    scope_files: []const []const u8,
+) bool {
+    if (!std.mem.endsWith(u8, imported, ".zig") or imported.len == 0 or
+        imported[0] == '/' or imported[0] == '\\' or std.mem.indexOfScalar(u8, imported, '\\') != null or
+        (imported.len >= 2 and std.ascii.isAlphabetic(imported[0]) and imported[1] == ':')) return false;
+    var components = std.mem.splitScalar(u8, imported, '/');
+    while (components.next()) |component| {
+        if (component.len == 0 or std.mem.eql(u8, component, ".") or std.mem.eql(u8, component, "..")) return false;
     }
-    for (migration_coverage_contract.critical_branch_names) |branch_name| {
-        var expected_buffer: [128]u8 = undefined;
-        const expected = std.fmt.bufPrint(
-            &expected_buffer,
-            "test \"{s}{s}\"",
-            .{ migration_coverage_contract.critical_test_prefix, branch_name },
-        ) catch return false;
-        if (countOccurrences(source, expected) != 1) return false;
+    var buffer: [std.fs.max_path_bytes]u8 = undefined;
+    const directory = std.fs.path.dirname(source_path) orelse return false;
+    const resolved = std.fmt.bufPrint(&buffer, "{s}/{s}", .{ directory, imported }) catch return false;
+    return sliceContains(scope_files, resolved);
+}
+
+fn importValue(tree: *const std.zig.Ast, index: usize) ?[]const u8 {
+    if (!tokenSequence(tree, index, &.{ .builtin, .l_paren, .string_literal, .r_paren })) return null;
+    return stringLiteralValue(tree.tokenSlice(@intCast(index + 2)));
+}
+
+fn tokenSequence(
+    tree: *const std.zig.Ast,
+    start_token: anytype,
+    expected: []const std.zig.Token.Tag,
+) bool {
+    const start: usize = @intCast(start_token);
+    if (start + expected.len > tree.tokens.len) return false;
+    for (expected, 0..) |tag, offset| {
+        if (tree.tokenTag(@intCast(start + offset)) != tag) return false;
     }
     return true;
 }
 
-fn countOccurrences(haystack: []const u8, needle: []const u8) usize {
-    if (needle.len == 0) return 0;
-    var count: usize = 0;
-    var offset: usize = 0;
-    while (std.mem.indexOf(u8, haystack[offset..], needle)) |relative| {
-        count += 1;
-        offset += relative + needle.len;
-    }
-    return count;
+fn stringLiteralValue(literal: []const u8) ?[]const u8 {
+    if (literal.len < 2 or literal[0] != '"' or literal[literal.len - 1] != '"' or
+        std.mem.indexOfScalar(u8, literal[1 .. literal.len - 1], '\\') != null) return null;
+    return literal[1 .. literal.len - 1];
 }
+
+fn sliceContains(haystack: []const []const u8, needle: []const u8) bool {
+    for (haystack) |item| if (std.mem.eql(u8, item, needle)) return true;
+    return false;
+}
+
+fn indexOf(haystack: []const []const u8, needle: []const u8) ?usize {
+    for (haystack, 0..) |item, index| if (std.mem.eql(u8, item, needle)) return index;
+    return null;
+}
+
+const ParsedSource = struct {
+    tree: std.zig.Ast,
+    sentinel_source: [:0]u8,
+
+    fn init(allocator: std.mem.Allocator, source: []const u8) ?ParsedSource {
+        const sentinel_source = allocator.dupeZ(u8, source) catch return null;
+        var tree = std.zig.Ast.parse(allocator, sentinel_source, .zig) catch {
+            allocator.free(sentinel_source);
+            return null;
+        };
+        if (tree.errors.len != 0) {
+            tree.deinit(allocator);
+            allocator.free(sentinel_source);
+            return null;
+        }
+        return .{ .tree = tree, .sentinel_source = sentinel_source };
+    }
+
+    fn deinit(self: *ParsedSource, allocator: std.mem.Allocator) void {
+        self.tree.deinit(allocator);
+        allocator.free(self.sentinel_source);
+    }
+};
 
 fn configureHttp(
     b: *std.Build,

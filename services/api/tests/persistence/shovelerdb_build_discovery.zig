@@ -9,6 +9,29 @@ fn expectPaths(expected: []const []const u8, actual: []const registry.Classified
     }
 }
 
+fn appendCoverageRoot(
+    allocator: std.mem.Allocator,
+    output: *std.ArrayList(u8),
+    module_name: []const u8,
+    declaration_name: []const u8,
+    branch_names: []const []const u8,
+    declaration_body: []const u8,
+) !void {
+    try output.print(
+        allocator,
+        "const std = @import(\"std\");\nconst {s} = @import(\"{s}\");\n" ++
+            "test \"{s}\" {{ {s} }}\n",
+        .{ module_name, module_name, declaration_name, declaration_body },
+    );
+    for (branch_names) |branch_name| {
+        try output.print(
+            allocator,
+            "test \"critical branch: {s}\" {{}}\n",
+            .{branch_name},
+        );
+    }
+}
+
 test "stable step names and aggregate order are exact" {
     const expected_steps = [_][]const u8{
         "test-shovelerdb-adapter",
@@ -309,6 +332,169 @@ test "migration coverage source and exact critical test contracts reject fabrica
 
     try valid.appendSlice(allocator, "test \"critical branch: fabricated\" {}\n");
     try std.testing.expect(!registry.coverageTestContractValid(valid.items));
+}
+
+test "coverage roots require executable canonical Zig structure" {
+    const allocator = std.testing.allocator;
+    var commented: std.ArrayList(u8) = .empty;
+    defer commented.deinit(allocator);
+    try commented.appendSlice(
+        allocator,
+        "const std = @import(\"std\");\n" ++
+            "const real = @import(\"migrations\");\n" ++
+            "const migrations = struct {};\n" ++
+            "// std.testing.refAllDecls(migrations);\n" ++
+            "const fake = \"std.testing.refAllDecls(migrations);\";\n",
+    );
+    for (coverage.critical_branch_names) |branch_name| {
+        const declaration = try std.fmt.allocPrint(
+            allocator,
+            "test \"{s}{s}\" {{}}\n",
+            .{ coverage.critical_test_prefix, branch_name },
+        );
+        defer allocator.free(declaration);
+        try commented.appendSlice(allocator, declaration);
+    }
+    try std.testing.expect(!registry.coverageTestContractValid(commented.items));
+}
+
+test "all measured scope contracts publish exact denominators and inventories" {
+    try std.testing.expectEqual(@as(usize, 24), registry.shared_coverage_contract.minimum_production_sites);
+    try std.testing.expectEqual(@as(usize, 24), registry.shared_coverage_contract.critical_branch_count);
+    try std.testing.expectEqual(@as(usize, 20), registry.persistence_coverage_contract.minimum_production_sites);
+    try std.testing.expectEqual(@as(usize, 20), registry.persistence_coverage_contract.critical_branch_count);
+    try std.testing.expectEqual(@as(usize, 36), registry.migration_coverage_contract.minimum_production_sites);
+    try std.testing.expectEqual(@as(usize, 36), registry.migration_coverage_contract.critical_branch_count);
+
+    const shared_required = registry.shared_coverage_contract.requiredBranchBits();
+    try std.testing.expectError(
+        registry.shared_coverage_contract.CoverageError.IncompleteProductionInstrumentation,
+        registry.shared_coverage_contract.validateMeasurement(.{
+            .seen_sites = 23,
+            .total_sites = 23,
+            .hit_branch_bits = shared_required,
+            .required_branch_bits = shared_required,
+        }),
+    );
+    try std.testing.expectError(
+        registry.shared_coverage_contract.CoverageError.MissingCriticalBranch,
+        registry.shared_coverage_contract.validateMeasurement(.{
+            .seen_sites = 24,
+            .total_sites = 24,
+            .hit_branch_bits = shared_required & ~@as(u64, 1),
+            .required_branch_bits = shared_required,
+        }),
+    );
+
+    const persistence_required = registry.persistence_coverage_contract.requiredBranchBits();
+    try std.testing.expectError(
+        registry.persistence_coverage_contract.CoverageError.IncompleteProductionInstrumentation,
+        registry.persistence_coverage_contract.validateMeasurement(.{
+            .seen_sites = 19,
+            .total_sites = 19,
+            .hit_branch_bits = persistence_required,
+            .required_branch_bits = persistence_required,
+        }),
+    );
+    try std.testing.expectError(
+        registry.persistence_coverage_contract.CoverageError.MissingCriticalBranch,
+        registry.persistence_coverage_contract.validateMeasurement(.{
+            .seen_sites = 20,
+            .total_sites = 20,
+            .hit_branch_bits = persistence_required & ~@as(u64, 1),
+            .required_branch_bits = persistence_required,
+        }),
+    );
+}
+
+test "shared and persistence roots expose only their canonical public module" {
+    const allocator = std.testing.allocator;
+    var shared: std.ArrayList(u8) = .empty;
+    defer shared.deinit(allocator);
+    try appendCoverageRoot(
+        allocator,
+        &shared,
+        "shared",
+        "shared production declarations are analyzed",
+        &registry.shared_coverage_contract.critical_branch_names,
+        "std.testing.refAllDecls(shared);",
+    );
+    try std.testing.expect(registry.sharedCoverageTestContractValid(shared.items));
+    try shared.appendSlice(allocator, "const persistence = @import(\"persistence\");\n");
+    try std.testing.expect(!registry.sharedCoverageTestContractValid(shared.items));
+
+    var persistence: std.ArrayList(u8) = .empty;
+    defer persistence.deinit(allocator);
+    try appendCoverageRoot(
+        allocator,
+        &persistence,
+        "persistence",
+        "persistence production declarations are analyzed",
+        &registry.persistence_coverage_contract.critical_branch_names,
+        "std.testing.refAllDecls(persistence);",
+    );
+    try std.testing.expect(registry.persistenceCoverageTestContractValid(persistence.items));
+    try persistence.appendSlice(allocator, "const adapter = @import(\"shovelerdb_adapter\");\n");
+    try std.testing.expect(!registry.persistenceCoverageTestContractValid(persistence.items));
+}
+
+test "disabled declaration analysis and duplicate bindings fail structurally" {
+    const allocator = std.testing.allocator;
+    var disabled: std.ArrayList(u8) = .empty;
+    defer disabled.deinit(allocator);
+    try appendCoverageRoot(
+        allocator,
+        &disabled,
+        "migrations",
+        "migration production declarations are analyzed",
+        &coverage.critical_branch_names,
+        "if (false) std.testing.refAllDecls(migrations);",
+    );
+    try std.testing.expect(!registry.coverageTestContractValid(disabled.items));
+
+    var duplicate: std.ArrayList(u8) = .empty;
+    defer duplicate.deinit(allocator);
+    try appendCoverageRoot(
+        allocator,
+        &duplicate,
+        "migrations",
+        "migration production declarations are analyzed",
+        &coverage.critical_branch_names,
+        "std.testing.refAllDecls(migrations);",
+    );
+    try duplicate.appendSlice(allocator, "const migrations = @import(\"migrations\");\n");
+    try std.testing.expect(!registry.coverageTestContractValid(duplicate.items));
+}
+
+test "coverage roots cannot mutate probes or sanitizer counters" {
+    const allocator = std.testing.allocator;
+    var fabricated: std.ArrayList(u8) = .empty;
+    defer fabricated.deinit(allocator);
+    try appendCoverageRoot(
+        allocator,
+        &fabricated,
+        "migrations",
+        "migration production declarations are analyzed",
+        &coverage.critical_branch_names,
+        "std.testing.refAllDecls(migrations);",
+    );
+    try fabricated.appendSlice(
+        allocator,
+        "const counters = @extern([*]u8, .{ .name = \"__start___sancov_cntrs\" });\n",
+    );
+    try std.testing.expect(!registry.coverageTestContractValid(fabricated.items));
+}
+
+test "migration production imports reject normalized traversal and prefix lookalikes" {
+    try std.testing.expect(!registry.migrationImportsCoverageScoped(
+        "const helper = @import(\"migrations_helpers/../store.zig\");",
+    ));
+    try std.testing.expect(!registry.migrationImportsCoverageScoped(
+        "const helper = @import(\"migrations_lookalike.zig/../../store.zig\");",
+    ));
+    try std.testing.expect(!registry.migrationImportsCoverageScoped(
+        "const helper = @import(\"/migrations_escape.zig\");",
+    ));
 }
 
 test "notice validation fails when any acceptance-critical field is absent" {
