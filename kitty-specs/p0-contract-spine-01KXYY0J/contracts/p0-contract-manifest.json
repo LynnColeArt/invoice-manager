@@ -10,102 +10,25 @@
   "dependencies": [],
   "inputs": [],
   "outputs": [
-    {
-      "path": "kitty-specs/p0-contract-spine-01KXYY0J/contracts/common-v1.schema.json",
-      "kind": "common_schema",
-      "digest": "pending"
-    },
-    {
-      "path": "kitty-specs/p0-contract-spine-01KXYY0J/contracts/api-v1.openapi.yaml",
-      "kind": "api_fragment",
-      "digest": "pending"
-    },
-    {
-      "path": "kitty-specs/p0-contract-spine-01KXYY0J/contracts/event-envelope-v1.schema.json",
-      "kind": "event_envelope",
-      "digest": "pending"
-    },
-    {
-      "path": "kitty-specs/p0-contract-spine-01KXYY0J/contracts/event-catalog-v1.schema.json",
-      "kind": "event_catalog",
-      "digest": "pending"
-    },
-    {
-      "path": "kitty-specs/p0-contract-spine-01KXYY0J/contracts/module-contribution-v1.schema.json",
-      "kind": "module_manifest",
-      "digest": "pending"
-    },
-    {
-      "path": "kitty-specs/p0-contract-spine-01KXYY0J/contracts/migration-manifest-v1.schema.json",
-      "kind": "migration_schema",
-      "digest": "pending"
-    },
-    {
-      "path": "kitty-specs/p0-contract-spine-01KXYY0J/contracts/contract-manifest-v1.schema.json",
-      "kind": "contract_manifest",
-      "digest": "pending"
-    }
+    { "path": "contracts/api/v1/base.openapi.yaml", "kind": "api_fragment", "digest": "pending" },
+    { "path": "contracts/common/v1/schema.json", "kind": "common_schema", "digest": "pending" },
+    { "path": "contracts/conformance/p0-p4-inputs.json", "kind": "other", "digest": "pending" },
+    { "path": "contracts/events/v1/catalog.schema.json", "kind": "event_catalog", "digest": "pending" },
+    { "path": "contracts/events/v1/envelope.schema.json", "kind": "event_envelope", "digest": "pending" },
+    { "path": "contracts/manifests/v1/schema.json", "kind": "contract_manifest", "digest": "pending" },
+    { "path": "contracts/migrations/v1/manifest.schema.json", "kind": "migration_schema", "digest": "pending" },
+    { "path": "contracts/modules/p0/module.json", "kind": "module_manifest", "digest": "pending" },
+    { "path": "contracts/modules/v1/schema.json", "kind": "module_manifest", "digest": "pending" }
   ],
-  "owned_paths": [
-    ".node-version",
-    "package.json",
-    "package-lock.json",
-    "apps/web/package.json",
-    "apps/web/next.config.ts",
-    "apps/web/tsconfig.json",
-    "apps/web/src/app/layout.tsx",
-    "apps/web/src/app/page.tsx",
-    "apps/web/src/app/globals.css",
-    "apps/web/src/lib/api/**",
-    "apps/web/src/lib/contracts/**",
-    "apps/web/tests/foundation/**",
-    "contracts/common/**",
-    "contracts/api/v1/base.openapi.yaml",
-    "contracts/events/v1/envelope.schema.json",
-    "contracts/manifests/v1/**",
-    "contracts/migrations/v1/**",
-    "contracts/modules/p0/**",
-    "deps/shovelerdb/**",
-    "services/api/build.zig",
-    "services/api/build.zig.zon",
-    "services/api/src/main.zig",
-    "services/api/src/http/**",
-    "services/api/src/shared/**",
-    "services/api/src/platform/persistence/**",
-    "tools/contracts/**",
-    ".github/workflows/foundation.yml"
-  ],
+  "owned_paths": ["contracts/api/**", "contracts/events/**", "contracts/manifests/**", "contracts/migrations/**", "contracts/modules/**", "contracts/conformance/**", "tools/contracts/**"],
   "shared_touchpoints": [
-    {
-      "path": "package.json",
-      "steward": "program-integration-steward",
-      "reason": "Root validation commands and dependency graph"
-    },
-    {
-      "path": ".github/workflows/**",
-      "steward": "program-integration-steward",
-      "reason": "Repository-wide acceptance gates"
-    },
-    {
-      "path": "docs/program-ledger.md",
-      "steward": "program-integration-steward",
-      "reason": "Cross-mission contract and readiness evidence"
-    }
+    { "path": "package.json", "steward": "program-integration-steward", "reason": "Root contract command wiring" }
   ],
-  "migration_strategy": {
-    "mode": "owner_scoped_forward_only",
-    "root": "services/api/migrations/p0"
-  },
+  "migration_strategy": { "mode": "owner_scoped_forward_only", "root": "services/api/migrations/p0" },
   "integration_fixtures": [
-    {
-      "path": "contracts/fixtures/p0/v1/valid/module-pair.json",
-      "expectation": "valid",
-      "digest": "pending"
-    },
-    {
-      "path": "contracts/fixtures/p0/v1/invalid/duplicate-mount.json",
-      "expectation": "invalid",
-      "digest": "pending"
-    }
+    { "path": "contracts/fixtures/p0/v1/invalid/lifecycle-frozen-pending-digest.json", "expectation": "invalid", "digest": "pending" },
+    { "path": "contracts/fixtures/p0/v1/invalid/module-duplicate-mount.json", "expectation": "invalid", "digest": "pending" },
+    { "path": "contracts/fixtures/p0/v1/valid/lifecycle-draft.json", "expectation": "valid", "digest": "pending" },
+    { "path": "contracts/fixtures/p0/v1/valid/module-pair.json", "expectation": "valid", "digest": "pending" }
   ]
 }

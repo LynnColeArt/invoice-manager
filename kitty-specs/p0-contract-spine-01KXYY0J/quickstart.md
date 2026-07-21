@@ -1,24 +1,30 @@
 # P0 Contract Spine Quickstart
 
-This document describes the developer experience P0 must implement. During the
-planning phase the commands and paths are contractual targets; they are not yet
-evidence that source code exists.
+This document describes the P0 developer experience implemented by producer
+work packages and completed by the closure package. Commands and paths are
+normative; a successful run is evidence for the exact checkout tested, not for
+a planning document alone.
 
 ## Supported baseline
 
 - Linux x86_64
 - Node.js 24.18.0 LTS with npm 11.16.0
 - Zig 0.16.0
-- Git with submodule support if the upstream ShovelerDB package metadata has not
-  landed
+- Git
 
 Docker and LuaLaTeX are intentionally not P0 prerequisites. P3 owns the
 reference deployment and P2 owns the document runtime.
 
-## Planned clean-clone flow
+ShovelerDB source is committed under `deps/shovelerdb/` as an unmodified
+`git archive` export of commit
+`021e3b3d9247a181252329d6ba7ec8d2ed943a97`. The source URL, included paths,
+and tree digest are recorded in `deps/shovelerdb/PROVENANCE`; no submodule,
+sibling checkout, or floating branch is required.
+
+## Clean-clone flow
 
 ```bash
-git clone --recurse-submodules <invoice-manager-repository>
+git clone <invoice-manager-repository>
 cd invoice-manager
 npm run verify:foundation:clean
 ```
@@ -27,12 +33,12 @@ npm run verify:foundation:clean
 cache state, runs `npm ci` inside its measured boundary, and then delegates to
 `verify:foundation`. The HTTP stage installs the exact Chromium revision selected
 by the locked Playwright 1.61.1 package inside that same boundary; it never falls
-back to a system browser. The aggregate will run deterministic contract composition, generated type
+back to a system browser. The aggregate runs deterministic contract composition, generated type
 checks, web validation/build, Zig formatting/build/tests/coverage, migration
 negative tests, real ShovelerDB persistence integration, black-box HTTP/proxy
 smoke, and runtime-license validation.
 
-## Planned focused commands
+## Focused commands
 
 ```bash
 npm run contracts:check
@@ -46,6 +52,11 @@ npm run http:smoke
 npm run licenses:check
 ```
 
+The focused producer commands other than `licenses:check` are independently
+runnable on the accepted WP03-WP10 baseline. WP12 supplies the license tooling
+and turns `licenses:check`, `verify:foundation*`, `bootstrap:foundation`, and
+canonical manifest promotion into final closure evidence.
+
 Each command must be independently diagnosable and use the same underlying
 commands as CI. `http:smoke` invokes the idempotent `browser:install` stage itself,
 so the bare smoke command is complete after `npm ci`; the focused install command
@@ -56,7 +67,7 @@ bootstrap:foundation`; that wrapper also runs `npm ci` inside the monotonic
 timer, performs all required validation, starts production-shaped Zig/Next.js,
 and stops after the same-origin health smoke succeeds.
 
-## Planned local run
+## Local run
 
 ```bash
 INVOICE_API_BIND=127.0.0.1 \
@@ -105,7 +116,7 @@ build outputs and must not be committed.
 
 ## Storage acceptance flow
 
-The persistence integration will:
+The persistence integration exercises:
 
 1. create a temporary store;
 2. apply the bootstrap migration and checkpoint it;
@@ -120,7 +131,7 @@ The persistence integration will:
 The service must never acknowledge durable success before both checkpoint and
 supported parent-directory synchronization complete.
 
-## Expected planning-to-implementation handoff
+## Contract lifecycle handoff
 
 P1-P4 may plan against the `0.1.0-draft.1` schemas in this mission. They may
 begin implementation only after P0 promotes the consumed versions to Frozen,
