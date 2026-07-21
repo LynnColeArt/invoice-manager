@@ -26,7 +26,7 @@ subtasks:
 - T050
 phase: Phase 5
 assignee: ''
-agent: codex
+agent: "codex-wp11-reviewer"
 history: []
 agent_profile: curator-carla
 authoritative_surface: docs/governance/
@@ -39,6 +39,7 @@ owned_files:
 role: curator
 tags: []
 task_type: implement
+shell_pid: "1807838"
 ---
 
 # Work Package Prompt: WP11 – Governed Documentation Sync Attestation
@@ -335,3 +336,8 @@ ordinary `git commit`.
 > remediation, and WP12 handoff.
 
 No implementation entries yet.
+- 2026-07-21T17:56:38Z – codex-wp11-curator – shell_pid=1807838 – Started implementation via action command
+- 2026-07-21T18:21:01Z – codex-wp11-curator – shell_pid=1807838 – WP11 implementation complete: producer=263b8a25190775f54b280788da0135a7862d2b4e; synchronized=03818d8573ce50443a863d6ed9fdcc5b0cd1b921; exact resolver=18 tracked regular non-symlinks; governed sync changed exactly 7 paths; receipt schema and deterministic serialization passed with locked Ajv 8.20.0 Draft 2020-12; receipt=83820584b5f22e4be061e53d16d839856edfef92; exact parent, subject, receipt-only diff, 18 digests/statuses, 8 mappings, dispositions, command constants, synthetic safety, and drift exit 0 verified. WP12 must consume only the accepted full receipt commit from review handoff.
+- 2026-07-21T18:21:04Z – codex-wp11-curator – shell_pid=1807838 – Ready for review: receipt 83820584b5f22e4be061e53d16d839856edfef92; producer 263b8a25190775f54b280788da0135a7862d2b4e; synchronized 03818d8573ce50443a863d6ed9fdcc5b0cd1b921; schema, topology, exact one-file diff, digests, mappings, commands, synthetic safety, and drift verified.
+- 2026-07-21T18:22:46Z – codex-wp11-reviewer – shell_pid=1807838 – Started review via action command
+- 2026-07-21T18:43:15Z – user – shell_pid=1807838 – Review passed: immutable receipt 83820584b5f22e4be061e53d16d839856edfef92 independently verified against producer 263b8a25190775f54b280788da0135a7862d2b4e and sync 03818d8573ce50443a863d6ed9fdcc5b0cd1b921; exact topology, 7-path sync, receipt-only diff, Draft 2020-12 schema, 18 digests/statuses/rationales, 8 mappings, dispositions, command constants, deterministic JSON/LF, synthetic safety, and explicitly bound drift all pass. Anti-patterns: dead code N/A; synthetic fixture N/A; silent empty return N/A; FR coverage PASS; frozen surface PASS; locked decision PASS; shared ownership PASS; production fragility N/A.

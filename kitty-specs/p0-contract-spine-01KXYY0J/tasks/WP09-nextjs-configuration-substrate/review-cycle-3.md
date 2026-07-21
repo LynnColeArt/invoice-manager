@@ -1,4 +1,15 @@
 ---
+affected_files: []
+cycle_number: 3
+mission_slug: p0-contract-spine-01KXYY0J
+reproduction_command:
+reviewed_at: '2026-07-21T15:01:13Z'
+reviewer_agent: codex-wp09-lock-review
+verdict: rejected
+wp_id: WP09
+---
+
+---
 affected_files:
   - apps/web/next.config.ts
 blocking_findings: 2
