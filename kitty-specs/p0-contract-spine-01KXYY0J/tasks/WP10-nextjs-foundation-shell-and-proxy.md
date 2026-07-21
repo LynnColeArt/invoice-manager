@@ -31,7 +31,7 @@ subtasks:
 - T047
 phase: Phase 3
 assignee: ''
-agent: codex
+agent: "codex-wp10-independent-review"
 history: []
 agent_profile: node-norris
 authoritative_surface: apps/web/
@@ -66,6 +66,7 @@ owned_files:
 role: implementer
 tags: []
 task_type: implement
+shell_pid: "1807838"
 ---
 
 # Work Package Prompt: WP10 – Next.js Foundation Shell and Proxy
@@ -450,3 +451,16 @@ build, or aggregate check; a stale prior output does not satisfy this ordering.
 - 2026-07-21T14:46:43Z – codex – Corrective task design after blocked analysis: WP10 owns the
   fixed-origin App Router handler and complete real-process/adversarial lifecycle; WP09 supplies
   runtime-neutral configuration and WP01 supplies exact browser provisioning.
+- 2026-07-21T16:20:15Z – codex-wp10-implementation – shell_pid=1807838 – Assigned agent via action command
+- 2026-07-21T16:25:45Z – codex-wp10-implementation – shell_pid=1807838 – RED: T044-SHELL-01; command PATH=/home/lynn/.nvm/versions/node/v24.18.0/bin:$PATH npm run test --workspace @invoice-manager/web -- --run tests/foundation/shell.test.tsx tests/foundation/accessibility.test.tsx; expected semantic foundation shell and accessibility contract; actual both suites failed to resolve absent ../../src/app/page (exit 1), before production shell source.
+- 2026-07-21T16:27:23Z – codex-wp10-implementation – shell_pid=1807838 – GREEN: T044-SHELL-01; same focused Vitest command now passes 2 files/4 tests after layout/page/CSS implementation. BUILD: Node 24.18.0; literal npm run contracts:generate then clean rm -rf apps/web/.next and npm run build --workspace @invoice-manager/web passed; accepted WP09 SHA-256 values remained next.config a6fbd459..., tsconfig edd7c53f..., next-env 7b550dda... with zero diff.
+- 2026-07-21T16:28:38Z – codex-wp10-implementation – shell_pid=1807838 – RED: T045-CONTRACT-01; focused contract-client Vitest command expected stable-export typed client, exact envelope refinement, int64 boundary preservation, and safe transport mapping; actual suite failed to resolve absent src/lib/api/client before production adapter source (exit 1).
+- 2026-07-21T16:30:10Z – codex-wp10-implementation – shell_pid=1807838 – GREEN: T045-CONTRACT-01; same focused contract-client command passes 17 tests: stable @invoice-manager/contracts/v1 type imports, exact closed health envelope refinement, canonical int64 min/max and unsafe boundaries without Number/parseInt, checked bigint display adapter, and safe malformed/redirect/timeout/oversize mapping.
+- 2026-07-21T16:32:26Z – codex-wp10-implementation – shell_pid=1807838 – RED: T046-PUBLIC-01; isolated network namespace preserved locked http://localhost:3000 while host port was occupied; command unshare -Urn ... npm run test:e2e --workspace @invoice-manager/web -- --grep PUBLIC-RED-BOUNDARY; expected canonical public 503 for stopped origin; actual framework 404 before absent Route Handler (exit 1), with production Next and redirect following disabled.
+- 2026-07-21T16:51:09Z – codex-wp10-implementation – shell_pid=1807838 – GREEN: T046-PUBLIC-01/T046-UPSTREAM-01/T046-PREROUTE-01 and T047-SHELL-01/T047-NFR007-01; literal bare npm run http:smoke passed under Node 24 with private localhost:3000, real ReleaseSafe WP08 Ready, stopped Zig, missing/invalid origins, canonical 503, redirect chain, hard deadline/abort, declared+streamed oversize, non-JSON/exact media spoof/malformed JSON+envelope/unexpected status/header-cookie-origin leak fixtures, same-origin axe/responsive/contrast checks, and released ports/temp DB. Diagnostic: 10 discarded sequential warmups + exactly 100 complete-body sequential samples, all valid; min 2.202ms, median 2.417ms, sample-99 p99 8.336ms, max 9.721ms, slow 0, invalid 0; ordered sample list emitted. WP09 and four immutable graph hashes remained exact.
+- 2026-07-21T16:54:06Z – codex-wp10-implementation – shell_pid=1807838 – GATE RED (upstream): clean bare npm run web:check after removing .next passed format/lint, then failed TS2882 at accepted next-env.d.ts side-effect import ./\.next/types/routes.d.ts because the WP01-owned script runs typecheck before Next build/typegen. Routed to WP09/WP01; WP10 did not edit configuration or metadata.
+- 2026-07-21T17:06:57Z – codex-wp10-implementation – shell_pid=1807838 – T043 ATTESTATION: before WP10 production source, Node 24.18.0/npm 11.16.0 ran prerequisites:check, npm ci (499 packages audited, 0 vulnerabilities), verify:substrate, locked Playwright Chromium/headless-shell revision 1228 install, and literal contracts:generate. Accepted WP01 graph hashes were root 816264f8..., contracts ee7fcc2f..., web f31c4513..., lock 6ea2ffb8... before and after with zero metadata diff; no WP10 manifest/config write.
+- 2026-07-21T17:25:44Z – codex-wp10-implementation – shell_pid=1807838 – GREEN final evidence on exact WP10 commit 170d25364b9d2055f1d2d3f68f73d84436295ce9: literal bare npm run http:smoke passed production build, real Zig Ready, stopped/missing/invalid config, canonical 503, redirect, slow/slow-non-json, declared/streamed oversize, non-JSON, media-type spoof, malformed JSON/envelope, unexpected status, header leak, live same-origin shell, Axe/responsive/dark/forced-color checks, and failure/timeout/signal cleanup probes. Candidate index tree 82ba874b30a55652bd391bce8eeb881fe9616ad0; tracked_clean=true. NFR-007 100 sequential complete-body samples after 10 warmups: min=2.063ms median=2.373ms p99_sample_99=7.735ms max=8.536ms slow=0 invalid=0. Clean no-.next bare npm run web:check also passed format, lint, typecheck, 24 Vitest tests, and production build after approved WP09 correction; config hashes package=816264f8 tools=ee7fcc2f web=f31c4513 lock=6ea2ffb8 next=a6fbd459 tsconfig=c36224bb next-env=7b550dda.
+- 2026-07-21T17:26:01Z – codex-wp10-implementation – shell_pid=1807838 – Ready for independent review: exact commit 170d253; clean web:check and full http:smoke green
+- 2026-07-21T17:27:05Z – codex-wp10-independent-review – shell_pid=1807838 – Started review via action command
+- 2026-07-21T17:38:21Z – user – shell_pid=1807838 – Moved to planned
