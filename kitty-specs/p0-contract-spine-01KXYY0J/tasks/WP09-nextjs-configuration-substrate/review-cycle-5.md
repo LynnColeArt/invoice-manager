@@ -12,6 +12,10 @@ reviewed_lane_tip: 9b8707dac7ddcf4c025c18f55a85a92060d3b2d9
 reviewer_agent: 'codex-wp09-review:reviewer-renata'
 verdict: rejected
 wp_id: WP09
+review_artifact_override_at: "2026-07-21T16:16:57Z"
+review_artifact_override_actor: "operator"
+review_artifact_override_wp_id: "WP09"
+review_artifact_override_reason: "Arbiter override: approved review-cycle-6.md at 755ef78 supersedes historical rejected cycle 5 after T060 commit 0b27389 independently resolved all five blockers with exact static evidence; WP10 retains runtime proof"
 ---
 
 # WP09 Review Cycle 5

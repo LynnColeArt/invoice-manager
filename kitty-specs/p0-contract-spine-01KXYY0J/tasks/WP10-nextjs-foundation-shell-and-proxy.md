@@ -31,14 +31,16 @@ subtasks:
 - T047
 phase: Phase 3
 assignee: ''
-agent: codex
+agent: "codex-wp10-implementation"
 history: []
-agent_profile: frontend-freddy
+agent_profile: node-norris
 authoritative_surface: apps/web/
 create_intent:
 - apps/web/src/app/layout.tsx
 - apps/web/src/app/page.tsx
 - apps/web/src/app/globals.css
+- apps/web/src/app/api/v1/route.ts
+- "apps/web/src/app/api/v1/[...path]/route.ts"
 - apps/web/src/lib/api/client.ts
 - apps/web/src/lib/api/errors.ts
 - apps/web/src/lib/api/health.ts
@@ -49,18 +51,22 @@ create_intent:
 - apps/web/tests/foundation/accessibility.test.tsx
 - apps/web/tests/foundation/contract-client.test.ts
 - apps/web/tests/foundation/proxy.e2e.ts
+- apps/web/tests/foundation/proxy-fixture.mjs
+- apps/web/tests/foundation/http-smoke.mjs
 execution_mode: code_change
 model: ''
 owned_files:
 - apps/web/src/app/layout.tsx
 - apps/web/src/app/page.tsx
 - apps/web/src/app/globals.css
+- apps/web/src/app/api/v1/**
 - apps/web/src/lib/api/**
 - apps/web/src/lib/contracts/**
 - apps/web/tests/foundation/**
 role: implementer
 tags: []
 task_type: implement
+shell_pid: "1807838"
 ---
 
 # Work Package Prompt: WP10 – Next.js Foundation Shell and Proxy
@@ -69,7 +75,7 @@ task_type: implement
 
 Use the `/ad-hoc-profile-load` skill to load the agent profile specified in the frontmatter, and behave according to its guidance before parsing the rest of this prompt.
 
-- **Profile**: `frontend-freddy`
+- **Profile**: `node-norris`
 - **Role**: `implementer`
 - **Agent/tool**: `codex`
 
@@ -93,13 +99,15 @@ health and structured failures without implementing invoice-management features.
 - WP03 owns contract generation, the `tools/contracts` workspace export, and the sole
   generated TypeScript path `tools/contracts/.generated/typescript/v1/`.
 - WP08 supplies the real Ready Zig health boundary and structured envelopes.
-- WP09 owns app-local configuration; consume it unchanged.
+- WP09 owns runtime-neutral app-local configuration with no external API rewrite or eager origin
+  read; consume the corrected configuration unchanged.
 - WP10 treats all npm manifests and `package-lock.json` as immutable inputs.
 - Every write remains inside the owned app paths in frontmatter.
 - Do not edit contracts, generated outputs, app package/config files, Zig, CI, or mission state.
 - Route missing root metadata/scripts to WP01, config/metadata faults to WP09, generated-export
   faults to WP03, and Zig health/readiness faults to WP08.
-- Use App Router, server components by default, and same-origin `/api/v1/*` browser access.
+- Use App Router, server components by default, and an owned catch-all Route Handler for
+  same-origin `/api/v1/*` browser access.
 - Never expose the Zig origin through `NEXT_PUBLIC_*` or fetch it from browser code.
 - Do not duplicate authorization, money, lifecycle, scheduling, invoice, or domain rules.
 - P0 contains only health presentation and structured transport-error proof.
@@ -143,10 +151,13 @@ form the complete reproducible npm graph without modifying any package metadata 
 2. Use exactly Node 24.18.0 and npm 11.16.0 as pinned by WP01.
 3. Hash all four immutable graph files and capture `git diff --name-only` before validation.
 4. Run root `npm run prerequisites:check`, pinned `npm ci`, and `npm run verify:substrate`.
-5. Require both workspace identities, exact dependency versions, integrity hashes, resolved sources, and links to agree with the committed lock.
-6. Reject ranges, private registries, local/sibling paths, floating Git references, missing integrity, undeclared dependencies, or app-local locks.
-7. Re-hash all four files and require identical bytes plus zero metadata/lock diff.
-8. Route any missing dependency, script, workspace edge, or lock drift to WP01; do not repair it in WP10.
+5. Confirm root `browser:install` resolves the locked web-workspace Playwright CLI and that bare
+   `http:smoke` builds production web output before delegating to WP10's owned lifecycle harness.
+6. Require both workspace identities, exact dependency versions, integrity hashes, resolved sources, and links to agree with the committed lock.
+7. Reject ranges, private registries, local/sibling paths, floating Git references, missing integrity, undeclared dependencies, or app-local locks.
+8. Re-hash all four files and require identical bytes plus zero metadata/lock diff.
+9. Route any missing dependency, script, workspace edge, browser revision, or lock drift to WP01;
+   do not repair it in WP10.
 
 **Validation**
 
@@ -212,36 +223,74 @@ Expose a narrow typed health client while consuming WP03 output only through its
 - Test success, structured error, fields, malformed JSON, redirects, and timeouts.
 - Search `apps/web` for generated copies and direct `.generated` imports; require none.
 
-### Subtask T046 – Real Server-Side Health Proxy
+### Subtask T046 – Owned App Router Health Boundary
 
 **Purpose**
 
-Use WP09's accepted server-only proxy configuration and WP08's real service so the browser
-reaches `/api/v1/health` only through the Next.js origin.
+Implement the sole browser-to-Zig boundary as a WP10-owned App Router Route Handler. WP09 remains
+runtime-neutral configuration; all fixed-origin, redirect, timeout, body, cache, header, and safe
+failure policy is executable production behavior in this package.
 
 **Steps**
 
-1. Consume WP09's `/api/v1/:path*` server-side proxy configuration unchanged.
-2. Route a missing or unsafe proxy/config seam to WP09; do not edit config from WP10.
-3. Read the fixed Zig origin only through server-only code/configuration.
-4. Before each production proxy change, add a failing public same-origin E2E case through `http://localhost:3000/api/v1/*`; private helpers and mocked transports do not count.
-5. Cover attacker-controlled destination, forwarding/header, query, cookie, and route inputs; redirect chains; SSRF targets; origin leakage; timeout; and safe-failure behavior.
-6. Append chronological `RED:` evidence with case ID, exact `npm run http:smoke` command, expected failure, and observed failure before changing production code.
-7. Only then implement the fixed-origin boundary and append the matching `GREEN:` command/result without rewriting or reordering evidence.
-8. Reject all browser-controlled destination inputs while preserving only allowed path/query semantics; prevent open redirects and SSRF.
-9. Do not add CORS as a substitute for the same-origin architecture.
-10. Create server-only API access and request `GET /api/v1/health` semantics.
-11. Bound duration, reject unexpected-origin redirects, and disable stale readiness caching.
-12. Preserve upstream status, structured envelope, and `meta.request_id`.
-13. Render safe correlated failures without stacks, internal hosts, paths, origins, or raw bodies.
-14. Start the real WP08 Zig service, wait for Ready, and start production Next.js.
-15. Request `http://localhost:3000/api/v1/health` and validate the canonical response.
-16. Stop Zig and require the designed accessible unavailable state.
-17. Inspect browser requests/assets and require no direct or disclosed Zig origin.
+1. Add named public same-origin E2E cases while the external rewrite and Route Handler are absent;
+   record genuine `RED:` results through `http://localhost:3000/api/v1/*` before production code.
+2. Implement sibling create-intent paths `apps/web/src/app/api/v1/route.ts` and quoted
+   `apps/web/src/app/api/v1/[...path]/route.ts`, delegating shared route/transport policy to
+   server-only code under `apps/web/src/lib/api/`. The sibling route owns `/api/v1` and
+   `/api/v1/`; the catch-all owns health and all other segment-bearing variants that reach
+   application routing.
+3. Read and validate `INVOICE_MANAGER_API_ORIGIN` only during request handling. Accept one bare
+   absolute HTTP(S) origin; never derive or override it from request headers, path, query, cookies,
+   form data, browser environment, `NEXT_PUBLIC_*`, or network discovery.
+4. P0 sends upstream I/O only for canonical `GET /api/v1/health` with no query parameters.
+   Reject every other request that reaches either owned Route Handler locally with the canonical
+   route/method error envelope before upstream I/O, including `/api/v1[/]`, health with a
+   trailing slash, segment-bearing paths, query variants, encoded separators, and
+   double-encoded traversal.
+5. Test locked Next.js pre-routing behavior separately with redirect following disabled. Raw
+   repeated slash and raw backslash receive framework 308 normalization, while single-encoded
+   dot traversal receives framework 404 before either owned Route Handler. For each case prove
+   the handler and upstream were not reached, no internal origin or cross-origin `Location` is
+   disclosed, and no browser-visible request follows the normalized target. Do not claim a
+   canonical application envelope for a request the framework intercepts.
+6. Construct the upstream target only as the validated fixed origin plus constant
+   `/api/v1/health`, then re-check origin identity before fetch.
+7. Forward only an explicit safe request-header allowlist. Never forward `Host`, `Forwarded`,
+   `X-Forwarded-*`, connection headers, cookies, authorization, destination/rewrite headers, or
+   browser-provided origin-selection values.
+8. Use `redirect: "manual"`, reject every 3xx without returning `Location`, and enforce a hard
+   750 ms abort deadline with no retry.
+9. Reject declared or streamed response bodies above 16 KiB and abort the read as soon as the cap
+   is crossed; never buffer an unbounded body.
+10. Use `cache: "no-store"`, `dynamic = "force-dynamic"`, and non-cacheable browser response
+   headers so readiness cannot become stale.
+11. Forward only bounded JSON that validates as the canonical generated health success/error
+    envelope and expected status; preserve a valid upstream status and `meta.request_id`.
+12. Map missing/invalid configuration, connection failure, timeout, redirect, oversized body,
+    non-JSON, malformed envelope, and unexpected status to canonical `503 service_not_ready` with
+    a fresh valid UUIDv7 request ID and no internal detail.
+13. Reconstruct response headers from a safe allowlist. Never propagate `Set-Cookie`, `Location`,
+    internal hosts, raw upstream bodies, paths, stack traces, or diagnostics.
+14. Export explicit unsupported-method handlers from both owned routes so callers receive
+    canonical 405 rather than framework HTML. Do not add CORS as a substitute for the
+    same-origin architecture.
+15. Cover destination/query/header/cookie/path manipulation, encoded traversal, the explicit
+    framework-intercept matrix, redirect chains, SSRF sinks, origin leakage, timeout, oversize,
+    malformed/non-JSON body, stopped Zig, and canonical safe failure through the public Next.js
+    origin.
+16. Use real local socket processes—not mocked fetch—for redirect, slow, oversized, malformed,
+    and SSRF-sink cases, then separately prove the happy path with the real Ready WP08 service.
+17. Append matching chronological `GREEN:` command/results without rewriting or reordering the
+    prior evidence, and inspect browser requests/assets for no direct or disclosed Zig origin.
 
 **Validation**
 
-- Exercise the complete charter-mandated attacker-input, redirect, SSRF, origin-leak, timeout, and safe-failure matrix with chronological red-before-production-before-green evidence.
+- Exercise the complete charter-mandated attacker-input, redirect, SSRF, origin-leak, deadline,
+  body-limit, and safe-failure matrix with chronological red-before-production-before-green evidence.
+- Use raw HTTP targets with redirect following disabled for the pre-routing matrix; distinguish
+  owned canonical envelopes from locked framework 308/404 responses and prove zero upstream I/O
+  in both cases.
 - Verify every browser-visible request remains same-origin.
 - Search production assets for the internal API origin and require no match.
 
@@ -257,26 +306,45 @@ WP08+WP10 production E2E, a reusable proxy/performance harness, and diagnostic N
 1. Test semantic shell structure, visible status, structured failures, and no fake features.
 2. Run WCAG 2.2 AA automation with zero configured serious/critical violations plus exact contrast, skip-link, focus, label, heading, zoom, overflow, and live-region checks.
 3. Test the handwritten client against WP02/WP03 valid/invalid fixtures and int64 boundaries.
-4. Cover malformed envelope, non-JSON, unexpected status, redirect, timeout, and unavailability.
-5. Run Playwright with the real Ready WP08 Zig process and WP10 production Next.js process.
-6. Request `http://localhost:3000/api/v1/health`; never substitute a mocked or direct-Zig path.
-7. Assert canonical data/request metadata and no browser request to the Zig origin.
-8. Test narrow/mobile, desktop, 200% zoom, dark preference, and 320px overflow.
-9. Ensure `web:check` runs format, lint, strict types, component tests, and production build.
-10. Ensure `http:smoke` runs this same real production same-origin path.
-11. Supply only a reusable NFR-007 production proxy/performance harness and diagnostic evidence for WP12's final reference run.
-12. Record runner, tools, exact candidate commit, and monotonic timing boundaries.
-13. After Ready, issue 10 sequential warmups and discard them from measurement.
-14. Issue exactly 100 sequential diagnostic NFR-007 requests with no concurrency or discarded samples.
-15. Time each request through complete same-origin response-body read and count every invalid response as failure.
-16. Sort durations, report min/median/max and nearest-rank p99 as one-based sample 99, including slow/invalid counts; diagnose whether p99 is at most 1,000 ms.
-17. Keep component tests deterministic and reserve live-boundary assertions for E2E.
-18. Do not claim final NFR-001 or NFR-008 acceptance; WP12 owns the clean reference bootstrap/runtime acceptance run.
+4. Cover malformed envelope, non-JSON, unexpected status, redirect, timeout, body overflow, and
+   unavailability.
+5. Implement `http-smoke.mjs` as the sole deterministic child-process orchestrator. For the real
+   phase, create a temporary database, start WP08 Zig on loopback port `0`, parse its
+   `[api:ready] listening port=N` line, and spawn the Playwright command with the resulting fixed
+   server-only origin so its configured production Next.js child inherits it.
+6. Implement `proxy-fixture.mjs` as a real local adversarial upstream. Run separate bounded phases
+   for redirect, slow, oversized, non-JSON/malformed, and origin-leak behavior; do not route the
+   canonical health proof through this fixture.
+7. On success, failure, signal, startup timeout, or test timeout, terminate every child, remove the
+   temporary database directory, and prove all bound ports are released. Never reuse an existing
+   Next.js or Zig process.
+8. Request `http://localhost:3000/api/v1/health`; never substitute a mocked or direct-Zig path.
+   Also exercise the sibling base route, trailing slash, encoded, and locked pre-routing raw-path
+   matrix without following redirects.
+9. Assert canonical data/request metadata, safe failure envelopes for handler-owned cases,
+   documented framework rejection for pre-routing cases, and no browser request to the
+   Zig/fixture origin.
+10. Test narrow/mobile, desktop, 200% zoom, dark preference, and 320px overflow.
+11. Ensure bare `web:check` runs format, lint, strict types, component tests, and production build
+    with Zig stopped and `INVOICE_MANAGER_API_ORIGIN` unset.
+12. Ensure bare `http:smoke` generates contracts, builds production Next.js, provisions the exact
+    locked Playwright Chromium, runs the full lifecycle, and shuts every process down without any
+    caller-supplied environment setup. System-Chrome fallback is forbidden.
+13. Supply only a reusable NFR-007 production proxy/performance harness and diagnostic evidence for WP12's final reference run.
+14. Record runner, tools, exact candidate commit, and monotonic timing boundaries.
+15. After Ready, issue 10 sequential warmups and discard them from measurement.
+16. Issue exactly 100 sequential diagnostic NFR-007 requests with no concurrency or discarded samples.
+17. Time each request through complete same-origin response-body read and count every invalid response as failure.
+18. Sort durations, report min/median/max and nearest-rank p99 as one-based sample 99, including slow/invalid counts; diagnose whether p99 is at most 1,000 ms.
+19. Keep component tests deterministic and reserve live-boundary assertions for E2E.
+20. Do not claim final NFR-001 or NFR-008 acceptance; WP12 owns the clean reference bootstrap/runtime acceptance run.
 
 **Validation**
 
 - Run component tests without Zig, then real E2E against production Next.js plus WP08 Zig.
 - Repeat the same-origin smoke after the production build and inspect browser traffic.
+- Confirm a clean locked production build leaves WP09's accepted `next.config.ts`,
+  `tsconfig.json`, and `next-env.d.ts` byte-identical to their T060 hashes.
 - Reject undersized, concurrent, mocked, direct-Zig, non-monotonic, or cherry-picked diagnostic evidence.
 - Prove the NFR-007 harness exposes the diagnostic controls and measurements WP12 needs for final NFR-001/NFR-008 acceptance.
 - Require screenshots/logs to contain only synthetic foundation data.
@@ -289,6 +357,7 @@ Verify and install from WP01's immutable root graph:
 npm run prerequisites:check
 npm ci
 npm run verify:substrate
+npm run browser:install
 ```
 
 Run package and repository gates without modifying package metadata or configuration:
@@ -310,7 +379,8 @@ npm run http:smoke
 The literal materializer must complete immediately before each web typecheck,
 build, or aggregate check; a stale prior output does not satisfy this ordering.
 
-- Run Playwright against production Next.js and real WP08 Zig.
+- Run Playwright through `http-smoke.mjs` against production Next.js, real WP08 Zig, and the
+  separately identified adversarial socket phases.
 - Use no live external service, remote font, customer data, or private credential.
 - Run `git diff --check` over every package-owned change before review.
 
@@ -323,9 +393,12 @@ build, or aggregate check; a stale prior output does not satisfy this ordering.
 - [ ] T045 imports generated types only through the stable `tools/contracts` export.
 - [ ] All app contract files are handwritten adapters; WP03 remains sole generated writer.
 - [ ] Signed 64-bit values never pass through JavaScript `number`.
-- [ ] T046 proves server-side same-origin proxying with no leaked/direct Zig origin.
+- [ ] T046 proves both owned fixed-origin App Router routes, canonical safe failures for every
+  handler-visible invalid request, locked framework-safe rejection for pre-routing raw paths,
+  bounded redirect/deadline/body/header/cache policy, and no leaked/direct Zig origin.
 - [ ] Charter security cases record chronological public-boundary red before production changes and matching green.
-- [ ] T047 passes component, accessibility, contract, production E2E, and focused gates.
+- [ ] T047 passes component, accessibility, contract, production E2E/adversarial socket phases,
+  exact browser provisioning, bounded cleanup, and focused bare gates.
 - [ ] WP10 supplies the real proxy/performance harness and records diagnostic NFR-007 sample-99 evidence.
 - [ ] WP12 remains the sole final NFR-001/NFR-008 reference acceptance owner.
 - [ ] Every write is inside the declared app-owned paths.
@@ -337,8 +410,14 @@ build, or aggregate check; a stale prior output does not satisfy this ordering.
 - **Generated types drift or gain a second writer**: import one stable WP03 workspace export.
 - **Exact values become JS numbers**: preserve canonical strings and test int64 boundaries.
 - **Next.js starts owning business rules**: keep adapters presentation/transport-only.
-- **Browser bypasses proxy or leaks origin**: inspect network and production assets.
-- **Proxy becomes SSRF/open redirect**: accept one server-only fixed origin, never request input.
+- **Browser bypasses handler or leaks origin**: inspect network and production assets.
+- **Locked Next intercepts a raw path before the handler**: test exact 308/404 behavior without
+  redirect following and prove zero handler/upstream I/O or internal-origin disclosure.
+- **Handler becomes SSRF/open redirect or buffers forever**: accept one server-only fixed origin,
+  use constant health routing, allowlist headers, reject manual redirects, and enforce hard
+  deadline/body caps through real socket tests.
+- **Harness leaks processes or ports**: own one bounded orchestrator and prove teardown on every
+  success, failure, timeout, and signal path.
 - **Performance passes vacuously**: enforce real processes and exact NFR-007 diagnostic sample protocol while reserving final acceptance for WP12.
 - **Quiet palette loses contrast**: test normal, dark, forced-color, keyboard, and zoom modes.
 
@@ -347,10 +426,16 @@ build, or aggregate check; a stale prior output does not satisfy this ordering.
 - Treat committed `tasks.md`, committed prompt frontmatter, and committed finalized lane metadata as reviewer authority; `wps.yaml` is not the acceptance authority.
 - Confirm T043 used pinned npm and left the root manifest, both workspace manifests, and lock byte-identical.
 - Verify every changed path matches the app-owned patterns and no WP09 config was edited.
+- Confirm both the sibling base and catch-all Route Handler paths are present under their declared
+  directory glob and the root/config/package/lock/Zig surfaces are unchanged.
 - Confirm imports use the `tools/contracts` package export, not `.generated` or copied types.
 - Search handwritten adapters for duplicated schemas, regex validation, business rules, `Number`,
   `parseInt`, unsafe money/revision coercion, and raw upstream rendering.
-- Use browser tools to confirm same-origin traffic and no internal origin disclosure.
+- Use browser tools to confirm same-origin traffic and no internal origin disclosure; replay the
+  real redirect, slow, oversized, malformed, SSRF-sink, and stopped-service sockets.
+- Replay raw repeated-slash, raw-backslash, and single-encoded-dot targets with redirects
+  disabled; require documented locked framework response plus zero handler/upstream activity,
+  not a fabricated canonical envelope.
 - Verify charter security cases are chronological public-boundary red-before-production-before-green.
 - Exercise exact WCAG 2.2 AA/responsive/error states and the real WP08+WP10 production E2E.
 - Recalculate diagnostic sample 99 and confirm WP10 supplies only NFR-007 harness/diagnostic evidence and does not claim WP12's final NFR-001/NFR-008 acceptance.
@@ -363,3 +448,7 @@ build, or aggregate check; a stale prior output does not satisfy this ordering.
 - 2026-07-20T07:11:44Z – system – WP10 prompt adapted from the former web package,
   split into immutable npm-graph verification, shell, stable contract client, real proxy,
   and diagnostic E2E/performance-harness evidence.
+- 2026-07-21T14:46:43Z – codex – Corrective task design after blocked analysis: WP10 owns the
+  fixed-origin App Router handler and complete real-process/adversarial lifecycle; WP09 supplies
+  runtime-neutral configuration and WP01 supplies exact browser provisioning.
+- 2026-07-21T16:20:15Z – codex-wp10-implementation – shell_pid=1807838 – Assigned agent via action command
