@@ -49,7 +49,7 @@ owned_files:
 role: implementer
 tags: []
 task_type: implement
-shell_pid: "1807838"
+shell_pid: "1317556"
 ---
 
 # Work Package Prompt: WP04 – Pinned ShovelerDB Service Integration
@@ -546,3 +546,11 @@ Review `THIRD_PARTY_NOTICES.md` and the complete upstream license as acceptance-
 - 2026-07-21T01:42:09Z – codex – shell_pid=1807838 – Ready for independent cycle 3 review: implementation 1dbfd1a; measured shared 24/24, persistence 20/20, migration 73/73 with exact critical probes; structural/adversarial, ABI, clean-copy, tamper, and pinned npm gates green
 - 2026-07-21T01:44:57Z – codex – shell_pid=1807838 – Started review via action command
 - 2026-07-21T02:06:18Z – user – shell_pid=1807838 – Arbiter override: review-cycle-3.md at coordination commit 28ca0f7 independently verifies that implementation 1dbfd1a closes every cycle-2 blocker. Exact shared/persistence/migration PC and critical-probe gates plus structural, runner, ABI, provenance, clean-copy, tamper, and pinned npm adversarial checks pass with zero blocking findings.
+- 2026-07-21T02:26:26Z – codex – shell_pid=1807838 – Post-approval WP06 dependency-clean build seam defect
+- 2026-07-21T02:27:50Z – codex – shell_pid=1807838 – Started implementation via action command
+- 2026-07-21T02:29:44Z – codex – RED: WP04-PERSISTENCE-INDEPENDENCE-001; a dependency-clean WP06 producer in lane-f failed every focused persistence compile before WP06 analysis because configurePersistence unconditionally instantiated missing src/shared/root.zig, contradicting WP06's WP04-only dependency and owned scope.
+- 2026-07-21T02:34:18Z – codex – GREEN: WP04-PERSISTENCE-INDEPENDENCE-001; implementation 44d6111 makes shared an optional createPersistenceModule dependency, passes null from focused WP06 hooks, retains shared only in WP07 migration wiring, rejects named/relative shared imports in WP06 coverage source, and raises discovery to 17/17. A source-only fixture with no src/shared compiled and ran all WP06 roots; after the WP06-owned allocator fix, focused unit, 20-cycle real integration, and four child-process crash gates pass. WP04 build, adapter 4/4, real ABI 3/3 Debug and ReleaseSafe remain green.
+- 2026-07-21T02:35:28Z – codex – shell_pid=1807838 – Cycle 4 dependency-clean persistence seam ready for review
+- 2026-07-21T02:37:19Z – codex – shell_pid=1807838 – Started review via action command
+- 2026-07-21T02:51:36Z – user – shell_pid=1807838 – Moved to planned
+- 2026-07-21T02:54:45Z – codex – shell_pid=1317556 – Started implementation via action command

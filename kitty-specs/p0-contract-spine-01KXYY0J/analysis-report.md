@@ -4,8 +4,8 @@ artifact_type: spec-kitty.analysis-report
 command: /spec-kitty.analyze
 mission_slug: p0-contract-spine-01KXYY0J
 mission_id: 01KXYY0J76QBNSWXX0SHMZNXC4
-generated_at: '2026-07-21T00:58:11.519112+00:00'
-analyzer_agent: unknown
+generated_at: '2026-07-21T02:54:25.742300+00:00'
+analyzer_agent: codex
 input_artifacts:
   spec.md:
     path: /home/lynn/projects/invoice-manager/kitty-specs/p0-contract-spine-01KXYY0J/spec.md
@@ -15,62 +15,49 @@ input_artifacts:
     sha256: e115aa7d51ec98694f475a4fe589e5124a4a56296c9322bdd602afcb40546ce3
   tasks.md:
     path: /home/lynn/projects/invoice-manager/kitty-specs/p0-contract-spine-01KXYY0J/tasks.md
-    sha256: 67ac4f848b8cbccb19b034fb4809100a0c5432a78f4a546070e93645fed32495
+    sha256: 7d7378db11853d2bb2ac41518998e598020f7176a34f8554b6f513d17baa5847
   charter:
     path: /home/lynn/projects/invoice-manager/.kittify/charter/charter.md
     sha256: a1176517b273e322d3dc408e369ef836c40e3bb84c69ae140ad554cffbb53f0f
 verdict: ready
 issue_counts:
-  high: 0
-  low: 0
-  critical: 0
   medium: 0
+  critical: 0
+  low: 0
+  high: 0
   info: 0
 findings: []
 ---
 
-# Cross-Artifact Analysis
+## Specification Analysis Report
 
-## Verdict
+### Verdict
 
-READY. The amended specification, plan, task manifest, and WP04-WP07 prompts are
-internally consistent and preserve the charter's coverage and ownership MUSTs.
+READY. The current specification, plan, task manifest, and work-package prompts remain internally consistent and preserve the charter's ownership, coverage, licensing, and reproducibility requirements.
 
-## Findings
+### Findings
 
-No critical, high, medium, low, or informational consistency findings remain.
+No cross-artifact consistency findings remain.
 
-## Coverage and traceability
+The active WP04 review finding is an implementation-conformance defect, not a planning inconsistency: the plan and T016 already require adapter dependencies to be uninstrumented and the persistence denominator to contain only WP06-owned production PCs. The correction therefore needs no spec, plan, task, or charter amendment.
 
-- All 38 approved requirements and constraints retain nominal work-package
-  coverage across the 12-package manifest.
-- WP04 and IC-05 now trace FR-015 and NFR-006 as the exclusive service build and
-  coverage-enforcement infrastructure owner; WP05, WP06, and WP07 remain the
-  source/test producers for their respective measured domains.
-- `coverage-shared`, `coverage-persistence`, and `coverage-migration` are each
-  specified as source-scoped production-PC gates with a 90% threshold, exact
-  critical production probes, dedicated roots, and non-vacuous minimum
-  denominators of 24, 20, and 36 respectively.
-- WP05 and WP06 use only their focused test and coverage gates while downstream
-  producers are absent; aggregate test and coverage success is deferred until
-  every constituent producer exists.
+### Coverage Summary
 
-## Boundary and dependency review
+- All 38 requirements and constraints retain nominal coverage across 12 work packages.
+- WP04 remains the exclusive owner of the service build and measured-coverage infrastructure; WP05, WP06, and WP07 remain the source/test producers for shared values, durable persistence, and migrations.
+- The three domain gates remain source-scoped, require at least 90% live production-PC coverage, and require every exact critical production probe.
+- The dependency DAG remains acyclic. WP05 and WP06 can proceed after WP04; WP07 correctly waits for WP03 through WP06.
+- The optional shared-module seam in WP04 preserves dependency-clean WP06 execution and the later WP07 composition graph.
 
-- Each coverage root may import only `std` and exactly one public production
-  module; Zig token/AST validation, executable declaration analysis, normalized
-  relative imports, and cross-scope/traversal rejection are explicit WP04
-  acceptance requirements.
-- Shared, persistence, and migration critical-tag inventories are exact and
-  executable. Per-test counter resets, production probe hits, and positive
-  owned-production PC deltas are required in all three scopes.
-- The WP dependency DAG remains acyclic. WP05 and WP06 may proceed in parallel
-  after WP04; WP07 remains correctly dependent on WP03-WP06.
-- Ownership is additive: WP04 owns `build.zig` and `shovelerdb*` coverage
-  infrastructure, while later packages own only their production and dedicated
-  test roots.
+### Charter Alignment Issues
 
-## Metrics
+None.
+
+### Unmapped Tasks
+
+None.
+
+### Metrics
 
 - Requirements and constraints: 38
 - Work packages: 12
@@ -79,7 +66,7 @@ No critical, high, medium, low, or informational consistency findings remain.
 - High findings: 0
 - Medium findings: 0
 - Low findings: 0
-- Informational findings: 0
 
-Implementation conformance is intentionally left to WP04's implement-review
-cycle; this analysis verdict concerns the now-consistent planning artifacts.
+### Next Actions
+
+Resume WP04 implementation against the existing cycle-six rejection, prove zero adapter PCs in the persistence coverage denominator, then return the correction to independent review. No planning remediation is required.
