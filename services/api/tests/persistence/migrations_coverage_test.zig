@@ -1,5 +1,6 @@
 const std = @import("std");
 const migrations = @import("migrations");
+const OwnerRoot = migrations.OwnerRoot;
 
 test "migration production declarations are analyzed" {
     std.testing.refAllDecls(migrations);
@@ -381,14 +382,18 @@ fn reopenFailure(allocator: std.mem.Allocator, io: std.Io, quarantine: bool) !vo
     defer allocator.free(database_path);
     var store = try migrations.testing.openStoreWithFaults(allocator, io, database_path, .{ .reopen = true });
     defer store.shutdown() catch {};
-    _ = migrations.run(
+    var run_diagnostic = migrations.RunDiagnostic{};
+    _ = migrations.runWithDiagnostic(
         allocator,
         io,
         &store,
         &.{.{ .owner = "p0", .path = "migrations/p0" }},
         "2026-07-21T12:34:56.789Z",
+        &run_diagnostic,
     ) catch |err| {
         try std.testing.expectEqual(error.ReopenFailure, err);
+        try std.testing.expectEqual(migrations.CriticalCategory.reopen_failure, run_diagnostic.primary.?);
+        try std.testing.expectEqual(migrations.CriticalCategory.recovery_quarantine, run_diagnostic.consequence.?);
         if (quarantine) {
             try std.testing.expectEqual(.quarantined, store.state());
             const diagnostic = store.lastDiagnostic() orelse return error.TestUnexpectedResult;
@@ -488,15 +493,18 @@ fn ddlFailure(allocator: std.mem.Allocator, io: std.Io, expect_later_blocked: bo
     var store = try migrations.testing.openStoreWithFaults(allocator, io, database_path, .{});
     defer store.shutdown() catch {};
     var application_calls: usize = 0;
-    _ = migrations.testing.runObserved(
+    var run_diagnostic = migrations.RunDiagnostic{};
+    _ = migrations.testing.runObservedWithDiagnostic(
         allocator,
         io,
         &store,
         &.{.{ .owner = "p0", .path = root_path }},
         "2026-07-21T12:34:56.789Z",
         &application_calls,
+        &run_diagnostic,
     ) catch |err| {
         try std.testing.expectEqual(error.DdlFailure, err);
+        try std.testing.expectEqual(migrations.CriticalCategory.ddl_failure, run_diagnostic.primary.?);
         try std.testing.expectEqual(@as(usize, 2), migrations.testing.discardCount(&store));
         try std.testing.expectEqual(@as(usize, 2), migrations.testing.reopenCount(&store));
         try std.testing.expectEqual(.ready, store.state());
@@ -506,10 +514,13 @@ fn ddlFailure(allocator: std.mem.Allocator, io: std.Io, expect_later_blocked: bo
             try migrations.testing.rowCount(&store, "SELECT * FROM app_schema_migrations;"),
         );
         if (expect_later_blocked) {
+            try std.testing.expectEqual(migrations.CriticalCategory.later_migration_blocked, run_diagnostic.consequence.?);
             try std.testing.expectError(
                 error.QueryFailed,
                 migrations.testing.rowCount(&store, "SELECT * FROM later_migration;"),
             );
+        } else {
+            try std.testing.expectEqual(@as(?migrations.CriticalCategory, null), run_diagnostic.consequence);
         }
         return;
     };
@@ -524,6 +535,8 @@ pub fn exerciseCritical(
     if (category == .discovery_failure) {
         try exercisePositiveSweep(allocator, io);
         try exerciseMultiMigrationSweep(allocator, io);
+        try exerciseRootSafetySweep(allocator, io);
+        try exerciseFreshRefusalSweep(allocator, io);
         try exerciseValidationSweep(allocator, io);
     }
     return switch (category) {
@@ -720,6 +733,103 @@ fn exerciseMultiMigrationSweep(allocator: std.mem.Allocator, io: std.Io) !void {
     );
     try std.testing.expect(second.isReady());
     try std.testing.expectEqual(@as(usize, 4), second.already_applied_count);
+}
+
+fn exerciseRootSafetySweep(allocator: std.mem.Allocator, io: std.Io) !void {
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const root_path = try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/recursive/p0", .{tmp.sub_path});
+    defer allocator.free(root_path);
+    const nested_root = try std.fmt.allocPrint(allocator, "{s}/nested/component", .{root_path});
+    defer allocator.free(nested_root);
+    try writeMigration(
+        allocator,
+        io,
+        nested_root,
+        bootstrap_id,
+        "bootstrap_migration_history",
+        &.{},
+        "[]",
+        bootstrap_script,
+    );
+    var recursive = try migrations.discover(
+        allocator,
+        io,
+        &.{.{ .owner = "p0", .path = root_path }},
+    );
+    defer recursive.deinit();
+    try std.testing.expectEqual(@as(usize, 1), recursive.descriptors.len);
+
+    const alias_path = try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/recursive/./p0", .{tmp.sub_path});
+    defer allocator.free(alias_path);
+    try expectPublicError(
+        error.DuplicateDescriptorPath,
+        multiRootDiscoveryFailure(allocator, io, &.{
+            .{ .owner = "p0", .path = root_path },
+            .{ .owner = "p0", .path = alias_path },
+        }),
+    );
+
+    const wrong_owner_root = try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/wrong/p1", .{tmp.sub_path});
+    defer allocator.free(wrong_owner_root);
+    try std.Io.Dir.createDirPath(.cwd(), io, wrong_owner_root);
+    try expectDiscoverError(
+        allocator,
+        io,
+        .{ .owner = "p0", .path = wrong_owner_root },
+        error.OwnerMismatch,
+    );
+
+    const final_real = try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/final/real/p0", .{tmp.sub_path});
+    defer allocator.free(final_real);
+    const final_link = try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/final/p0", .{tmp.sub_path});
+    defer allocator.free(final_link);
+    try writeMigration(allocator, io, final_real, bootstrap_id, "bootstrap_migration_history", &.{}, "[]", bootstrap_script);
+    try std.Io.Dir.symLink(.cwd(), io, "real/p0", final_link, .{});
+    try expectDiscoverError(allocator, io, .{ .owner = "p0", .path = final_link }, error.SymlinkEscape);
+
+    const ancestor_real = try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/ancestor/real/p0", .{tmp.sub_path});
+    defer allocator.free(ancestor_real);
+    const ancestor_link = try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/ancestor/alias", .{tmp.sub_path});
+    defer allocator.free(ancestor_link);
+    const ancestor_root = try std.fmt.allocPrint(allocator, "{s}/p0", .{ancestor_link});
+    defer allocator.free(ancestor_root);
+    try writeMigration(allocator, io, ancestor_real, bootstrap_id, "bootstrap_migration_history", &.{}, "[]", bootstrap_script);
+    try std.Io.Dir.symLink(.cwd(), io, "real", ancestor_link, .{});
+    try expectDiscoverError(allocator, io, .{ .owner = "p0", .path = ancestor_root }, error.SymlinkEscape);
+}
+
+fn exerciseFreshRefusalSweep(allocator: std.mem.Allocator, io: std.Io) !void {
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const database_path = try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/wp07-not-fresh.shovel", .{tmp.sub_path});
+    defer allocator.free(database_path);
+    var store = try migrations.testing.openStoreWithFaults(allocator, io, database_path, .{});
+    defer store.shutdown() catch {};
+    _ = try store.startupWrite(.{ .context = undefined, .run = createUnrelatedObject });
+    try expectPublicError(
+        error.CorruptAppliedHistory,
+        migrations.run(
+            allocator,
+            io,
+            &store,
+            &.{.{ .owner = "p0", .path = "migrations/p0" }},
+            "2026-07-21T12:34:56.789Z",
+        ),
+    );
+}
+
+fn createUnrelatedObject(_: *anyopaque, executor: migrations.testing.StartupExecutor) !void {
+    _ = try executor.executeScript("CREATE TABLE wp07_unrelated (body TEXT);\n");
+}
+
+fn multiRootDiscoveryFailure(
+    allocator: std.mem.Allocator,
+    io: std.Io,
+    roots: []const OwnerRoot,
+) !void {
+    var discovered = try migrations.discover(allocator, io, roots);
+    discovered.deinit();
 }
 
 fn expectDiscoverError(
@@ -1146,6 +1256,27 @@ fn graphFailure(allocator: std.mem.Allocator, category: migrations.CriticalCateg
 }
 
 fn allocationFailureScenario(allocator: std.mem.Allocator, io: std.Io) !void {
+    var setup_tmp = std.testing.tmpDir(.{});
+    defer setup_tmp.cleanup();
+    const setup_path = try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/wp07-setup-oom.shovel", .{setup_tmp.sub_path});
+    defer allocator.free(setup_path);
+    var setup_store = try migrations.testing.openStoreWithFaults(allocator, io, setup_path, .{ .executor_registration = true });
+    defer setup_store.shutdown() catch {};
+    var setup_diagnostic = migrations.RunDiagnostic{};
+    try expectPublicError(
+        error.AllocationFailureCleanup,
+        migrations.runWithDiagnostic(
+            allocator,
+            io,
+            &setup_store,
+            &.{.{ .owner = "p0", .path = "migrations/p0" }},
+            "2026-07-21T12:34:56.789Z",
+            &setup_diagnostic,
+        ),
+    );
+    try std.testing.expectEqual(migrations.CriticalCategory.allocation_failure_cleanup, setup_diagnostic.primary.?);
+    try std.testing.expectEqual(.ready, setup_store.state());
+
     var observed = false;
     for (0..128) |failure_index| {
         var failing = std.testing.FailingAllocator.init(allocator, .{ .fail_index = failure_index });
