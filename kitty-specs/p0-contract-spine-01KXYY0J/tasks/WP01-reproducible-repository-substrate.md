@@ -42,7 +42,7 @@ requirement_refs:
   - C-009
 agent_profile: node-norris
 role: implementer
-agent: "codex:gpt-5:node-norris:implementer"
+agent: "codex:gpt-5:reviewer-renata:reviewer"
 model: ""
 assignee: ""
 shell_pid: "1807838"
@@ -542,3 +542,4 @@ Verify the full command surface is compatible with later work without preempting
 - 2026-07-21T20:28:03Z – codex-wp01-browser-review – shell_pid=1807838 – Moved to planned
 - 2026-07-21T20:41:21Z – codex:gpt-5:node-norris:implementer – shell_pid=1807838 – Started implementation via action command
 - 2026-07-21T20:50:27Z – codex:gpt-5:node-norris:implementer – shell_pid=1807838 – Ready for review: c7fc303 adopts canonical GPL-3.0-only metadata/text with exact hash and manifest/lock fail-closed checks; Node24/npm11/Zig0.16 immutable installs, mutation negatives, wrappers, audit, diff scope, and fresh-clone gates verified
+- 2026-07-21T20:51:59Z – codex:gpt-5:reviewer-renata:reviewer – shell_pid=1807838 – Started review via action command
