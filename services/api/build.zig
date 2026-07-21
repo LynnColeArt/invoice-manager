@@ -1398,8 +1398,12 @@ fn configureHttp(
     const materialize = b.addSystemCommand(&.{ "npm", "run", "contracts:generate" });
     materialize.setCwd(b.path("../.."));
     const modules = createPublicServiceModules(b, target, optimize, abi_library);
+    const route_inventory = b.createModule(.{
+        .root_source_file = b.path("../../tools/contracts/.generated/runtime/v1/route-inventory.json"),
+    });
     const http_imports = [_]std.Build.Module.Import{
         .{ .name = "shared", .module = modules.shared },
+        .{ .name = "../../../../tools/contracts/.generated/runtime/v1/route-inventory.json", .module = route_inventory },
     };
     const http = b.createModule(.{
         .root_source_file = b.path("src/http/root.zig"),
