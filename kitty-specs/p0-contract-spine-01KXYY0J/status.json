@@ -1,7 +1,7 @@
 {
-  "event_count": 107,
-  "last_event_id": "01KY1AZQ1GPJ7Z6MTSDSGXQQGM",
-  "materialized_at": "2026-07-21T03:19:51.080347+00:00",
+  "event_count": 110,
+  "last_event_id": "01KY1BAR23QCYT3VMMSP8DCVXX",
+  "materialized_at": "2026-07-21T03:25:52.579991+00:00",
   "mission_number": "",
   "mission_slug": "p0-contract-spine-01KXYY0J",
   "mission_type": "software-dev",
@@ -12,9 +12,9 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 1,
+    "in_progress": 0,
     "in_review": 1,
-    "planned": 6
+    "planned": 7
   },
   "work_packages": {
     "WP01": {
@@ -41,9 +41,9 @@
     "WP04": {
       "actor": "codex",
       "force_count": 5,
-      "lane": "in_progress",
-      "last_event_id": "01KY1AZQ1GPJ7Z6MTSDSGXQQGM",
-      "last_transition_at": "2026-07-21T03:19:51.080347+00:00"
+      "lane": "in_review",
+      "last_event_id": "01KY1BAR23QCYT3VMMSP8DCVXX",
+      "last_transition_at": "2026-07-21T03:25:52.579991+00:00"
     },
     "WP05": {
       "actor": "user",
@@ -53,11 +53,11 @@
       "last_transition_at": "2026-07-21T03:06:13.345716+00:00"
     },
     "WP06": {
-      "actor": "codex:gpt-5:reviewer-renata:reviewer",
-      "force_count": 0,
-      "lane": "in_review",
-      "last_event_id": "01KY1AEJA3T6TEQDR3NYT9T4RX",
-      "last_transition_at": "2026-07-21T03:10:29.187553+00:00"
+      "actor": "user",
+      "force_count": 1,
+      "lane": "planned",
+      "last_event_id": "01KY1B3N475BQ20BCPSZD4KX9G",
+      "last_transition_at": "2026-07-21T03:22:00.199912+00:00"
     },
     "WP07": {
       "actor": "finalize-tasks",
