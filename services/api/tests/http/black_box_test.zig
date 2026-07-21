@@ -22,7 +22,21 @@ fn expectStatus(bytes: []const u8, status: u16, reason: []const u8) !ParsedRespo
     try std.testing.expect(std.mem.startsWith(u8, parsed.head, expected));
     try std.testing.expect(std.ascii.indexOfIgnoreCase(parsed.head, "content-type: application/json; charset=utf-8") != null);
     try std.testing.expect(std.ascii.indexOfIgnoreCase(parsed.head, "connection: close") != null);
+    const content_length_text = headerValue(parsed.head, "content-length") orelse return error.MissingContentLength;
+    const content_length = try std.fmt.parseInt(usize, content_length_text, 10);
+    if (parsed.body.len != content_length) return error.ContentLengthMismatch;
     return parsed;
+}
+
+fn headerValue(head: []const u8, name: []const u8) ?[]const u8 {
+    var lines = std.mem.splitSequence(u8, head, "\r\n");
+    _ = lines.next();
+    while (lines.next()) |line| {
+        const separator = std.mem.indexOfScalar(u8, line, ':') orelse continue;
+        if (!std.ascii.eqlIgnoreCase(line[0..separator], name)) continue;
+        return std.mem.trim(u8, line[separator + 1 ..], " \t");
+    }
+    return null;
 }
 
 fn expectReadyResponse(bytes: []const u8) !void {
@@ -56,7 +70,8 @@ fn expectFailureCode(bytes: []const u8, status: u16, reason: []const u8, code: [
 
 test "spawned service serves the exact health boundary and contains client failures" {
     var service = try fixture.Service.start(std.testing.allocator, std.testing.io);
-    defer service.stop(std.testing.io);
+    var running = true;
+    defer if (running) service.stop(std.testing.io);
 
     const health = try service.request(get_health);
     defer std.testing.allocator.free(health);
@@ -82,6 +97,19 @@ test "spawned service serves the exact health boundary and contains client failu
     const after_disconnect = try service.request(get_health);
     defer std.testing.allocator.free(after_disconnect);
     try expectReadyResponse(after_disconnect);
+
+    try service.holdPartialPastHeaderDeadline("GET /api/v1/health HTTP/1.1\r\nhost:");
+    const after_slow_client = try service.request(get_health);
+    defer std.testing.allocator.free(after_slow_client);
+    try expectReadyResponse(after_slow_client);
+
+    const stopped_address = service.address;
+    const term = try service.stopGracefully(std.testing.io);
+    running = false;
+    try std.testing.expectEqual(std.process.Child.Term{ .exited = 0 }, term);
+    var rebound_address = stopped_address;
+    var rebound = try rebound_address.listen(std.testing.io, .{ .reuse_address = true });
+    rebound.deinit(std.testing.io);
 }
 
 test "real corrupt-store startup exits safely without bind fallback or replacement" {
@@ -132,4 +160,16 @@ test "real corrupt-store startup exits safely without bind fallback or replaceme
     try std.testing.expectEqualSlices(u8, corrupt, after);
     try std.testing.expectEqual(before_stat.inode, after_stat.inode);
     try std.testing.expectEqual(before_stat.size, after_stat.size);
+}
+
+test "response validator rejects truncated and extra bytes against Content-Length" {
+    const prefix = "HTTP/1.1 200 OK\r\ncontent-type: application/json; charset=utf-8\r\nconnection: close\r\n";
+    try std.testing.expectError(
+        error.ContentLengthMismatch,
+        expectStatus(prefix ++ "content-length: 3\r\n\r\n{}", 200, "OK"),
+    );
+    try std.testing.expectError(
+        error.ContentLengthMismatch,
+        expectStatus(prefix ++ "content-length: 2\r\n\r\n{}x", 200, "OK"),
+    );
 }

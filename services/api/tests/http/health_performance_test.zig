@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const fixture = @import("process_fixture.zig");
 const shared = @import("shared");
 
@@ -29,9 +30,11 @@ test "exactly 100 real ready requests satisfy the local P0 latency budget" {
     var service = try fixture.Service.start(std.testing.allocator, std.testing.io);
     defer service.stop(std.testing.io);
 
-    const warm = try service.request(get_health);
-    defer std.testing.allocator.free(warm);
-    try std.testing.expect(validReadyResponse(warm));
+    for (0..10) |_| {
+        const warm = try service.request(get_health);
+        defer std.testing.allocator.free(warm);
+        try std.testing.expect(validReadyResponse(warm));
+    }
 
     var durations_ns: [measured_requests]u64 = undefined;
     var valid_count: usize = 0;
@@ -59,10 +62,17 @@ test "exactly 100 real ready requests satisfy the local P0 latency budget" {
     std.mem.sort(u64, &durations_ns, {}, std.sort.asc(u64));
     const median_ns = (durations_ns[49] + durations_ns[50]) / 2;
     const p99_ns = durations_ns[98];
-    std.mem.doNotOptimizeAway(durations_ns[0]);
-    std.mem.doNotOptimizeAway(median_ns);
-    std.mem.doNotOptimizeAway(p99_ns);
-    std.mem.doNotOptimizeAway(durations_ns[99]);
+    std.debug.print(
+        "[wp08:performance] mode={s} requests=100 min_us={d} median_us={d} p99_us={d} max_us={d} failures={d}\n",
+        .{
+            @tagName(builtin.mode),
+            durations_ns[0] / std.time.ns_per_us,
+            median_ns / std.time.ns_per_us,
+            p99_ns / std.time.ns_per_us,
+            durations_ns[99] / std.time.ns_per_us,
+            failure_count,
+        },
+    );
     try std.testing.expectEqual(@as(usize, measured_requests), valid_count);
     try std.testing.expectEqual(@as(usize, 0), failure_count);
     try std.testing.expect(valid_within_budget >= 99);

@@ -249,8 +249,11 @@ pub const ServeOutcome = enum {
     accept_failed,
 };
 
-/// An opaque capability consumed only while constructing the listener. The
-/// HTTP package cannot mint it from a boolean or dependency state.
+/// An opaque capability consumed only while constructing the listener. Safe
+/// Zig callers cannot allocate or initialize this type; the sole repository
+/// call site performs the deliberate pointer cast in the composition root
+/// after typed WP06/WP07 readiness. As with every Zig capability boundary,
+/// arbitrary unsafe pointer fabrication is outside the safe-call contract.
 pub const ReadyContext = opaque {};
 
 const ReceiveHeadResult = union(enum) {

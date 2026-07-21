@@ -54,20 +54,94 @@ fn run(init: std.process.Init) !void {
     errdefer if (started_open) started.shutdown(init.io) catch {
         std.debug.print("[api:error] safe shutdown failed\n", .{});
     };
-    std.debug.print("[api:ready] listening\n", .{});
+    shutdown_requested.store(false, .release);
+    var termination_handlers = TerminationHandlers.install();
+    defer termination_handlers.restore();
+    std.debug.print("[api:ready] listening port={d}\n", .{started.listener.address().getPort()});
 
     var handler_calls: usize = 0;
     var dispatch_context = http.server.DispatchContext{
         .handler_calls = &handler_calls,
         .io = init.io,
     };
-    while (true) {
-        _ = started.listener.serveOne(init.gpa, init.io, &started.inventory, &health_bindings, &dispatch_context) catch |err| switch (err) {
+    while (!shutdown_requested.load(.acquire)) {
+        var select_buffer: [2]ServeSelect = undefined;
+        var select = std.Io.Select(ServeSelect).init(init.io, &select_buffer);
+        select.async(.connection, serveNext, .{ init.gpa, init.io, &started, &dispatch_context });
+        select.async(.termination, waitForTermination, .{init.io});
+        const selected = select.await() catch |err| switch (err) {
             error.Canceled => break,
         };
+        select.cancelDiscard();
+        switch (selected) {
+            .termination => break,
+            .connection => |result| switch (result) {
+                .completed => {},
+                .canceled => break,
+            },
+        }
     }
     started_open = false;
     try started.shutdown(init.io);
+}
+
+var shutdown_requested: std.atomic.Value(bool) = .init(false);
+
+const ServeResult = enum { completed, canceled };
+const ServeSelect = union(enum) { connection: ServeResult, termination: void };
+
+fn serveNext(
+    allocator: std.mem.Allocator,
+    io: std.Io,
+    started: *Started,
+    context: *http.server.DispatchContext,
+) ServeResult {
+    _ = started.listener.serveOne(
+        allocator,
+        io,
+        &started.inventory,
+        &health_bindings,
+        context,
+    ) catch |err| switch (err) {
+        error.Canceled => return .canceled,
+    };
+    return .completed;
+}
+
+fn waitForTermination(io: std.Io) void {
+    const poll = std.Io.Clock.Duration{ .raw = .fromMilliseconds(20), .clock = .awake };
+    while (!shutdown_requested.load(.acquire)) poll.sleep(io) catch return;
+}
+
+const TerminationHandlers = if (std.posix.Sigaction == void) struct {
+    fn install() @This() {
+        return .{};
+    }
+    fn restore(_: *@This()) void {}
+} else struct {
+    old_int: std.posix.Sigaction,
+    old_term: std.posix.Sigaction,
+
+    fn install() @This() {
+        const action: std.posix.Sigaction = .{
+            .handler = .{ .handler = handleTermination },
+            .mask = std.posix.sigemptyset(),
+            .flags = 0,
+        };
+        var handlers: @This() = undefined;
+        std.posix.sigaction(.INT, &action, &handlers.old_int);
+        std.posix.sigaction(.TERM, &action, &handlers.old_term);
+        return handlers;
+    }
+
+    fn restore(self: *@This()) void {
+        std.posix.sigaction(.INT, &self.old_int, null);
+        std.posix.sigaction(.TERM, &self.old_term, null);
+    }
+};
+
+fn handleTermination(_: std.posix.SIG) callconv(.c) void {
+    shutdown_requested.store(true, .release);
 }
 
 const canonical_migration_roots = [_]migrations.OwnerRoot{.{
