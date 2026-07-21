@@ -15,6 +15,7 @@ merge_target_branch: feat/p0-contract-spine
 branch_strategy: "Planning artifacts for this mission were generated on feat/p0-contract-spine. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/p0-contract-spine unless the human explicitly redirects the landing branch."
 execution_mode: code_change
 owned_files:
+  - "LICENSE"
   - ".node-version"
   - ".zig-version"
   - ".npmrc"
@@ -24,6 +25,7 @@ owned_files:
   - "apps/web/package.json"
 authoritative_surface: "package"
 create_intent:
+  - "LICENSE"
   - ".node-version"
   - ".zig-version"
   - ".npmrc"
@@ -40,7 +42,7 @@ requirement_refs:
   - C-009
 agent_profile: node-norris
 role: implementer
-agent: "codex-wp01-browser-review"
+agent: "codex:gpt-5:node-norris:implementer"
 model: ""
 assignee: ""
 shell_pid: "1807838"
@@ -96,6 +98,7 @@ This work package is the sole immutable npm metadata and root-lock owner.
 Create or modify only paths matched by the declared ownership patterns:
 
 - `.node-version`
+- `LICENSE`
 - `.zig-version`
 - `.npmrc`
 - `package.json`
@@ -168,7 +171,11 @@ Do not enable a setting that would silently change downstream package lifecycle 
 Express the supported runtime assumptions in `package.json` using exact `engines` values.
 Record the package manager with the exact `npm@11.16.0` declaration.
 Keep the repository package private so it cannot be accidentally published.
-Use the project license identity selected by the mission rather than inventing a second license policy.
+Create the canonical root `LICENSE` with the complete GPL-3.0-only text selected
+by the owner-approved charter amendment. Use that exact project license identity
+in every owned package manifest and lockfile record rather than inventing a
+second policy. The substrate verification must fail if the root license is
+missing, truncated, or disagrees with package metadata.
 
 Add an executable root prerequisite check using only root package metadata.
 Because no helper-script path is owned here, keep its implementation within `package.json` scripts.
@@ -531,3 +538,6 @@ Verify the full command surface is compatible with later work without preempting
 - 2026-07-21T15:15:53Z – codex-wp01-browser-fix – shell_pid=1807838 – GREEN: commit e89d3bb changes only package.json. In a fresh isolated clone, pinned npm ci succeeded; PLAYWRIGHT_BROWSERS_PATH began empty; npm run browser:install resolved local Playwright 1.61.1 with npm exec --offline and installed managed chromium plus chromium-headless-shell revision 1228; both executables passed X_OK; a prepared-cache repeat exited 0 without download. verify:substrate passed, npm audit found 0 vulnerabilities, npm ls problems=[], and http:smoke failed actionably at its first absent producer. Final hashes: package 816264f8, web f31c4513, contracts ee7fcc2f, lock 6ea2ffb8.
 - 2026-07-21T15:16:13Z – codex-wp01-browser-fix – shell_pid=1807838 – Ready for review: e89d3bb adds offline local Playwright Chromium provisioning and the ordered production smoke harness contract; isolated empty/prepared-cache revision-1228 evidence and immutable metadata hashes recorded.
 - 2026-07-21T15:17:32Z – codex-wp01-browser-review – shell_pid=1807838 – Started review via action command
+- 2026-07-21T15:25:30Z – user – shell_pid=1807838 – Arbiter override: superseded rejected review-cycle-3 is closed by committed parseable approval review-cycle-7 at 4e8f592 after independent empty-cache rev1228 provisioning, idempotency, exact substrate, ownership, and immutable-hash verification; implementation e89d3bb passes all corrective requirements.
+- 2026-07-21T20:28:03Z – codex-wp01-browser-review – shell_pid=1807838 – Moved to planned
+- 2026-07-21T20:41:21Z – codex:gpt-5:node-norris:implementer – shell_pid=1807838 – Started implementation via action command
