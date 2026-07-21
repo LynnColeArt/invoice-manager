@@ -22,7 +22,7 @@ subtasks:
 - T024
 phase: Phase 2 - Canonical Contract Foundation
 assignee: ''
-agent: "wp05-cycle2-review"
+agent: "codex-wp05-cycle2-reviewer"
 history: []
 agent_profile: implementer-ivan
 authoritative_surface: services/api/src/shared/
@@ -493,3 +493,5 @@ logs or frontmatter state by hand.
 - 2026-07-21T03:37:06Z – codex – shell_pid=1417471 – Cycle 1 corrected: every misplaced UUID hyphen returns InvalidSyntax; 221/243 and 24/24
 - 2026-07-21T03:37:45Z – wp05-cycle2-review – shell_pid=1807838 – Started review via action command
 - 2026-07-21T03:43:02Z – user – shell_pid=1807838 – Cycle-2 arbiter override: review-cycle-1.md correctly records the fixed pre-correction defect and is superseded by commit 610c72c plus independent cycle-2 evidence. Exact malformed 36-byte input and all 32 noncanonical hyphen offsets now return InvalidSyntax; deletion check reverts to the documented abort; Chicago/Auckland Debug and ReleaseSafe pass 41/41; Debug/ReleaseSafe coverage passes 221/243 and 24/24; fixtures pass 42 valid, 73 invalid, 8 runtime; contracts, format, scope, and anti-pattern gates pass.
+- 2026-07-21T13:31:29Z – user – shell_pid=1807838 – Moved to for_review
+- 2026-07-21T13:32:08Z – codex-wp05-cycle2-reviewer – shell_pid=1807838 – Started review via action command

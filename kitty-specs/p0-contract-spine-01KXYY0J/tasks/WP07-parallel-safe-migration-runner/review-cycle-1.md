@@ -1,15 +1,4 @@
 ---
-affected_files: []
-cycle_number: 1
-mission_slug: p0-contract-spine-01KXYY0J
-reproduction_command:
-reviewed_at: '2026-07-21T08:27:12Z'
-reviewer_agent: unknown
-verdict: rejected
-wp_id: WP07
----
-
----
 affected_files:
   - services/api/src/platform/persistence/migrations.zig
   - services/api/tests/persistence/migrations_integration_test.zig
