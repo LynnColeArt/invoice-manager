@@ -1,7 +1,7 @@
 adapter_id: generated
 adapter_version: 1.0.0
 artifacts:
-- content_hash: a5d7cfd69a59b2bfe85962d9a1db8c486af96796c61b5e653ecf3b535dbb0908
+- content_hash: ad9232519aeb1635fbb568c673e41dfe2d978ecbb3abe5502232cb31a499bf1c
   kind: directive
   path: 
     .kittify/doctrine/directive/001-mission-type-scope-directive.directive.yaml
@@ -69,9 +69,9 @@ artifacts:
     .kittify/charter/provenance/tactic-testing-philosophy-tactic.yaml
   slug: testing-philosophy-tactic
 built_in_only: false
-created_at: '2026-07-20T04:53:35.975789+00:00'
-manifest_hash: 5cbeaaefd548ff6a12f05853b30fd72fe3bbd06b517fa355984e89c8d50d0c83
+created_at: '2026-07-21T22:37:30.233293+00:00'
+manifest_hash: 0cd1eec87069366321b6778e3c931547bf004fca3313bc55a2b9e3327aea07f4
 mission_id:
-run_id: 145356D332074FA39DE9DFA2AB
+run_id: 01KY3D7E5CCTPQRGA1VVG1AZP9
 schema_version: '2'
 synthesizer_version: 3.2.6

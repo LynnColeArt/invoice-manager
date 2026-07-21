@@ -31,7 +31,7 @@ integrity_rules:
   - Issued invoices are immutable business records rather than views over current client or project data.
   - Billing identity, remittance policy, and project logo choice must be visible before issuance.
   - Forecast, invoiced, collected, and outstanding money must remain distinct and currency-specific.
-  - The public repository contains only synthetic example data and GPL-2.0-only-compatible distributed code.
+  - Public data is synthetic; code is GPL-3.0-only-compatible.
 validation_criteria:
   - Each mission requirement maps to a product goal or an explicitly approved enabling constraint.
   - Architecture tests or review evidence preserve the Next.js-to-Zig and Zig-to-ShovelerDB boundaries.

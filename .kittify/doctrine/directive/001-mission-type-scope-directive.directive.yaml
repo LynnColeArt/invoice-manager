@@ -7,8 +7,7 @@ integrity_rules:
   before issuance.
 - Forecast, invoiced, collected, and outstanding money must remain distinct and 
   currency-specific.
-- The public repository contains only synthetic example data and 
-  GPL-2.0-only-compatible distributed code.
+- Public data is synthetic; code is GPL-3.0-only-compatible.
 intent: Keep the project focused on a dependable internal consulting invoice 
   manager whose beautiful PDF output is backed by explicit, testable financial 
   rules.
