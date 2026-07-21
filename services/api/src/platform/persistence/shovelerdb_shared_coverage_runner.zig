@@ -9,6 +9,8 @@ extern fn invoice_manager_shared_coverage_required_bits() u64;
 const Config = struct {
     pub const contract = @import("shovelerdb_shared_coverage_contract.zig");
     pub const label = "shared";
+    pub const owning_wp = "WP05";
+    pub const expected_source_pattern = "src/shared/**";
     pub fn reset() void {
         invoice_manager_shared_coverage_reset();
     }
@@ -24,8 +26,8 @@ const Config = struct {
 };
 
 pub const std_options: std.Options = .{ .logFn = runner.log };
-pub fn main(init: std.process.Init.Minimal) !void {
-    try runner.run(Config, init);
+pub fn main(init: std.process.Init.Minimal) void {
+    runner.runMain(Config, init);
 }
 
 export fn runner_test_run(_: u32) void {}

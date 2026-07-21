@@ -91,6 +91,14 @@ pub fn run(comptime Config: type, init: std.process.Init.Minimal) !void {
     );
 }
 
+pub fn runMain(comptime Config: type, init: std.process.Init.Minimal) void {
+    @disableInstrumentation();
+    run(Config, init) catch |err| {
+        std.debug.print("[coverage-{s}:failure] {s}\n", .{ Config.label, @errorName(err) });
+        std.process.exit(1);
+    };
+}
+
 fn validatePcOwnership(comptime Config: type, pcs: []const usize) !void {
     @disableInstrumentation();
     const allocator = std.heap.page_allocator;
@@ -119,13 +127,23 @@ fn validatePcOwnership(comptime Config: type, pcs: []const usize) !void {
             source_path = location.file_name;
             if (Config.ownsSourcePath(location.file_name)) break;
         } else {
+            const observed_source = if (source_path) |path|
+                sourceBasename(path)
+            else
+                "<missing-debug-source>";
             std.debug.print(
-                "[coverage-{s}:error] sanitizer PC {d}/{d} at 0x{x} resolves outside the owned production scope: {s}\n",
-                .{ Config.label, index + 1, pcs.len, pc, source_path orelse "<missing debug source>" },
+                "[coverage-{s}:error] owning {s}; expected sanitizer PC source matching {s}; observed out-of-scope PC {d}/{d} at {s}\n",
+                .{ Config.label, Config.owning_wp, Config.expected_source_pattern, index + 1, pcs.len, observed_source },
             );
             return error.OutOfScopeCoverageSite;
         }
     }
+}
+
+pub fn sourceBasename(path: []const u8) []const u8 {
+    @disableInstrumentation();
+    const separator = std.mem.lastIndexOfAny(u8, path, "/\\") orelse return path;
+    return path[separator + 1 ..];
 }
 
 pub fn sourceRelativePath(path: []const u8, unix_scope: []const u8, windows_scope: []const u8) ?[]const u8 {
