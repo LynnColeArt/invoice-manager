@@ -388,6 +388,171 @@ fn deleteHistoryObject(_: *anyopaque, executor: migrations.testing.StartupExecut
     _ = try executor.executeScript("DROP TABLE app_schema_migrations;\n");
 }
 
+test "identical rerun executes zero migration DDL and preserves durable history bytes" {
+    const allocator = std.testing.allocator;
+    const io = std.testing.io;
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const database_path = try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/wp07-noop-bytes.shovel", .{tmp.sub_path});
+    defer allocator.free(database_path);
+
+    var store = try migrations.testing.openStoreWithFaults(allocator, io, database_path, .{});
+    var first_calls: usize = 0;
+    const first = try migrations.testing.runObserved(
+        allocator,
+        io,
+        &store,
+        &.{.{ .owner = "p0", .path = migrationRoot(io) }},
+        "2026-07-21T12:34:56.789Z",
+        &first_calls,
+    );
+    try std.testing.expect(first.isReady());
+    try std.testing.expectEqual(@as(usize, 1), first_calls);
+    try store.shutdown();
+    const before = try std.Io.Dir.readFileAlloc(
+        .cwd(),
+        io,
+        database_path,
+        allocator,
+        .limited(1024 * 1024),
+    );
+    defer allocator.free(before);
+
+    store = try migrations.testing.openStoreWithFaults(allocator, io, database_path, .{});
+    var second_calls: usize = 0;
+    const second = try migrations.testing.runObserved(
+        allocator,
+        io,
+        &store,
+        &.{.{ .owner = "p0", .path = migrationRoot(io) }},
+        "2030-01-01T00:00:00.000Z",
+        &second_calls,
+    );
+    try std.testing.expect(second.isReady());
+    try std.testing.expectEqual(@as(usize, 0), second_calls);
+    try std.testing.expectEqual(@as(usize, 0), second.applied_count);
+    try std.testing.expectEqual(@as(usize, 1), second.already_applied_count);
+    try std.testing.expectEqual(@as(usize, 1), try migrations.testing.rowCount(
+        &store,
+        "SELECT id, owner, descriptor_digest, script_digest, applied_at FROM app_schema_migrations;",
+    ));
+    try store.shutdown();
+    const after = try std.Io.Dir.readFileAlloc(
+        .cwd(),
+        io,
+        database_path,
+        allocator,
+        .limited(1024 * 1024),
+    );
+    defer allocator.free(after);
+    try std.testing.expectEqualSlices(u8, before, after);
+}
+
+test "partial multi-statement DDL is absent after discard and durable reopen" {
+    const allocator = std.testing.allocator;
+    const io = std.testing.io;
+    const failed_id = "018f6f10-7b7a-7c2d-8e65-0f7b1c2d3e50";
+    const later_id = "018f6f10-7b7a-7c2d-8e65-0f7b1c2d3e51";
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const root_path = try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/p0", .{tmp.sub_path});
+    defer allocator.free(root_path);
+    try writeMigration(
+        allocator,
+        io,
+        root_path,
+        bootstrap_id,
+        "bootstrap_migration_history",
+        &.{},
+        "[]",
+        bootstrap_script,
+    );
+    const database_path = try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/wp07-partial.shovel", .{tmp.sub_path});
+    defer allocator.free(database_path);
+    var store = try migrations.testing.openStoreWithFaults(allocator, io, database_path, .{});
+    var bootstrap_calls: usize = 0;
+    const bootstrap = try migrations.testing.runObserved(
+        allocator,
+        io,
+        &store,
+        &.{.{ .owner = "p0", .path = root_path }},
+        "2026-07-21T12:34:56.789Z",
+        &bootstrap_calls,
+    );
+    try std.testing.expect(bootstrap.isReady());
+    try store.shutdown();
+    const before = try std.Io.Dir.readFileAlloc(
+        .cwd(),
+        io,
+        database_path,
+        allocator,
+        .limited(1024 * 1024),
+    );
+    defer allocator.free(before);
+
+    try writeMigration(
+        allocator,
+        io,
+        root_path,
+        failed_id,
+        "partial_then_fail",
+        &.{bootstrap_id},
+        "[\"018f6f10-7b7a-7c2d-8e65-0f7b1c2d3e4f\"]",
+        "CREATE TABLE wp07_partial_visible (body TEXT);\nCREATE TABLE broken (\n",
+    );
+    try writeMigration(
+        allocator,
+        io,
+        root_path,
+        later_id,
+        "later_after_failure",
+        &.{failed_id},
+        "[\"018f6f10-7b7a-7c2d-8e65-0f7b1c2d3e50\"]",
+        "CREATE TABLE wp07_later_after_failure (body TEXT);\n",
+    );
+    store = try migrations.testing.openStoreWithFaults(allocator, io, database_path, .{});
+    defer store.shutdown() catch {};
+    var failed_calls: usize = 0;
+    var observed_error: ?anyerror = null;
+    _ = migrations.testing.runObserved(
+        allocator,
+        io,
+        &store,
+        &.{.{ .owner = "p0", .path = root_path }},
+        "2026-07-21T12:34:56.789Z",
+        &failed_calls,
+    ) catch |err| {
+        observed_error = err;
+    };
+    try std.testing.expectEqual(error.LaterMigrationBlocked, observed_error.?);
+    try std.testing.expectEqual(@as(usize, 1), failed_calls);
+    try std.testing.expectEqual(.ready, store.state());
+    try std.testing.expect(migrations.testing.discardCount(&store) > 0);
+    try std.testing.expect(migrations.testing.reopenCount(&store) > 0);
+    try std.testing.expectEqual(@as(usize, 1), try migrations.testing.rowCount(
+        &store,
+        "SELECT id FROM app_schema_migrations;",
+    ));
+    try std.testing.expectError(
+        error.QueryFailed,
+        migrations.testing.rowCount(&store, "SELECT body FROM wp07_partial_visible;"),
+    );
+    try std.testing.expectError(
+        error.QueryFailed,
+        migrations.testing.rowCount(&store, "SELECT body FROM wp07_later_after_failure;"),
+    );
+    try store.shutdown();
+    const after = try std.Io.Dir.readFileAlloc(
+        .cwd(),
+        io,
+        database_path,
+        allocator,
+        .limited(1024 * 1024),
+    );
+    defer allocator.free(after);
+    try std.testing.expectEqualSlices(u8, before, after);
+}
+
 const CompletionEvidence = struct {
     initial: migrations.Readiness,
     completed: migrations.Readiness,
