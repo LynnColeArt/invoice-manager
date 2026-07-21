@@ -25,8 +25,9 @@ Draft state.
 
 ## Engineering Alignment
 
-- The web shell uses the Next.js App Router and communicates only through the
-  same-origin `/api/v1` contract.
+- The web shell uses the Next.js App Router and communicates only through a
+  same-origin `/api/v1` Route Handler whose fixed Zig origin is server-owned and
+  validated at request time, never in framework configuration or browser input.
 - The Zig service owns all future authoritative behavior and is the only
   process allowed to access ShovelerDB.
 - Shared wire values favor canonical strings where JSON numbers would lose
@@ -52,7 +53,7 @@ artifacts remain outside the database
 **Testing**: Zig unit/coverage tests, contract-schema and fixture validation,
 deterministic composition tests, migration negative tests, real ShovelerDB
 checkpoint-directory-sync-close-reopen integration, process-crash boundary
-tests, black-box HTTP and same-origin proxy smoke, web
+tests, black-box HTTP and same-origin Route Handler smoke, web
 format/lint/type/component/accessibility/build, Playwright foundation workflow,
 mandatory `migration:negative`, and runtime-license audit
 **Target Platform**: Linux x86_64 development and CI baseline
@@ -80,7 +81,7 @@ consumer missions, one local database file, and only foundation entities in P0
 | 90% Zig domain coverage | Coverage gate applies to P0 shared value/migration/durability logic | Pass |
 | GPL-2.0-only and dependency notices | Dedicated runtime compatibility/notice gate | Pass |
 | Living behavior documentation | Versioned schemas/fixtures plus orchestrator pre-acceptance sync for governed mission docs/quickstart/glossary; closure updates README and ledger | Pass |
-| Frontend accessibility and Playwright workflow | The real shell/proxy integration owns component accessibility checks and a same-origin Playwright health workflow | Pass |
+| Frontend accessibility and Playwright workflow | The real shell/Route-Handler integration owns component accessibility checks and a same-origin Playwright health workflow | Pass |
 | Persistence concurrency and idempotency | Durable-store tests exercise serialization/competing handles; migration tests prove repeatable no-op application | Pass |
 | Concurrent mission ownership | Convention discovery, owner directories, no shared registries, integration steward | Pass |
 
@@ -130,6 +131,7 @@ kitty-specs/p0-contract-spine-01KXYY0J/
 ├── apps/
 │   └── web/
 │       ├── src/app/
+│       │   └── api/v1/[...path]/route.ts
 │       ├── src/features/
 │       └── src/lib/
 │           ├── api/
@@ -199,6 +201,10 @@ copy generated bindings into `apps/web/` or create another generated output.
 Browser or Next.js rendering
           |
           | same-origin JSON /api/v1/*
+          v
+  Next.js App Router handler
+          |
+          | fixed server-owned origin; bounded JSON
           v
       Zig HTTP boundary
           |
@@ -440,10 +446,10 @@ shutdown during an active operation, and close/reopen through this public seam.
    rollback, corrupt file, checkpoint failure, injected directory-sync failure,
    and process termination after each durability boundary.
 5. **Black-box HTTP tests** call the service's public health/error boundary; a
-   web smoke test calls it through the same-origin proxy.
+   web smoke test calls it through the same-origin App Router handler.
 6. **Web gates** run formatting, ESLint Flat Config, strict types, component
    accessibility tests, and the production build independently of Zig. The
-   application-integration package adds the real shell/proxy and a Playwright
+  application-integration package adds the real shell/Route Handler and a Playwright
    same-origin health workflow only after the Zig HTTP boundary is ready.
    Accessibility targets WCAG 2.2 AA: zero configured automated serious or
    critical violations, normal-text contrast at least 4.5:1, large-text contrast

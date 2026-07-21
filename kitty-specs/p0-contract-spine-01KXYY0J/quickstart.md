@@ -59,9 +59,18 @@ and stops after the same-origin health smoke succeeds.
 ## Planned local run
 
 ```bash
+INVOICE_API_BIND=127.0.0.1 \
+INVOICE_API_PORT=8080 \
+INVOICE_DATABASE_PATH=.local/invoice-manager.db \
 npm run dev:api
+
+INVOICE_MANAGER_API_ORIGIN=http://127.0.0.1:8080 \
 npm run dev:web
 ```
+
+Run the two commands in separate terminals after creating the local database
+parent directory. These runtime variables are server-only and must not use a
+`NEXT_PUBLIC_*` name.
 
 The web shell owns an App Router handler for `/api/v1/*`. The handler reads one
 validated server-only Zig origin at request time, never from browser-controlled
