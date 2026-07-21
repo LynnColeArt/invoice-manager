@@ -99,6 +99,7 @@
       "predicted_surfaces": [
         "api",
         "artifact-rendering",
+        "legacy-cleanup",
         "workspace"
       ],
       "depends_on_lanes": [
@@ -118,6 +119,7 @@
       ],
       "predicted_surfaces": [
         "api",
+        "app-shell",
         "legacy-cleanup",
         "workspace"
       ],
@@ -144,7 +146,9 @@
       ],
       "predicted_surfaces": [
         "api",
+        "artifact-rendering",
         "legacy-cleanup",
+        "tests",
         "tracker-integration"
       ],
       "depends_on_lanes": [
@@ -165,6 +169,7 @@
       "predicted_surfaces": [
         "api",
         "app-shell",
+        "artifact-rendering",
         "legacy-cleanup",
         "tests",
         "tracker-integration",
@@ -189,6 +194,7 @@
       "predicted_surfaces": [
         "api",
         "artifact-rendering",
+        "legacy-cleanup",
         "workspace"
       ],
       "depends_on_lanes": [
@@ -228,6 +234,7 @@
         "WP10"
       ],
       "write_scope": [
+        "apps/web/src/app/api/v1/**",
         "apps/web/src/app/globals.css",
         "apps/web/src/app/layout.tsx",
         "apps/web/src/app/page.tsx",
@@ -240,6 +247,7 @@
         "app-shell",
         "artifact-rendering",
         "dashboard",
+        "legacy-cleanup",
         "workspace"
       ],
       "depends_on_lanes": [
@@ -305,7 +313,7 @@
       "parallel_group": 7
     }
   ],
-  "computed_at": "2026-07-20T17:36:37.739195+00:00",
+  "computed_at": "2026-07-21T14:59:14.551180+00:00",
   "computed_from": "dependency_graph+ownership",
   "planning_artifact_wps": [
     "WP11"

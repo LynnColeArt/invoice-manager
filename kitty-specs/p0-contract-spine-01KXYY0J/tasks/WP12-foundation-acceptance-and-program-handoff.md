@@ -156,7 +156,7 @@ spec-kitty agent action implement WP12 --agent codex
 - `npm run migration:negative` is mandatory; aliases or producer-defined substitutes fail.
 - Only the two literal final commands may substantiate NFR-001/NFR-008 acceptance; each
   starts timing before its wrapper-internal `npm ci`, with no preceding install in that run.
-- HTTP/proxy uses the real WP08 Zig service and WP10 production Next.js proxy, and owns
+- HTTP/proxy uses the real WP08 Zig service and WP10 production App Router handler, and owns
   acceptance traceability for FR-002 and NFR-007.
 
 ## Subtasks & Detailed Guidance
@@ -183,7 +183,8 @@ license jobs with one strict final foundation conclusion.
 11. Start real services only for the jobs that need them.
 12. Use temporary paths and synthetic persistence/proxy data.
 13. Add isolated final jobs for literal `npm run bootstrap:foundation` and
-    `npm run verify:foundation:clean`; start timing before each command and run no prior `npm ci`.
+    `npm run verify:foundation:clean`; start timing before each command with empty npm/build and
+    Playwright-browser caches, and run no prior install or browser provisioning.
 14. Add a required aggregation job depending on every focused and final job.
 15. Fail aggregation when any dependency fails, is cancelled, or is skipped.
 16. Reuse producer commands; do not duplicate their implementation inline.
@@ -207,14 +208,17 @@ while measuring the real same-origin WP08+WP10 health path exactly as specified.
 2. For NFR-001 invoke literal `npm run bootstrap:foundation` and no substitute.
 3. For NFR-008 invoke literal `npm run verify:foundation:clean` and no substitute.
 4. Start each monotonic timer immediately before its command; each wrapper must run `npm ci`
-   internally, and no install may run before the timer in that clean checkout/cache boundary.
+   and exact locked Playwright Chromium provisioning internally, and no install may run before
+   the timer in that clean checkout/cache boundary.
 5. Require `verify:foundation:clean` to delegate to the exact focused aggregate only after install.
 6. Route missing root command wiring to WP01 and harness/diagnostic defects to WP10.
 7. Require real contract mutations, migration negatives, durability, web, and proxy tests.
 8. Run licensing last without masking earlier output; fail on the first required failure.
 9. Use Linux x86_64 with at least 4 logical CPUs and at least 16 GiB RAM.
 10. Record runner image, kernel, CPU count/model, memory, filesystem, tools, and commit.
-11. Start both runs separately from clean checkouts with empty dependency/build caches.
+11. Start both runs separately from clean checkouts with empty dependency/build/browser caches.
+    Require Playwright 1.61.1 to install Chromium/headless-shell revision 1228 inside each timed
+    boundary and reject `channel`, `executablePath`, or system-browser fallback.
 12. Stop NFR-001 after same-origin health passes and NFR-008 after its final required result.
 13. Require both durations, including internal dependency resolution, to be at most 15 minutes.
 14. Build production Next.js from WP10 and start a Ready real Zig service from WP08.
@@ -281,9 +285,11 @@ private registries, warm artifacts, floating revisions, or hidden state.
 4. Reject sibling paths, absolute local paths, private registries, and moving references.
 5. Verify immutable Zig and submodule identities.
 6. Verify npm lock integrity without installing; no `npm ci` may precede either timed wrapper.
-7. Use separate pristine clone/cache boundaries for literal `npm run bootstrap:foundation`
-   and `npm run verify:foundation:clean`, starting the monotonic timer before each command.
-8. Require each wrapper's internal `npm ci` and reject lockfile modification.
+7. Use separate pristine clone/cache boundaries—including an empty Playwright browser cache—for
+   literal `npm run bootstrap:foundation` and `npm run verify:foundation:clean`, starting the
+   monotonic timer before each command.
+8. Require each wrapper's internal `npm ci` and exact locked browser provisioning; reject
+   lockfile modification, preinstalled/system-browser substitution, or provisioning before time.
 9. Start the documented real Zig and production Next.js services where the wrapper requires.
 10. Request same-origin `/api/v1/health` and apply T052's exact evidence protocol.
 11. Require `git status --porcelain` to remain empty after verification.
@@ -435,6 +441,8 @@ documents it covers are still current, and make every next program action or blo
 - [ ] Exact `npm run migration:negative` is independently required and aggregated.
 - [ ] T052 executes the full matrix within 15 minutes under the exact reference protocol.
 - [ ] WP12 alone accepts NFR-001/NFR-008 from literal clean wrappers timed before internal `npm ci`.
+- [ ] Both clean acceptance runs provision Playwright Chromium/headless-shell revision 1228 inside
+  their timers from empty browser caches with no system-browser fallback.
 - [ ] Real WP08+WP10 proxy p99 uses sample 99 of exactly 100 sequential measured requests.
 - [ ] T053 deterministically audits the runtime, explicit dual-license selections, and notices.
 - [ ] Unknown, incompatible, network-dependent, or ambiguous license evidence fails closed.

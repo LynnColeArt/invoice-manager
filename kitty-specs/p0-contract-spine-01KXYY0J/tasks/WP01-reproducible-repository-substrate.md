@@ -5,6 +5,7 @@ subtasks:
   - T002
   - T003
   - T004
+  - T058
 title: "Reproducible Repository Substrate"
 task_type: implement
 phase: "Phase 1 - Repository Substrate"
@@ -82,6 +83,8 @@ dependency version, then generate the sole committed root npm lockfile.
 Publish stable root commands for focused verification and final foundation verification.
 Make missing prerequisites fail with precise, actionable diagnostics.
 Prove that a clean checkout can bootstrap reproducibly without mutating committed root metadata.
+Install the exact browser artifact selected by the locked Playwright package before every real
+E2E run, with no system-browser fallback or hidden machine prerequisite.
 
 This package implements the repository-foundation slice of FR-001 and FR-015.
 It also establishes the practical basis for NFR-001, NFR-008, NFR-012, and C-009.
@@ -114,7 +117,9 @@ The root package declares delegation commands whose producers land in later work
 Those declarations are interfaces, not authorization to create their downstream targets here.
 WP01 predeclares both workspace manifests and resolves their complete dependency graph now.
 WP03, WP09, WP10, and every later package consume all three package manifests and the root lock
-unchanged; no later work package may add npm metadata or regenerate the lock.
+unchanged; no later work package may add npm metadata or regenerate the lock. This corrective
+cycle changes only WP01-owned root script values, adds no package, changes no version, and must
+leave both workspace manifests plus `package-lock.json` byte-identical.
 
 ## Branch Strategy
 
@@ -245,6 +250,7 @@ Include, at minimum, the following root-facing commands:
 - `web:check`
 - `migration:negative`
 - `persistence:integration`
+- `browser:install`
 - `http:smoke`
 - `licenses:check`
 - `verify:substrate`
@@ -264,6 +270,14 @@ For a downstream path not yet present, fail before delegation with a precise pre
 The diagnostic must name the missing path and the work package or capability expected to provide it.
 Do not silently skip a missing command.
 Do not report success for an absent downstream check.
+
+`browser:install` must resolve the local Playwright executable through the immutable web
+workspace and run exactly `playwright install chromium`. The selected Chromium/headless-shell
+revision therefore comes from locked `@playwright/test` `1.61.1`. Do not use a system Chrome
+executable, channel name, floating package invocation, or second browser manager. `http:smoke`
+must build production Next.js, invoke this idempotent installation, and then delegate the full
+child-process lifecycle to WP10's `apps/web/tests/foundation/http-smoke.mjs`, propagating the
+first failure unchanged.
 
 `contracts:generate` delegates literally to WP03's tool-local generator and is the sole public
 materialization path for ignored generated TypeScript and the runtime route inventory.
@@ -307,6 +321,11 @@ before its internal `npm ci`, then includes full foundation validation, producti
 startup, readiness, and one valid same-origin health smoke. It stops only after the response body
 is consumed or a required stage fails, and preserves the first failing status.
 
+Both timed wrappers include browser acquisition after `npm ci` through `http:smoke`; the browser
+is a pinned repository artifact rather than an excluded Node/npm/Zig toolchain prerequisite. A
+prepared valid Playwright cache may make installation a no-op, but an empty reference cache must
+acquire the same locked revision inside the measured boundary.
+
 Development commands must perform the same prerequisite and path checks before delegating.
 They must not download toolchains, start substitute servers, or invent application behavior.
 
@@ -334,6 +353,8 @@ The verification sequence must prove all of the following:
 - a downstream focused command names its missing producer instead of silently succeeding;
 - `migration:negative` names an absent WP04 hook or WP07 producer and exits nonzero;
 - root scripts propagate failures from delegated commands.
+- bare `http:smoke` builds production web output, installs the pinned Chromium/headless-shell
+  revision, invokes the WP10 lifecycle harness, and never selects a system browser;
 - `verify:foundation:clean` starts timing before `npm ci` and preserves child failures.
 - `bootstrap:foundation` times install, validation, production startup, and same-origin smoke.
 
@@ -352,6 +373,27 @@ Test immutable metadata in isolated temporary copies without creating downstream
 5. Run every package-local metadata command far enough to prove stable target names or an
    actionable missing-producer diagnostic without fabricating source.
 6. Treat every later manifest or lock edit as an ownership failure even if the resulting bytes install.
+
+## T058 — Corrective Playwright Browser and Smoke Lifecycle Contract
+
+Close the persisted analysis finding that the locked Playwright package did not provision its
+matching browser executable and that the bare smoke command did not own a complete runtime.
+
+1. Add root `browser:install` delegation through the installed web workspace to exact
+   `playwright install chromium`; do not add a dependency or edit a workspace manifest.
+2. Make root `http:smoke` generate contracts, build production Next.js, install the browser, and
+   invoke WP10's owned `http-smoke.mjs` lifecycle harness after producer preflights.
+3. Update `verify:substrate` script-key/delegation assertions for the new command and harness;
+   preserve all unrelated accepted substrate behavior.
+4. In an isolated clean checkout and empty browser cache, run pinned `npm ci`, inspect the locked
+   Playwright install plan for Chromium/headless-shell revision 1228, install it, and prove the
+   executable exists without `channel`, `executablePath`, or system-Chrome fallback.
+5. Repeat with a prepared valid cache and require idempotent success. Hash the root manifest,
+   both workspace manifests, and lock before/after every check; only `package.json` may differ
+   from the prior accepted WP01 commit and the other three files must be byte-identical.
+
+Record the prior missing-revision failure as `RED:` evidence, then the exact corrective command
+and `GREEN:` result. This package proves provisioning/delegation only; WP10 proves application E2E.
 
 Where a negative case needs an alternate executable, use an isolated temporary `PATH` or a controlled process shim.
 Never replace the user's real Node.js, npm, or Zig installation.
@@ -413,6 +455,8 @@ Do run it once to verify that its first missing prerequisite is diagnosed accura
 - Risk: migration-negative passes vacuously. Mitigation: require WP04 hook presence, producer/category floors, and unchanged exit-code propagation.
 - Risk: root scripts encode speculative business behavior. Mitigation: restrict them to orchestration and prerequisites.
 - Risk: install tests mutate tracked metadata. Mitigation: hash files, inspect diffs, and fail on mutation.
+- Risk: Playwright silently uses a machine browser. Mitigation: install the locked Chromium target,
+  forbid system-browser selectors, inspect revision 1228, and exercise an isolated browser cache.
 - Risk: local toolchain mismatch hides static correctness. Mitigation: separate static verification from supported-toolchain execution and report both.
 
 ## Definition of Done
@@ -425,6 +469,8 @@ Do run it once to verify that its first missing prerequisite is diagnosed accura
 - `package-lock.json` was generated by pinned npm from all final WP01-owned manifests.
 - WP01's sole immutable npm metadata/lock ownership is explicit and testable.
 - The focused command surface includes mandatory `migration:negative` with explicit downstream prerequisite diagnostics.
+- The focused command surface includes `browser:install`, and bare `http:smoke` owns build,
+  locked browser provisioning, and delegation to WP10's complete lifecycle harness.
 - `verify:substrate` succeeds on the supported toolchain.
 - `verify:foundation:clean` times `npm ci` plus the complete aggregate boundary.
 - `bootstrap:foundation` times `npm ci`, full validation, production startup, and same-origin smoke.
@@ -447,6 +493,8 @@ Confirm `migration:negative` uses the exact WP04 hook, fails on missing/empty pr
 Confirm missing downstream producers fail explicitly and are not silently skipped.
 Confirm `verify:substrate` is independently useful before other work packages land.
 Confirm `contracts:generate` and both clean timed wrappers have the exact declared semantics.
+Confirm the corrective diff changes only root script values, leaves both workspace manifests and
+the lock byte-identical, and cannot fall back to an unpinned system browser.
 Treat downstream-focused checks as declared interfaces; do not require their implementations in WP01.
 Verify the full command surface is compatible with later work without preempting their owned files.
 
@@ -468,6 +516,9 @@ Verify the full command surface is compatible with later work without preempting
 - 2026-07-20T23:10:48Z – codex:gpt-5:node-norris:implementer – GREEN: commit a2002e9 keeps every direct version exact, adds a chain-scoped override to patched `js-yaml@4.3.0`, and changes only package.json plus the lock's version/resolution/SHA-512 tuple. Normal and offline/ignore-script `npm ci` runs were metadata-immutable; full and production audits report 0 vulnerabilities; `npm ls --all` is valid; `verify:substrate` passes under Node 24.18.0/npm 11.16.0/Zig 0.16.0 and asserts the override plus patched lock entry.
 - 2026-07-20T23:14:22Z – codex – shell_pid=1807838 – Correction implementation committed as a2002e9; exact direct generator version retained, transitive js-yaml patched to 4.3.0, immutable installs and full/prod audits green; ready for independent review.
 - 2026-07-20T23:15:12Z – codex-wp01-advisory-review – shell_pid=1807838 – Started review via action command
+- 2026-07-21T14:46:43Z – codex – Corrective planning after blocked analysis: provision the exact
+  Playwright-managed Chromium revision and delegate a self-contained bare smoke lifecycle; no
+  dependency, workspace-manifest, or lock change.
 - 2026-07-20T23:20:41Z – user – shell_pid=1807838 – Moved to planned
 - 2026-07-20T23:23:05Z – codex – shell_pid=785373 – Started implementation via action command
 - 2026-07-20T23:24:22Z – codex – shell_pid=785373 – GREEN correction cycle 4: pinned npm 11.16.0 dedupe removed the sole redundant nested @eslint/eslintrc js-yaml lock row; commit 2fc13e7 now has 610 package entries and exactly one hoisted js-yaml@4.3.0. A fresh manifests-only offline lock generation byte-matched the committed lock; normal offline npm ci was metadata-immutable, npm ls problems=[], verify:substrate passed under exact Node/npm/Zig, and full plus production audits reported 0 vulnerabilities. Generated install trees were removed.
