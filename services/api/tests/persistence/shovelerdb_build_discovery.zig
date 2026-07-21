@@ -362,6 +362,63 @@ test "isolated HTTP roots compile against the complete service graph and emitted
     defer allocator.free(result.stderr);
 }
 
+test "nested service invocation pins HTTP artifacts to canonical repository root" {
+    const allocator = std.testing.allocator;
+    var fixture = try prepareHttpFixture(
+        allocator,
+        0,
+        "const std = @import(\"std\");\n" ++
+            "const http_test_config = @import(\"http_test_config\");\n" ++
+            "test \"emitted API resolves the canonical migration root\" {\n" ++
+            "    const result = try std.process.run(std.testing.allocator, std.testing.io, .{ .argv = &.{http_test_config.api_executable_path} });\n" ++
+            "    defer std.testing.allocator.free(result.stdout);\n" ++
+            "    defer std.testing.allocator.free(result.stderr);\n" ++
+            "    switch (result.term) {\n" ++
+            "        .exited => |code| try std.testing.expectEqual(@as(u8, 0), code),\n" ++
+            "        else => return error.UnexpectedApiTermination,\n" ++
+            "    }\n" ++
+            "}\n",
+    );
+    defer fixture.deinit(allocator);
+
+    try writeFixtureFile(
+        fixture.tmp.dir,
+        "services/api/migrations/p0/001-canonical-migration.sql",
+        "-- canonical repository-root migration sentinel\n",
+    );
+    try writeFixtureFile(
+        fixture.tmp.dir,
+        "services/api/src/main.zig",
+        "const std = @import(\"std\");\n" ++
+            "const shared = @import(\"shared\");\n" ++
+            "const persistence = @import(\"persistence\");\n" ++
+            "const migrations = @import(\"migrations\");\n" ++
+            "const http = @import(\"http\");\n" ++
+            "pub fn main(init: std.process.Init) !void {\n" ++
+            "    shared.touch(); persistence.touch(); migrations.touch(); http.touch();\n" ++
+            "    try std.Io.Dir.cwd().access(init.io, \"services/api/migrations/p0/001-canonical-migration.sql\", .{});\n" ++
+            "}\n",
+    );
+
+    const test_result = try expectCommandExit(
+        allocator,
+        fixture.api_path,
+        &.{ "zig", "build", "test-http", "-j16", "--summary", "all" },
+        0,
+    );
+    defer allocator.free(test_result.stdout);
+    defer allocator.free(test_result.stderr);
+
+    const run_result = try expectCommandExit(
+        allocator,
+        fixture.api_path,
+        &.{ "zig", "build", "run", "-j16", "--summary", "all" },
+        0,
+    );
+    defer allocator.free(run_result.stdout);
+    defer allocator.free(run_result.stderr);
+}
+
 test "production HTTP module cannot import persistence" {
     const allocator = std.testing.allocator;
     var fixture = try prepareHttpFixture(
