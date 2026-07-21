@@ -489,3 +489,4 @@ documents it covers are still current, and make every next program action or blo
   remapped to T051-T057, and tightened for immutable conformance, real combined proxy timing,
   exact migration-negative, deterministic licensing, governed-doc sync, and manifest ownership.
 - 2026-07-21T18:46:39Z – codex-wp12-implementer – shell_pid=1807838 – Assigned agent via action command
+- 2026-07-21T20:27:57Z – codex-wp12-implementer – shell_pid=1807838 – Moved to planned
