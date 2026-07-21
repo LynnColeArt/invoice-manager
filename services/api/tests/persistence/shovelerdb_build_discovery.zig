@@ -389,6 +389,44 @@ test "production HTTP module cannot import persistence" {
     );
 }
 
+test "HTTP route inventory embeds exact materialized artifact" {
+    const allocator = std.testing.allocator;
+    var fixture = try prepareHttpFixture(
+        allocator,
+        1200,
+        "const std = @import(\"std\");\n" ++
+            "const http = @import(\"http\");\n" ++
+            "test \"canonical route inventory bytes are embedded\" {\n" ++
+            "    std.testing.refAllDecls(http);\n" ++
+            "    try std.testing.expectEqualStrings(\"{\\\"routes\\\":[]}\\n\", http.route_inventory.bytes);\n" ++
+            "}\n",
+    );
+    defer fixture.deinit(allocator);
+
+    try writeFixtureFile(
+        fixture.tmp.dir,
+        "services/api/src/http/route_inventory.zig",
+        "pub const bytes = @embedFile(\"../../../../tools/contracts/.generated/runtime/v1/route-inventory.json\");\n",
+    );
+    try writeFixtureFile(
+        fixture.tmp.dir,
+        "services/api/src/http/root.zig",
+        "const shared = @import(\"shared\");\n" ++
+            "pub const route_inventory = @import(\"route_inventory.zig\");\n" ++
+            "pub const marker = shared.marker;\n" ++
+            "pub fn touch() void { shared.touch(); _ = route_inventory.bytes; }\n",
+    );
+
+    const result = try expectCommandExit(
+        allocator,
+        fixture.api_path,
+        &.{ "zig", "build", "test-http", "-j16", "--summary", "all" },
+        0,
+    );
+    defer allocator.free(result.stdout);
+    defer allocator.free(result.stderr);
+}
+
 test "HTTP materialization completes before every compile step" {
     const allocator = std.testing.allocator;
     var fixture = try prepareHttpFixture(
