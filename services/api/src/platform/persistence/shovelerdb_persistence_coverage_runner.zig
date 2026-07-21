@@ -18,6 +18,19 @@ const Config = struct {
     pub fn requiredBits() u64 {
         return invoice_manager_persistence_coverage_required_bits();
     }
+    pub fn ownsSourcePath(path: []const u8) bool {
+        const relative = runner.sourceRelativePath(
+            path,
+            "src/platform/persistence/",
+            "src\\platform\\persistence\\",
+        ) orelse return false;
+        if (std.mem.indexOfAny(u8, relative, "/\\") != null) return false;
+        return std.mem.eql(u8, relative, "root.zig") or
+            std.mem.startsWith(u8, relative, "store") or
+            std.mem.startsWith(u8, relative, "durability") or
+            std.mem.startsWith(u8, relative, "directory_sync") or
+            std.mem.startsWith(u8, relative, "diagnostic");
+    }
 };
 
 pub const std_options: std.Options = .{ .logFn = runner.log };

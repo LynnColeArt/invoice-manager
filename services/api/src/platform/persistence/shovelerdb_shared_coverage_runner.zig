@@ -18,6 +18,9 @@ const Config = struct {
     pub fn requiredBits() u64 {
         return invoice_manager_shared_coverage_required_bits();
     }
+    pub fn ownsSourcePath(path: []const u8) bool {
+        return runner.sourceRelativePath(path, "src/shared/", "src\\shared\\") != null;
+    }
 };
 
 pub const std_options: std.Options = .{ .logFn = runner.log };
