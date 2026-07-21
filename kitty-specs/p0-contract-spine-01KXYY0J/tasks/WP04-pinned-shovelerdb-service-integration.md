@@ -572,3 +572,6 @@ Review `THIRD_PARTY_NOTICES.md` and the complete upstream license as acceptance-
 - 2026-07-21T04:22:49Z – codex:implementer-ivan – Cycle 8 implementation commits `0c32098` (chronological public RED) and `69458f9` (production GREEN) are ready for independent review; reviewer profile restored for governed handoff.
 - 2026-07-21T04:25:36Z – codex – shell_pid=1549469 – Cycle 8 public RED, production GREEN, clean-source matrix, provenance, ABI, discovery, and coverage-isolation regressions complete at 0c32098/69458f9
 - 2026-07-21T04:27:12Z – codex – shell_pid=1807838 – Started review via action command
+- 2026-07-21T04:39:57Z – user – shell_pid=1807838 – Arbiter override of stale historical review-cycle-6 rejection: review-cycle-9.md at coordination commit 8f787a9 independently approves cycle-eight correction 0c32098/69458f9 with zero blockers and verifies all accepted coverage/privacy corrections remain green.
+- 2026-07-21T04:55:49Z – codex – shell_pid=1807838 – Cycle 10 direct-origin PC audit proves 72 non-owned sites inflate WP06 coverage; reopen WP04 coverage runner
+- 2026-07-21T04:57:18Z – codex – shell_pid=1807838 – Started implementation via action command
