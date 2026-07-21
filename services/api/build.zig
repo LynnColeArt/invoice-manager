@@ -1,4 +1,5 @@
 const std = @import("std");
+pub const migration_coverage_contract = @import("src/platform/persistence/shovelerdb_coverage_contract.zig");
 
 pub const stable_step_names = [_][]const u8{
     "test-shovelerdb-adapter",
@@ -51,6 +52,7 @@ pub const Group = enum {
     migration_unit,
     migration_integration,
     migration_negative,
+    migration_coverage,
     http,
 };
 
@@ -137,6 +139,7 @@ pub fn classifyNormalized(path: []const u8) !Group {
         const basename = std.fs.path.basename(path);
         if (std.mem.eql(u8, basename, "migrations_test.zig")) return .migration_unit;
         if (std.mem.eql(u8, basename, "migrations_integration_test.zig")) return .migration_integration;
+        if (std.mem.eql(u8, basename, "migrations_coverage_test.zig")) return .migration_coverage;
         if (std.mem.indexOf(u8, basename, "negative") != null and
             std.mem.startsWith(u8, basename, "migrations"))
         {
@@ -533,31 +536,266 @@ fn configureMigration(
     negative_step: *std.Build.Step,
     coverage_step: *std.Build.Step,
 ) void {
-    const producer = pathExists(b, "migrations/p0") or
-        pathExists(b, "src/platform/persistence/migrations.zig") or
-        snapshot.count(.migration_unit) + snapshot.count(.migration_integration) + snapshot.count(.migration_negative) > 0;
+    const migration_source = "src/platform/persistence/migrations.zig";
+    const coverage_test = "tests/persistence/migrations_coverage_test.zig";
+    const producer = pathExists(b, "migrations/p0") or pathExists(b, migration_source) or
+        snapshot.count(.migration_unit) + snapshot.count(.migration_integration) +
+            snapshot.count(.migration_negative) + snapshot.count(.migration_coverage) > 0;
     if (!producer) {
         missingProducer(b, unit_step, "[test-migration:error] expected exact migrations_test.zig and migrations/p0/** from owning WP07; observed producer absent, count 0");
         missingProducer(b, integration_step, "[test-migration-integration:error] expected exact migrations_integration_test.zig from owning WP07; observed producer absent, count 0");
         missingProducer(b, negative_step, "[migration-negative:error] expected nonempty *negative* migration matrix from owning WP07; observed producer absent, count 0");
-        missingProducer(b, coverage_step, "[coverage-migration:error] expected all three WP07 groups, >=90% migration logic, and critical-branch evidence; observed count 0");
+        missingProducer(b, coverage_step, "[coverage-migration:error] expected migrations.zig, exact migrations_coverage_test.zig, >=90% measured migration logic, and critical-branch execution from owning WP07; observed producer absent, count 0");
         return;
     }
-    if (snapshot.count(.migration_unit) != 1 or snapshot.count(.migration_integration) != 1 or snapshot.count(.migration_negative) == 0 or !pathExists(b, "migrations/p0")) {
+    if (snapshot.count(.migration_unit) != 1 or snapshot.count(.migration_integration) != 1 or
+        snapshot.count(.migration_negative) == 0 or snapshot.count(.migration_coverage) != 1 or
+        !pathExists(b, "migrations/p0") or !pathExists(b, migration_source) or
+        !pathExists(b, "src/shared/root.zig") or !pathExists(b, "src/platform/persistence/root.zig"))
+    {
         missingProducer(b, unit_step, "[test-migration:error] WP07 producer present but exact positive unit root or migrations/p0 sentinel is missing/duplicate");
         missingProducer(b, integration_step, "[test-migration-integration:error] WP07 producer present but exact integration root count is not 1");
         missingProducer(b, negative_step, "[migration-negative:error] WP07 producer present but negative root count is 0");
-        missingProducer(b, coverage_step, "[coverage-migration:error] WP07 producer present but positive/negative/coverage inputs are incomplete");
+        missingProducer(b, coverage_step, "[coverage-migration:error] WP07 producer present but exact migrations.zig, migrations_coverage_test.zig, WP05/WP06 named module roots, or positive/negative inputs are incomplete");
         return;
     }
+    if (!migrationCoverageSourcesValid(b, migration_source, coverage_test)) {
+        missingProducer(b, coverage_step, "[coverage-migration:error] WP07 coverage inputs omit the canonical production probe import/hit calls or dedicated test imports the probe directly");
+        return;
+    }
+
     const adapter = createAdapterModule(b, target, optimize, abi_library);
-    const imports = [_]std.Build.Module.Import{.{ .name = "shovelerdb_adapter", .module = adapter }};
-    addGroupTests(b, snapshot, .migration_unit, target, optimize, &imports, unit_step);
-    addGroupTests(b, snapshot, .migration_integration, target, optimize, &imports, integration_step);
-    addGroupTests(b, snapshot, .migration_negative, target, optimize, &imports, negative_step);
-    coverage_step.dependOn(unit_step);
-    coverage_step.dependOn(integration_step);
-    coverage_step.dependOn(negative_step);
+    const contract_module = b.createModule(.{
+        .root_source_file = b.path("src/platform/persistence/shovelerdb_coverage_contract.zig"),
+        .target = target,
+        .optimize = .Debug,
+        .fuzz = false,
+    });
+    const probe = b.createModule(.{
+        .root_source_file = b.path("src/platform/persistence/shovelerdb_coverage_probe.zig"),
+        .target = target,
+        .optimize = .Debug,
+        .fuzz = false,
+        .imports = &.{.{ .name = "migration_coverage_contract", .module = contract_module }},
+    });
+    const shared = b.createModule(.{
+        .root_source_file = b.path("src/shared/root.zig"),
+        .target = target,
+        .optimize = optimize,
+        .fuzz = false,
+    });
+    const persistence = b.createModule(.{
+        .root_source_file = b.path("src/platform/persistence/root.zig"),
+        .target = target,
+        .optimize = optimize,
+        .fuzz = false,
+        .imports = &.{
+            .{ .name = "shared", .module = shared },
+            .{ .name = "shovelerdb_adapter", .module = adapter },
+        },
+    });
+    const migrations = createMigrationModule(
+        b,
+        migration_source,
+        target,
+        optimize,
+        adapter,
+        probe,
+        shared,
+        persistence,
+        false,
+    );
+    const normal_imports = [_]std.Build.Module.Import{
+        .{ .name = "shovelerdb_adapter", .module = adapter },
+        .{ .name = "shared", .module = shared },
+        .{ .name = "persistence", .module = persistence },
+        .{ .name = "migrations", .module = migrations },
+    };
+    addGroupTests(b, snapshot, .migration_unit, target, optimize, &normal_imports, unit_step);
+    addGroupTests(b, snapshot, .migration_integration, target, optimize, &normal_imports, integration_step);
+    addGroupTests(b, snapshot, .migration_negative, target, optimize, &normal_imports, negative_step);
+
+    const instrumented_migrations = createMigrationModule(
+        b,
+        migration_source,
+        target,
+        .Debug,
+        adapter,
+        probe,
+        shared,
+        persistence,
+        true,
+    );
+    const coverage_root = b.createModule(.{
+        .root_source_file = b.path(coverage_test),
+        .target = target,
+        .optimize = .Debug,
+        .fuzz = false,
+        .imports = &.{
+            .{ .name = "migrations", .module = instrumented_migrations },
+            .{ .name = "shovelerdb_adapter", .module = adapter },
+            .{ .name = "shared", .module = shared },
+            .{ .name = "persistence", .module = persistence },
+            .{ .name = "migration_coverage_contract", .module = contract_module },
+        },
+    });
+    const coverage_artifact = b.addTest(.{
+        .name = "migration-production-coverage",
+        .root_module = coverage_root,
+        .use_llvm = true,
+        .test_runner = .{
+            .path = b.path("src/platform/persistence/shovelerdb_coverage_runner.zig"),
+            .mode = .simple,
+        },
+    });
+    const run_coverage = b.addRunArtifact(coverage_artifact);
+    run_coverage.step.dependOn(unit_step);
+    run_coverage.step.dependOn(integration_step);
+    run_coverage.step.dependOn(negative_step);
+    coverage_step.dependOn(&run_coverage.step);
+}
+
+fn createMigrationModule(
+    b: *std.Build,
+    source: []const u8,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    adapter: *std.Build.Module,
+    probe: *std.Build.Module,
+    shared: *std.Build.Module,
+    persistence: *std.Build.Module,
+    instrumented: bool,
+) *std.Build.Module {
+    return b.createModule(.{
+        .root_source_file = b.path(source),
+        .target = target,
+        .optimize = optimize,
+        .fuzz = instrumented,
+        .imports = &.{
+            .{ .name = "shovelerdb_adapter", .module = adapter },
+            .{ .name = "migration_coverage_probe", .module = probe },
+            .{ .name = "shared", .module = shared },
+            .{ .name = "persistence", .module = persistence },
+        },
+    });
+}
+
+pub fn migrationCoverageSourcesValid(
+    b: *std.Build,
+    migration_source: []const u8,
+    coverage_test: []const u8,
+) bool {
+    const root_source = b.build_root.handle.readFileAlloc(
+        b.graph.io,
+        migration_source,
+        b.allocator,
+        .limited(4 * 1024 * 1024),
+    ) catch return false;
+    if (std.mem.indexOf(
+        u8,
+        root_source,
+        "const migration_coverage = @import(\"migration_coverage_probe\");",
+    ) == null) return false;
+
+    var hit_found: [migration_coverage_contract.critical_branch_count]bool = @splat(false);
+    var dir = b.build_root.handle.openDir(
+        b.graph.io,
+        "src/platform/persistence",
+        .{ .iterate = true, .follow_symlinks = false },
+    ) catch return false;
+    defer dir.close(b.graph.io);
+    var walker = dir.walk(b.allocator) catch return false;
+    defer walker.deinit();
+    while (walker.next(b.graph.io) catch return false) |entry| {
+        if (!std.mem.startsWith(u8, entry.path, "migrations") or
+            !std.mem.endsWith(u8, entry.path, ".zig")) continue;
+        if (entry.kind != .file) return false;
+        const full_path = std.fmt.allocPrint(
+            b.allocator,
+            "src/platform/persistence/{s}",
+            .{entry.path},
+        ) catch return false;
+        const source = b.build_root.handle.readFileAlloc(
+            b.graph.io,
+            full_path,
+            b.allocator,
+            .limited(4 * 1024 * 1024),
+        ) catch return false;
+        if (!migrationImportsCoverageScoped(source)) return false;
+        for (migration_coverage_contract.critical_branch_names, 0..) |branch_name, index| {
+            const required_hit = std.fmt.allocPrint(
+                b.allocator,
+                "migration_coverage.hit(.{s})",
+                .{branch_name},
+            ) catch return false;
+            hit_found[index] = hit_found[index] or std.mem.indexOf(u8, source, required_hit) != null;
+        }
+    }
+    for (hit_found) |found| if (!found) return false;
+
+    const test_source = b.build_root.handle.readFileAlloc(
+        b.graph.io,
+        coverage_test,
+        b.allocator,
+        .limited(4 * 1024 * 1024),
+    ) catch return false;
+    return coverageTestContractValid(test_source);
+}
+
+pub fn migrationImportsCoverageScoped(source: []const u8) bool {
+    const import_prefix = "@import(\"";
+    if (countOccurrences(source, "@import(") != countOccurrences(source, import_prefix)) return false;
+    var remaining = source;
+    while (std.mem.indexOf(u8, remaining, import_prefix)) |start| {
+        const value_start = start + import_prefix.len;
+        const after_start = remaining[value_start..];
+        const end = std.mem.indexOf(u8, after_start, "\")") orelse return false;
+        const value = after_start[0..end];
+        const allowed = std.mem.eql(u8, value, "std") or
+            std.mem.eql(u8, value, "builtin") or
+            std.mem.eql(u8, value, "shovelerdb_adapter") or
+            std.mem.eql(u8, value, "migration_coverage_probe") or
+            std.mem.eql(u8, value, "shared") or
+            std.mem.eql(u8, value, "persistence") or
+            (std.mem.startsWith(u8, value, "migrations") and std.mem.endsWith(u8, value, ".zig"));
+        if (!allowed) return false;
+        remaining = after_start[end + 2 ..];
+    }
+    return true;
+}
+
+pub fn coverageTestContractValid(source: []const u8) bool {
+    if (std.mem.indexOf(u8, source, "const std = @import(\"std\");") == null or
+        std.mem.indexOf(u8, source, "@import(\"migrations\")") == null or
+        std.mem.indexOf(u8, source, "std.testing.refAllDecls(migrations);") == null or
+        std.mem.indexOf(u8, source, "migration_coverage_probe") != null or
+        std.mem.indexOf(u8, source, "shovelerdb_coverage_probe") != null or
+        countOccurrences(source, migration_coverage_contract.critical_test_prefix) !=
+            migration_coverage_contract.critical_branch_count)
+    {
+        return false;
+    }
+    for (migration_coverage_contract.critical_branch_names) |branch_name| {
+        var expected_buffer: [128]u8 = undefined;
+        const expected = std.fmt.bufPrint(
+            &expected_buffer,
+            "test \"{s}{s}\"",
+            .{ migration_coverage_contract.critical_test_prefix, branch_name },
+        ) catch return false;
+        if (countOccurrences(source, expected) != 1) return false;
+    }
+    return true;
+}
+
+fn countOccurrences(haystack: []const u8, needle: []const u8) usize {
+    if (needle.len == 0) return 0;
+    var count: usize = 0;
+    var offset: usize = 0;
+    while (std.mem.indexOf(u8, haystack[offset..], needle)) |relative| {
+        count += 1;
+        offset += relative + needle.len;
+    }
+    return count;
 }
 
 fn configureHttp(

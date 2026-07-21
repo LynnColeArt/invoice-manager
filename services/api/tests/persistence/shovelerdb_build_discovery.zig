@@ -1,5 +1,6 @@
 const std = @import("std");
 const registry = @import("build_registry");
+const coverage = registry.migration_coverage_contract;
 
 fn expectPaths(expected: []const []const u8, actual: []const registry.Classified) !void {
     try std.testing.expectEqual(expected.len, actual.len);
@@ -92,6 +93,7 @@ test "all documented groups classify without ambiguity" {
         .{ .path = "tests/persistence/migrations_test.zig" },
         .{ .path = "tests/persistence/migrations_integration_test.zig" },
         .{ .path = "tests/persistence/migrations_negative_test.zig" },
+        .{ .path = "tests/persistence/migrations_coverage_test.zig" },
         .{ .path = "tests/http/health_test.zig" },
     };
     const result = try registry.classifyCandidates(allocator, &candidates);
@@ -124,6 +126,10 @@ test "persistence crash wins before integration and migration basenames are exac
     try std.testing.expectEqual(
         registry.Group.migration_negative,
         try registry.classifyNormalized("tests/persistence/migrations_negative_test.zig"),
+    );
+    try std.testing.expectEqual(
+        registry.Group.migration_coverage,
+        try registry.classifyNormalized("tests/persistence/migrations_coverage_test.zig"),
     );
     try std.testing.expectError(
         registry.DiscoveryError.UnclassifiedRoot,
@@ -211,20 +217,98 @@ test "producer gates distinguish absent from present but empty" {
         registry.DiscoveryError.MissingProducer,
         registry.validateProducerCounts(.{
             .producer_present = false,
-            .required_counts = &.{ 0, 0, 0 },
+            .required_counts = &.{ 0, 0, 0, 0 },
         }),
     );
     try std.testing.expectError(
         registry.DiscoveryError.IncompleteProducer,
         registry.validateProducerCounts(.{
             .producer_present = true,
-            .required_counts = &.{ 1, 0, 1 },
+            .required_counts = &.{ 1, 1, 1, 0 },
         }),
     );
     try registry.validateProducerCounts(.{
         .producer_present = true,
-        .required_counts = &.{ 1, 1, 1 },
+        .required_counts = &.{ 1, 1, 1, 1 },
     });
+}
+
+test "migration coverage evidence is measured and fails closed" {
+    const required = coverage.requiredBranchBits();
+    try std.testing.expectError(coverage.CoverageError.MissingMeasurement, coverage.validateMeasurement(.{
+        .seen_sites = 0,
+        .total_sites = 0,
+        .hit_branch_bits = required,
+        .required_branch_bits = required,
+    }));
+    try std.testing.expectError(coverage.CoverageError.IncompleteProductionInstrumentation, coverage.validateMeasurement(.{
+        .seen_sites = 1,
+        .total_sites = 1,
+        .hit_branch_bits = required,
+        .required_branch_bits = required,
+    }));
+    try std.testing.expectError(coverage.CoverageError.BelowThreshold, coverage.validateMeasurement(.{
+        .seen_sites = 89,
+        .total_sites = 100,
+        .hit_branch_bits = required,
+        .required_branch_bits = required,
+    }));
+    try std.testing.expectError(coverage.CoverageError.MissingCriticalBranch, coverage.validateMeasurement(.{
+        .seen_sites = 90,
+        .total_sites = 100,
+        .hit_branch_bits = required & ~@as(u64, 1),
+        .required_branch_bits = required,
+    }));
+    try std.testing.expectError(coverage.CoverageError.InvalidMeasurement, coverage.validateMeasurement(.{
+        .seen_sites = 101,
+        .total_sites = 100,
+        .hit_branch_bits = required,
+        .required_branch_bits = required,
+    }));
+    try coverage.validateMeasurement(.{
+        .seen_sites = 90,
+        .total_sites = 100,
+        .hit_branch_bits = required,
+        .required_branch_bits = required,
+    });
+}
+
+test "migration coverage source and exact critical test contracts reject fabrication" {
+    try std.testing.expect(registry.migrationImportsCoverageScoped(
+        "const std = @import(\"std\");\n" ++
+            "const shared = @import(\"shared\");\n" ++
+            "const persistence = @import(\"persistence\");\n" ++
+            "const helper = @import(\"migrations_graph.zig\");\n",
+    ));
+    try std.testing.expect(!registry.migrationImportsCoverageScoped(
+        "const store = @import(\"store.zig\");",
+    ));
+    try std.testing.expect(!registry.migrationImportsCoverageScoped(
+        "const hidden = @import(import_name);",
+    ));
+
+    const allocator = std.testing.allocator;
+    var valid: std.ArrayList(u8) = .empty;
+    defer valid.deinit(allocator);
+    try valid.appendSlice(
+        allocator,
+        "const std = @import(\"std\");\n" ++
+            "const migrations = @import(\"migrations\");\n" ++
+            "test \"migration production declarations are analyzed\" { std.testing.refAllDecls(migrations); }\n",
+    );
+    for (coverage.critical_branch_names) |branch_name| {
+        const declaration = try std.fmt.allocPrint(
+            allocator,
+            "test \"{s}{s}\" {{}}\n",
+            .{ coverage.critical_test_prefix, branch_name },
+        );
+        defer allocator.free(declaration);
+        try valid.appendSlice(allocator, declaration);
+    }
+    try std.testing.expect(registry.coverageTestContractValid(valid.items));
+
+    try valid.appendSlice(allocator, "test \"critical branch: fabricated\" {}\n");
+    try std.testing.expect(!registry.coverageTestContractValid(valid.items));
 }
 
 test "notice validation fails when any acceptance-critical field is absent" {
