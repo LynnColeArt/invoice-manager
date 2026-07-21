@@ -510,6 +510,7 @@ flowchart LR
     P0 --> P2
     P0 --> P3
     P0 --> P4
+    P1 --> P2
     P1 --> P5
     P2 --> P5
     P1 --> P6
@@ -525,9 +526,10 @@ flowchart LR
 
 The arrows constrain implementation and final integration, not the start of
 specification and planning. P1 through P4 can be specified and planned while P0
-is under implementation. P4 finishes and merges against frozen event fixtures;
-P7 is the short follow-on mission that connects those projections to the real
-P5 and P6 producers.
+is under implementation. P2 additionally waits for P1's Frozen Resolved Invoice
+Configuration on a merged baseline before implementation. P4 finishes and
+merges against its own Frozen normalized synthetic input contract; P7 is the
+short follow-on mission that maps the real P5 and P6 producers into that seam.
 
 ### 15.3 Mission catalog
 
@@ -535,9 +537,9 @@ P5 and P6 producers.
 | --- | --- | --- | --- |
 | P0: Contract spine | GPL repository, CI, Next.js and Zig shells, pinned ShovelerDB spike, domain primitives, migration runner, API envelope, event envelope, contract fixtures, and test harnesses | None | Root build files, shared primitives, contract composition, CI |
 | P1: Parties and projects | Billing identities, clients, contacts, projects, identity override, European remittance policy, and project logo policy through UI and Zig API | P0 | Party, identity, client, and project domain and routes |
-| P2: Invoice document engine | Structured draft and snapshot model, exact totals, TeX escaping, versioned LuaLaTeX templates, safe preview, artifact digest, and visual fixtures | P0 | Invoice-document domain, renderer, templates, and preview UI |
+| P2: Invoice document engine | Structured draft and snapshot model, exact totals, TeX escaping, versioned LuaLaTeX templates, safe preview, artifact digest, and visual fixtures | P0 and a merged P1 with Frozen Resolved Invoice Configuration | Invoice-document domain, renderer, templates, and preview UI |
 | P3: Platform security and operations | Administrator session, authorization, CSRF controls, secrets, Docker Compose, persistence permissions, checkpointed backup, restore drill, and operational guidance | P0 | Platform, session, deployment, backup, and restore paths |
-| P4: Reporting and dashboard | Currency-safe projection engine, read-model contracts, chart components, dashboard API/UI, accessibility, and traceability tested against frozen producer fixtures | P0 | Reporting projections, dashboard API, and dashboard UI |
+| P4: Reporting and dashboard | Currency-safe projection engine, normalized synthetic input contract, chart components, dashboard API/UI, accessibility, and traceability; P7 later maps real producers | P0 | Reporting projections, dashboard API, and dashboard UI |
 | P5: Issuance and payments | Identity-scoped numbering, immutable issuance transaction, retained PDFs, audit events, payment recording/reversal, overdue state, and void/correction workflow | P1 and P2 | Invoice lifecycle, numbering, payment, and artifact retention |
 | P6: Recurring billing and due work | Monthly/quarterly schedule calculation, billing-period idempotency, draft proposals, advancement policy, concurrency tests, and operational due-work UI | P1 and P2 draft contract | Scheduling domain, due-work queries, and recurring-operations UI |
 | P7: Reporting integration | Connect P5/P6 events to P4 projections, verify real due-work, revenue, collection, aging, forecast, and client views, and reconcile every figure to its source record | P4, P5, and P6 | Reporting adapters and cross-domain reporting tests |
@@ -547,7 +549,9 @@ P5 and P6 producers.
 
 - **Launch:** specify P0, then start P1-P4 specification and planning as soon as
   P0's draft contracts are available.
-- **Wave A:** merge P0; implement P1, P2, P3, and P4 concurrently.
+- **Wave A1:** merge P0; implement P1, P3, and P4 concurrently.
+- **Wave A2:** begin P2 when P1's Resolved Invoice Configuration is Frozen and
+  P1 is merged; P2 may overlap the remainder of P3 and P4.
 - **Wave B:** when P1 and P2 contracts land, implement P5 and P6 concurrently
   while P3 and P4 continue.
 - **Wave C:** run P7 reporting integration, then complete P8 release
@@ -608,7 +612,7 @@ The owning mission should resolve or explicitly defer each decision:
 | ShovelerDB is young and lacks database-enforced foreign keys | Orphaned or inconsistent financial data | Domain-level invariants, deletion guards, integration tests, repository boundary, backups |
 | ShovelerDB packaging is not yet consumer-oriented | Non-reproducible or awkward builds | Add package metadata upstream and pin an accepted commit/release before feature work |
 | Explicit checkpoint semantics are misunderstood | A confirmed mutation may not survive restart | Central unit-of-work wrapper that commits and checkpoints before success |
-| LaTeX accepts powerful input | File access or command execution risk | No raw TeX, strict escaping, no shell escape, isolated temp directory, resource limits |
+| LaTeX accepts powerful input | File access or command execution risk | No raw TeX, context-specific encoding, no shell escape, and mandatory OS-enforced filesystem/network/process isolation with resource limits |
 | Template changes alter historical documents | Records no longer reproduce | Frozen snapshots, template versions, stored final PDFs and digests |
 | Recurrence produces duplicate invoices | Incorrect billing | Billing-period idempotency key and concurrency tests |
 | Currency aggregation misstates revenue | Misleading dashboard | Per-currency series and explicit labels; no implicit FX |
@@ -618,10 +622,11 @@ The owning mission should resolve or explicitly defer each decision:
 
 ## 19. Immediate next action
 
-The program ledger is established. Create the initial repository baseline,
-then start P0 with the specify phase. Once P0 publishes draft contract
-boundaries, begin P1 through P4 specification and planning concurrently rather
-than waiting for P0 implementation to finish. P0 must turn its shared contracts
-and test harnesses into testable requirements; each downstream mission must
-declare its dependencies, owned paths, integration fixtures, and decision
-ownership from section 17.
+The repository baseline and P0-P4 specifications/plans now exist. Keep every
+mission parked before task generation while the cross-mission Draft review runs.
+Then refresh P0 and P1 from the current `main` baseline, reconcile P0/P1/P2/P4
+contract fixtures, freeze the accepted boundaries, and task P0 first. P1, P3,
+and P4 implementation can begin after P0 is Frozen and merged; P2 begins after
+the P1 Resolved Invoice Configuration is Frozen and P1 is merged. The program
+ledger is the authoritative handle, branch, dependency, contract-state, and
+merge-wave record.

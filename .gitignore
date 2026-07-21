@@ -34,6 +34,7 @@
 .kittify/skills-manifest.json
 .kittify/sync-state.json
 .kittify/workspaces/
+.worktrees/
 __pycache__/
 *.py[cod]
 kitty-ops/ops-index.jsonl
