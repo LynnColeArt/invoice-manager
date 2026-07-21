@@ -6,6 +6,14 @@ fn path(allocator: std.mem.Allocator, tmp: *std.testing.TmpDir, name: []const u8
     return std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/{s}.shovel", .{ tmp.sub_path, name });
 }
 
+fn probeRowCount(store: *persistence.Store) persistence.StoreError!usize {
+    return persistence.testing.rowCount(store, "SELECT body FROM coverage_probe;");
+}
+
+fn admittedRowCount(store: *persistence.Store) persistence.StoreError!usize {
+    return persistence.testing.rowCount(store, "SELECT body FROM coverage_admitted;");
+}
+
 fn success(_: *anyopaque, executor: persistence.Executor) !void {
     _ = try executor.execute("CREATE TABLE coverage_probe (body TEXT);");
 }
@@ -44,6 +52,14 @@ fn statementFailure(_: *anyopaque, executor: persistence.Executor) !void {
 const RichContext = struct {
     visits: usize = 0,
     denied: bool = false,
+    fail_visit: bool = false,
+    skip_setup: bool = false,
+    run_query: bool = true,
+    run_query_bound: bool = true,
+    run_error_checks: bool = true,
+    insert_value: []const u8 = "coverage",
+    normal: ?persistence.Executor = null,
+    startup: ?persistence.StartupExecutor = null,
 };
 
 fn visitRich(raw_context: *anyopaque, row: *const RowView) !void {
@@ -56,27 +72,36 @@ fn visitRich(raw_context: *anyopaque, row: *const RowView) !void {
     _ = try row.value(4);
     _ = try row.value(5);
     _ = row.value(6) catch {};
+    if (context.fail_visit) return error.CoverageVisitorFailure;
     context.visits += 1;
 }
 
 fn richNormal(raw_context: *anyopaque, executor: persistence.Executor) !void {
     const context: *RichContext = @ptrCast(@alignCast(raw_context));
-    _ = try executor.execute(
-        "CREATE TABLE coverage_rich (id INTEGER, score FLOAT, active BOOLEAN, body TEXT, embedding VECTOR(2));",
-    );
-    _ = try executor.executeBound(
-        &.{ "INSERT INTO coverage_rich VALUES (1, 1.5, TRUE, ", ", [0.25, 0.75]);" },
-        &.{"coverage"},
-    );
-    _ = try executor.query(
-        "SELECT NULL, id, score, active, body, embedding FROM coverage_rich;",
-        .{ .context = context, .visit = visitRich },
-    );
-    _ = try executor.queryBound(
-        &.{ "SELECT NULL, id, score, active, body, embedding FROM coverage_rich WHERE body = ", ";" },
-        &.{"coverage"},
-        .{ .context = context, .visit = visitRich },
-    );
+    context.normal = executor;
+    if (!context.skip_setup) {
+        _ = try executor.execute(
+            "CREATE TABLE coverage_rich (id INTEGER, score FLOAT, active BOOLEAN, body TEXT, embedding VECTOR(2));",
+        );
+        _ = try executor.executeBound(
+            &.{ "INSERT INTO coverage_rich VALUES (1, 1.5, TRUE, ", ", [0.25, 0.75]);" },
+            &.{context.insert_value},
+        );
+    }
+    if (context.run_query) {
+        _ = try executor.query(
+            "SELECT NULL, id, score, active, body, embedding FROM coverage_rich;",
+            .{ .context = context, .visit = visitRich },
+        );
+    }
+    if (context.run_query_bound) {
+        _ = try executor.queryBound(
+            &.{ "SELECT NULL, id, score, active, body, embedding FROM coverage_rich WHERE body = ", ";" },
+            &.{"coverage"},
+            .{ .context = context, .visit = visitRich },
+        );
+    }
+    if (!context.run_error_checks) return;
     _ = executor.execute("SELECT FROM sql-sentinel-DO-NOT-LEAK;") catch {};
     _ = executor.execute("SELECT body FROM coverage_missing;") catch {};
     _ = executor.executeBound(&.{"SELECT id FROM coverage_rich WHERE body = "}, &.{"coverage"}) catch {};
@@ -93,22 +118,30 @@ fn richNormal(raw_context: *anyopaque, executor: persistence.Executor) !void {
 
 fn richStartup(raw_context: *anyopaque, executor: persistence.StartupExecutor) !void {
     const context: *RichContext = @ptrCast(@alignCast(raw_context));
-    _ = try executor.executeScript(
-        "CREATE TABLE coverage_startup_rich (id INTEGER, score FLOAT, active BOOLEAN, body TEXT, embedding VECTOR(2));\n",
-    );
-    _ = try executor.executeBound(
-        &.{ "INSERT INTO coverage_startup_rich VALUES (1, 1.5, TRUE, ", ", [0.25, 0.75]);" },
-        &.{"coverage"},
-    );
-    _ = try executor.query(
-        "SELECT NULL, id, score, active, body, embedding FROM coverage_startup_rich;",
-        .{ .context = context, .visit = visitRich },
-    );
-    _ = try executor.queryBound(
-        &.{ "SELECT NULL, id, score, active, body, embedding FROM coverage_startup_rich WHERE body = ", ";" },
-        &.{"coverage"},
-        .{ .context = context, .visit = visitRich },
-    );
+    context.startup = executor;
+    if (!context.skip_setup) {
+        _ = try executor.executeScript(
+            "CREATE TABLE coverage_startup_rich (id INTEGER, score FLOAT, active BOOLEAN, body TEXT, embedding VECTOR(2));\n",
+        );
+        _ = try executor.executeBound(
+            &.{ "INSERT INTO coverage_startup_rich VALUES (1, 1.5, TRUE, ", ", [0.25, 0.75]);" },
+            &.{context.insert_value},
+        );
+    }
+    if (context.run_query) {
+        _ = try executor.query(
+            "SELECT NULL, id, score, active, body, embedding FROM coverage_startup_rich;",
+            .{ .context = context, .visit = visitRich },
+        );
+    }
+    if (context.run_query_bound) {
+        _ = try executor.queryBound(
+            &.{ "SELECT NULL, id, score, active, body, embedding FROM coverage_startup_rich WHERE body = ", ";" },
+            &.{"coverage"},
+            .{ .context = context, .visit = visitRich },
+        );
+    }
+    if (!context.run_error_checks) return;
     _ = executor.executeScript("CREATE TABLE coverage_nul (body TEXT);\x00") catch {};
     _ = executor.executeScript("CREATE TABLE coverage_one (body TEXT); CREATE TABLE coverage_two (body TEXT);") catch {};
     const forged: persistence.Executor = @enumFromInt(@intFromEnum(executor));
@@ -117,7 +150,333 @@ fn richStartup(raw_context: *anyopaque, executor: persistence.StartupExecutor) !
     };
 }
 
+fn expectRichNormalDenied(executor: persistence.Executor, context: *RichContext) !void {
+    try std.testing.expectError(error.CapabilityDenied, executor.execute("CREATE TABLE coverage_probe (body TEXT);"));
+    try std.testing.expectError(error.CapabilityDenied, executor.execute("SELECT body FROM coverage_probe;"));
+    try std.testing.expectError(error.CapabilityDenied, executor.execute("SELECT FROM invalid_coverage_statement;"));
+    try std.testing.expectError(
+        error.CapabilityDenied,
+        executor.execute("CREATE TABLE coverage_rich (id INTEGER, score FLOAT, active BOOLEAN, body TEXT, embedding VECTOR(2));"),
+    );
+    try std.testing.expectError(error.CapabilityDenied, executor.execute("SELECT FROM sql-sentinel-DO-NOT-LEAK;"));
+    try std.testing.expectError(error.CapabilityDenied, executor.execute("SELECT body FROM coverage_missing;"));
+    try std.testing.expectError(error.CapabilityDenied, executor.execute("CREATE TABLE coverage_admitted (body TEXT);"));
+    try std.testing.expectError(
+        error.CapabilityDenied,
+        executor.executeText("INSERT INTO coverage_probe VALUES (", "coverage", ");"),
+    );
+    try std.testing.expectError(
+        error.CapabilityDenied,
+        executor.executeBound(
+            &.{ "INSERT INTO coverage_rich VALUES (1, 1.5, TRUE, ", ", [0.25, 0.75]);" },
+            &.{"coverage"},
+        ),
+    );
+    try std.testing.expectError(
+        error.CapabilityDenied,
+        executor.executeBound(&.{"SELECT id FROM coverage_rich WHERE body = "}, &.{"coverage"}),
+    );
+    try std.testing.expectError(
+        error.CapabilityDenied,
+        executor.executeBound(&.{ "SELECT id FROM coverage_rich WHERE body = ", ";" }, &.{"nul\x00value"}),
+    );
+    try std.testing.expectError(
+        error.CapabilityDenied,
+        executor.query(
+            "SELECT NULL, id, score, active, body, embedding FROM coverage_rich;",
+            .{ .context = context, .visit = visitRich },
+        ),
+    );
+    try std.testing.expectError(
+        error.CapabilityDenied,
+        executor.query(
+            "CREATE TABLE coverage_rows_required (body TEXT);",
+            .{ .context = context, .visit = visitRich },
+        ),
+    );
+    try std.testing.expectError(
+        error.CapabilityDenied,
+        executor.queryBound(
+            &.{ "SELECT NULL, id, score, active, body, embedding FROM coverage_rich WHERE body = ", ";" },
+            &.{"coverage"},
+            .{ .context = context, .visit = visitRich },
+        ),
+    );
+}
+
+fn expectRichStartupDenied(executor: persistence.StartupExecutor, context: *RichContext) !void {
+    try std.testing.expectError(error.CapabilityDenied, executor.execute("CREATE TABLE coverage_probe (body TEXT);"));
+    try std.testing.expectError(
+        error.CapabilityDenied,
+        executor.executeText("INSERT INTO coverage_probe VALUES (", "coverage", ");"),
+    );
+    try std.testing.expectError(
+        error.CapabilityDenied,
+        executor.executeBound(
+            &.{ "INSERT INTO coverage_startup_rich VALUES (1, 1.5, TRUE, ", ", [0.25, 0.75]);" },
+            &.{"coverage"},
+        ),
+    );
+    try std.testing.expectError(
+        error.CapabilityDenied,
+        executor.query(
+            "SELECT NULL, id, score, active, body, embedding FROM coverage_startup_rich;",
+            .{ .context = context, .visit = visitRich },
+        ),
+    );
+    try std.testing.expectError(
+        error.CapabilityDenied,
+        executor.queryBound(
+            &.{ "SELECT NULL, id, score, active, body, embedding FROM coverage_startup_rich WHERE body = ", ";" },
+            &.{"coverage"},
+            .{ .context = context, .visit = visitRich },
+        ),
+    );
+}
+
+const RichAlternate = enum {
+    repeat_create,
+    select_created_missing,
+    insert_nul,
+    select_clean,
+    query_after_drop,
+    query_bound_after_drop,
+};
+
+const RichAlternateContext = struct {
+    operation: RichAlternate,
+    rich: *RichContext,
+};
+
+fn richNormalAlternate(raw_context: *anyopaque, executor: persistence.Executor) !void {
+    const context: *RichAlternateContext = @ptrCast(@alignCast(raw_context));
+    switch (context.operation) {
+        .repeat_create => _ = try executor.execute(
+            "CREATE TABLE coverage_rich (id INTEGER, score FLOAT, active BOOLEAN, body TEXT, embedding VECTOR(2));",
+        ),
+        .select_created_missing => _ = try executor.execute("SELECT body FROM coverage_missing;"),
+        .insert_nul => _ = try executor.executeBound(
+            &.{ "INSERT INTO coverage_rich VALUES (1, 1.5, TRUE, ", ", [0.25, 0.75]);" },
+            &.{"nul\x00value"},
+        ),
+        .select_clean => _ = try executor.executeBound(
+            &.{ "SELECT id FROM coverage_rich WHERE body = ", ";" },
+            &.{"coverage"},
+        ),
+        .query_after_drop => _ = try executor.query(
+            "SELECT NULL, id, score, active, body, embedding FROM coverage_rich;",
+            .{ .context = context.rich, .visit = visitRich },
+        ),
+        .query_bound_after_drop => _ = try executor.queryBound(
+            &.{ "SELECT NULL, id, score, active, body, embedding FROM coverage_rich WHERE body = ", ";" },
+            &.{"coverage"},
+            .{ .context = context.rich, .visit = visitRich },
+        ),
+    }
+}
+
+const StartupAlternate = enum {
+    insert_nul,
+    query_after_drop,
+    query_bound_after_drop,
+};
+
+const StartupAlternateContext = struct {
+    operation: StartupAlternate,
+    rich: *RichContext,
+};
+
+fn richStartupAlternate(raw_context: *anyopaque, executor: persistence.StartupExecutor) !void {
+    const context: *StartupAlternateContext = @ptrCast(@alignCast(raw_context));
+    switch (context.operation) {
+        .insert_nul => _ = try executor.executeBound(
+            &.{ "INSERT INTO coverage_startup_rich VALUES (1, 1.5, TRUE, ", ", [0.25, 0.75]);" },
+            &.{"nul\x00value"},
+        ),
+        .query_after_drop => _ = try executor.query(
+            "SELECT NULL, id, score, active, body, embedding FROM coverage_startup_rich;",
+            .{ .context = context.rich, .visit = visitRich },
+        ),
+        .query_bound_after_drop => _ = try executor.queryBound(
+            &.{ "SELECT NULL, id, score, active, body, embedding FROM coverage_startup_rich WHERE body = ", ";" },
+            &.{"coverage"},
+            .{ .context = context.rich, .visit = visitRich },
+        ),
+    }
+}
+
+const RuntimeScriptContext = struct {
+    script: []const u8,
+};
+
+fn executeRuntimeScript(raw_context: *anyopaque, executor: persistence.StartupExecutor) !void {
+    const context: *RuntimeScriptContext = @ptrCast(@alignCast(raw_context));
+    _ = try executor.executeScript(context.script);
+}
+
 fn noOp(_: *anyopaque, _: persistence.Executor) !void {}
+
+fn startupNoOp(_: *anyopaque, _: persistence.StartupExecutor) !void {}
+
+const CountContext = struct {
+    calls: usize = 0,
+};
+
+fn countNoOp(raw_context: *anyopaque, _: persistence.Executor) !void {
+    const context: *CountContext = @ptrCast(@alignCast(raw_context));
+    context.calls += 1;
+}
+
+const ExecutorOperation = enum {
+    execute,
+    execute_text,
+    execute_bound,
+    query,
+    query_bound,
+};
+
+const SpecializationContext = struct {
+    operation: ExecutorOperation,
+    expect_missing_object: bool,
+    visits: usize = 0,
+};
+
+fn visitSpecialization(raw_context: *anyopaque, row: *const RowView) !void {
+    const context: *SpecializationContext = @ptrCast(@alignCast(raw_context));
+    try std.testing.expectEqual(@as(usize, 1), row.len());
+    _ = try row.value(0);
+    context.visits += 1;
+}
+
+fn settleStatement(context: *SpecializationContext, result: persistence.StoreError!persistence.StatementResult) !void {
+    if (context.expect_missing_object) {
+        if (result) |_| {
+            return error.ExpectedMissingObject;
+        } else |err| {
+            try std.testing.expectEqual(error.StatementObjectFailed, err);
+            return error.CoveragePlannedRollback;
+        }
+    }
+    _ = try result;
+}
+
+fn settleQuery(context: *SpecializationContext, result: anyerror!usize) !void {
+    if (context.expect_missing_object) {
+        if (result) |_| {
+            return error.ExpectedMissingObject;
+        } else |err| {
+            try std.testing.expectEqual(error.StatementObjectFailed, err);
+            return error.CoveragePlannedRollback;
+        }
+    }
+    _ = try result;
+}
+
+fn exerciseNormalSpecialization(raw_context: *anyopaque, executor: persistence.Executor) !void {
+    const context: *SpecializationContext = @ptrCast(@alignCast(raw_context));
+    switch (context.operation) {
+        .execute => try settleStatement(
+            context,
+            executor.execute("SELECT body FROM coverage_specialization;"),
+        ),
+        .execute_text => try settleStatement(
+            context,
+            executor.executeText(
+                "INSERT INTO coverage_specialization VALUES (",
+                "normal-text",
+                ");",
+            ),
+        ),
+        .execute_bound => try settleStatement(
+            context,
+            executor.executeBound(
+                &.{ "INSERT INTO coverage_specialization VALUES (", ");" },
+                &.{"normal-bound"},
+            ),
+        ),
+        .query => try settleQuery(
+            context,
+            executor.query(
+                "SELECT body FROM coverage_specialization;",
+                .{ .context = context, .visit = visitSpecialization },
+            ),
+        ),
+        .query_bound => try settleQuery(
+            context,
+            executor.queryBound(
+                &.{ "SELECT body FROM coverage_specialization WHERE body = ", ";" },
+                &.{"normal-text"},
+                .{ .context = context, .visit = visitSpecialization },
+            ),
+        ),
+    }
+}
+
+fn createNormalSpecializationSchema(_: *anyopaque, executor: persistence.Executor) !void {
+    _ = try executor.execute("CREATE TABLE coverage_specialization (body TEXT);");
+}
+
+const RetainedNormalSurface = struct {
+    executor: ?persistence.Executor = null,
+};
+
+fn retainNormalSurface(raw_context: *anyopaque, executor: persistence.Executor) !void {
+    const context: *RetainedNormalSurface = @ptrCast(@alignCast(raw_context));
+    context.executor = executor;
+}
+
+fn exerciseStartupSpecialization(raw_context: *anyopaque, executor: persistence.StartupExecutor) !void {
+    const context: *SpecializationContext = @ptrCast(@alignCast(raw_context));
+    switch (context.operation) {
+        .execute => try settleStatement(
+            context,
+            executor.execute("SELECT body FROM coverage_startup_specialization;"),
+        ),
+        .execute_text => try settleStatement(
+            context,
+            executor.executeText(
+                "INSERT INTO coverage_startup_specialization VALUES (",
+                "startup-text",
+                ");",
+            ),
+        ),
+        .execute_bound => try settleStatement(
+            context,
+            executor.executeBound(
+                &.{ "INSERT INTO coverage_startup_specialization VALUES (", ");" },
+                &.{"startup-bound"},
+            ),
+        ),
+        .query => try settleQuery(
+            context,
+            executor.query(
+                "SELECT body FROM coverage_startup_specialization;",
+                .{ .context = context, .visit = visitSpecialization },
+            ),
+        ),
+        .query_bound => try settleQuery(
+            context,
+            executor.queryBound(
+                &.{ "SELECT body FROM coverage_startup_specialization WHERE body = ", ";" },
+                &.{"startup-text"},
+                .{ .context = context, .visit = visitSpecialization },
+            ),
+        ),
+    }
+}
+
+fn createStartupSpecializationSchema(_: *anyopaque, executor: persistence.StartupExecutor) !void {
+    _ = try executor.executeScript("CREATE TABLE coverage_startup_specialization (body TEXT);\n");
+}
+
+const RetainedStartupSurface = struct {
+    executor: ?persistence.StartupExecutor = null,
+};
+
+fn retainStartupSurface(raw_context: *anyopaque, executor: persistence.StartupExecutor) !void {
+    const context: *RetainedStartupSurface = @ptrCast(@alignCast(raw_context));
+    context.executor = executor;
+}
 
 fn expectOpenFault(faults: persistence.testing.Faults, expected: anyerror, name: []const u8) !void {
     const allocator = std.testing.allocator;
@@ -188,6 +547,10 @@ fn admittedExecutorCall(context: *RetainContext, executor: persistence.Executor)
     };
 }
 
+fn repeatAdmittedStatement(_: *anyopaque, executor: persistence.Executor) !void {
+    _ = try executor.execute("CREATE TABLE coverage_admitted (body TEXT);");
+}
+
 fn retainExecutor(raw_context: *anyopaque, executor: persistence.Executor) !void {
     const context: *RetainContext = @ptrCast(@alignCast(raw_context));
     context.executor = executor;
@@ -249,16 +612,17 @@ test "successful facade covers durable receipt queries and idempotent shutdown" 
     var store = try persistence.Store.open(allocator, std.testing.io, database_path);
     try std.testing.expectEqual(persistence.State.ready, store.state());
     try std.testing.expectEqual(@as(?persistence.Diagnostic, null), store.lastDiagnostic());
+    try std.testing.expectError(error.DurabilityCompletionUnavailable, store.completeDurability());
     try std.testing.expectError(
         error.QueryFailed,
-        persistence.testing.rowCount(&store, "SELECT body FROM coverage_probe;"),
+        probeRowCount(&store),
     );
     var unused: void = {};
     const created = try store.mutate(.{ .context = &unused, .run = success });
     try std.testing.expectEqual(persistence.State.directory_synchronized, created.durability);
     _ = try store.startupWrite(.{ .context = &unused, .run = startupInsert });
     _ = try store.mutate(.{ .context = &unused, .run = selectRows });
-    try std.testing.expectEqual(@as(usize, 1), try persistence.testing.rowCount(&store, "SELECT body FROM coverage_probe;"));
+    try std.testing.expectEqual(@as(usize, 1), try probeRowCount(&store));
     try std.testing.expect(persistence.testing.checkpointCount(&store) >= 3);
     try std.testing.expectEqual(@as(usize, 0), persistence.testing.discardCount(&store));
     try std.testing.expectEqual(@as(usize, 0), persistence.testing.reopenCount(&store));
@@ -276,7 +640,7 @@ test "successful facade covers durable receipt queries and idempotent shutdown" 
     try std.testing.expect(!persistence.testing.receiptIssued(&store));
     try std.testing.expectEqual(@as(usize, 0), persistence.testing.events(&store).len);
     persistence.testing.setFaults(&store, .{});
-    try std.testing.expectError(error.StoreClosed, persistence.testing.rowCount(&store, "SELECT body FROM coverage_probe;"));
+    try std.testing.expectError(error.StoreClosed, probeRowCount(&store));
     try std.testing.expectError(error.StoreClosed, store.mutate(.{ .context = &unused, .run = success }));
     try std.testing.expectError(error.StoreClosed, store.startupWrite(.{ .context = &unused, .run = startupSuccess }));
 }
@@ -335,6 +699,15 @@ test "canonicalization and open failures cover real operating-system boundaries"
     const directory_path = try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}", .{tmp.sub_path});
     defer allocator.free(directory_path);
     try std.testing.expectError(error.EngineOpenFailed, persistence.Store.open(allocator, std.testing.io, directory_path));
+
+    const bare_path = "coverage-wp06-bare-relative.shovel";
+    const bare_lock_path = bare_path ++ ".lock";
+    std.Io.Dir.deleteFile(.cwd(), std.testing.io, bare_path) catch {};
+    std.Io.Dir.deleteFile(.cwd(), std.testing.io, bare_lock_path) catch {};
+    defer std.Io.Dir.deleteFile(.cwd(), std.testing.io, bare_path) catch {};
+    defer std.Io.Dir.deleteFile(.cwd(), std.testing.io, bare_lock_path) catch {};
+    var bare_store = try persistence.Store.open(allocator, std.testing.io, bare_path);
+    try bare_store.shutdown();
 }
 
 test "injected callback and startup begin failures preserve typed recovery states" {
@@ -409,6 +782,34 @@ test "injected callback and startup begin failures preserve typed recovery state
     );
     try std.testing.expectEqual(@as(usize, 1), persistence.testing.discardCount(&startup_registration_store));
     try std.testing.expectEqual(@as(usize, 1), persistence.testing.reopenCount(&startup_registration_store));
+
+    const registration_rollback_path = try path(allocator, &tmp, "executor-registration-rollback");
+    defer allocator.free(registration_rollback_path);
+    var registration_rollback_store = try persistence.testing.openWithFaults(
+        allocator,
+        std.testing.io,
+        registration_rollback_path,
+        .{ .executor_registration = true, .rollback = true },
+    );
+    defer registration_rollback_store.shutdown() catch {};
+    try std.testing.expectError(
+        error.RollbackFailed,
+        registration_rollback_store.mutate(.{ .context = &unused, .run = success }),
+    );
+
+    const operation_rollback_path = try path(allocator, &tmp, "operation-callback-rollback");
+    defer allocator.free(operation_rollback_path);
+    var operation_rollback_store = try persistence.testing.openWithFaults(
+        allocator,
+        std.testing.io,
+        operation_rollback_path,
+        .{ .rollback = true },
+    );
+    defer operation_rollback_store.shutdown() catch {};
+    try std.testing.expectError(
+        error.RollbackFailed,
+        operation_rollback_store.mutate(.{ .context = &unused, .run = failure }),
+    );
 }
 
 test "hard-link identity rejection and inspection cleanup use the public open boundary" {
@@ -475,6 +876,8 @@ test "dynamic registries reclaim non-head stores and executor scopes" {
     defer allocator.free(second_path);
     var first = try persistence.Store.open(allocator, std.testing.io, first_path);
     var second = try persistence.Store.open(allocator, std.testing.io, second_path);
+    try std.testing.expectEqual(persistence.State.ready, first.state());
+    try std.testing.expectEqual(@as(?persistence.Diagnostic, null), first.lastDiagnostic());
 
     var first_context = ClosingContext{};
     var second_context = ClosingContext{};
@@ -490,7 +893,148 @@ test "dynamic registries reclaim non-head stores and executor scopes" {
     try std.testing.expectEqual(@as(?anyerror, null), second_context.result);
 
     try first.shutdown();
+    try first.shutdown();
+    try std.testing.expectEqual(persistence.State.closed, first.state());
+    try std.testing.expectEqual(@as(?persistence.Diagnostic, null), first.lastDiagnostic());
+    try std.testing.expectError(error.StoreClosed, first.completeDurability());
+    try std.testing.expectEqual(persistence.State.ready, second.state());
     try second.shutdown();
+}
+
+test "concurrent successful shutdown waiters share reclamation and archived outcome" {
+    const allocator = std.testing.allocator;
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const database_path = try path(allocator, &tmp, "coverage-successful-shutdown-waiters");
+    defer allocator.free(database_path);
+    var shutdown_barrier = persistence.testing.ShutdownCallBarrier{};
+    var store = try persistence.testing.openWithFaults(
+        allocator,
+        std.testing.io,
+        database_path,
+        .{ .shutdown_call_barrier = &shutdown_barrier },
+    );
+    var context = ClosingContext{};
+    const mutation = try std.Thread.spawn(.{}, mutationThread, .{ &store, &context });
+    try waitForAtomic(&context.entered);
+
+    var leader = ShutdownAttempt{ .store = &store };
+    const leader_thread = try std.Thread.spawn(.{}, ShutdownAttempt.run, .{&leader});
+    try shutdown_barrier.waitForCallers(1, std.testing.io);
+    var waiter = ShutdownAttempt{ .store = &store };
+    const waiter_thread = try std.Thread.spawn(.{}, ShutdownAttempt.run, .{&waiter});
+    try shutdown_barrier.waitForCallers(2, std.testing.io);
+    try std.testing.expect(!leader.done.load(.acquire));
+    try std.testing.expect(!waiter.done.load(.acquire));
+
+    context.release.store(true, .release);
+    mutation.join();
+    leader_thread.join();
+    waiter_thread.join();
+    try std.testing.expectEqual(@as(?anyerror, null), context.result);
+    try std.testing.expectEqual(@as(?anyerror, null), leader.result);
+    try std.testing.expectEqual(@as(?anyerror, null), waiter.result);
+    try std.testing.expect(shutdown_barrier.hasReclaimed());
+    try store.shutdown();
+    try std.testing.expectEqual(persistence.State.closed, store.state());
+    try std.testing.expectEqual(@as(?persistence.Diagnostic, null), store.lastDiagnostic());
+}
+
+test "shutdown barrier reports a bounded deadline when no caller arrives" {
+    var barrier = persistence.testing.ShutdownCallBarrier{};
+    try std.testing.expectError(error.TestTimeout, barrier.waitForCallers(1, std.testing.io));
+}
+
+test "executor specializations cover failure success and expired admission paths" {
+    const allocator = std.testing.allocator;
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const normal_path = try path(allocator, &tmp, "coverage-specializations");
+    defer allocator.free(normal_path);
+    var normal_store = try persistence.Store.open(allocator, std.testing.io, normal_path);
+    defer normal_store.shutdown() catch {};
+
+    const operations = [_]ExecutorOperation{ .execute, .execute_text, .execute_bound, .query, .query_bound };
+    for (operations) |operation| {
+        var context = SpecializationContext{
+            .operation = operation,
+            .expect_missing_object = true,
+        };
+        try std.testing.expectError(
+            error.CallbackFailed,
+            normal_store.mutate(.{ .context = &context, .run = exerciseNormalSpecialization }),
+        );
+    }
+    var unused: void = {};
+    _ = try normal_store.mutate(.{ .context = &unused, .run = createNormalSpecializationSchema });
+    try std.testing.expectError(
+        error.CallbackFailed,
+        normal_store.mutate(.{ .context = &unused, .run = createNormalSpecializationSchema }),
+    );
+    for (operations) |operation| {
+        var context = SpecializationContext{
+            .operation = operation,
+            .expect_missing_object = false,
+        };
+        _ = try normal_store.mutate(.{ .context = &context, .run = exerciseNormalSpecialization });
+    }
+    var retained_normal = RetainedNormalSurface{};
+    _ = try normal_store.mutate(.{ .context = &retained_normal, .run = retainNormalSurface });
+    const normal = retained_normal.executor.?;
+    for (operations) |operation| {
+        var context = SpecializationContext{
+            .operation = operation,
+            .expect_missing_object = false,
+        };
+        try std.testing.expectError(
+            error.CapabilityDenied,
+            exerciseNormalSpecialization(&context, normal),
+        );
+    }
+
+    const startup_path = try path(allocator, &tmp, "coverage-startup-specializations");
+    defer allocator.free(startup_path);
+    var startup_store = try persistence.Store.open(allocator, std.testing.io, startup_path);
+    defer startup_store.shutdown() catch {};
+    for (operations) |operation| {
+        var context = SpecializationContext{
+            .operation = operation,
+            .expect_missing_object = true,
+        };
+        try std.testing.expectError(
+            error.StartupWriteFailed,
+            startup_store.startupWrite(.{ .context = &context, .run = exerciseStartupSpecialization }),
+        );
+    }
+    _ = try startup_store.startupWrite(.{ .context = &unused, .run = createStartupSpecializationSchema });
+    try std.testing.expectError(
+        error.StartupWriteFailed,
+        startup_store.startupWrite(.{ .context = &unused, .run = createStartupSpecializationSchema }),
+    );
+    for (operations) |operation| {
+        var context = SpecializationContext{
+            .operation = operation,
+            .expect_missing_object = false,
+        };
+        _ = try startup_store.startupWrite(.{ .context = &context, .run = exerciseStartupSpecialization });
+    }
+    var retained_startup = RetainedStartupSurface{};
+    _ = try startup_store.startupWrite(.{ .context = &retained_startup, .run = retainStartupSurface });
+    const startup = retained_startup.executor.?;
+    for (operations) |operation| {
+        var context = SpecializationContext{
+            .operation = operation,
+            .expect_missing_object = false,
+        };
+        try std.testing.expectError(
+            error.CapabilityDenied,
+            exerciseStartupSpecialization(&context, startup),
+        );
+    }
+    try std.testing.expectError(
+        error.CapabilityDenied,
+        startup.executeScript("CREATE TABLE coverage_expired_startup (body TEXT);"),
+    );
 }
 
 test "opaque nonce capabilities reject forged tags and retain terminal diagnostics" {
@@ -520,6 +1064,108 @@ test "opaque nonce capabilities reject forged tags and retain terminal diagnosti
     try std.testing.expectEqual(@as(?persistence.Diagnostic, null), forged.lastDiagnostic());
     try std.testing.expectError(error.StoreClosed, forged.mutate(.{ .context = &unused, .run = success }));
     try forged.shutdown();
+}
+
+test "shutdown failure preserves the earlier checkpoint diagnostic" {
+    const allocator = std.testing.allocator;
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const database_path = try path(allocator, &tmp, "coverage-causal-shutdown");
+    defer allocator.free(database_path);
+    var store = try persistence.testing.openWithFaults(
+        allocator,
+        std.testing.io,
+        database_path,
+        .{ .checkpoint = true, .shutdown = true },
+    );
+    var unused: void = {};
+    try std.testing.expectError(
+        error.CheckpointFailed,
+        store.mutate(.{ .context = &unused, .run = noOp }),
+    );
+    const checkpoint_diagnostic = store.lastDiagnostic().?;
+    try std.testing.expectEqual(persistence.DiagnosticCategory.checkpoint_failure, checkpoint_diagnostic.category);
+    try std.testing.expectError(error.ShutdownFailed, store.shutdown());
+    const terminal_diagnostic = store.lastDiagnostic().?;
+    try std.testing.expectEqual(checkpoint_diagnostic, terminal_diagnostic);
+}
+
+test "zero and evicted store capabilities remain closed without registry state" {
+    var unused: void = {};
+    var zero: persistence.Store = @enumFromInt(0);
+    try std.testing.expectEqual(persistence.State.closed, zero.state());
+    try std.testing.expectEqual(@as(?persistence.Diagnostic, null), zero.lastDiagnostic());
+    try std.testing.expectError(error.StoreClosed, zero.mutate(.{ .context = &unused, .run = noOp }));
+    try std.testing.expectError(
+        error.StoreClosed,
+        zero.startupWrite(.{ .context = &unused, .run = startupNoOp }),
+    );
+    try std.testing.expectError(error.StoreClosed, zero.completeDurability());
+    try zero.shutdown();
+
+    const allocator = std.testing.allocator;
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    var first_closed: ?persistence.Store = null;
+    for (0..257) |index| {
+        const name = try std.fmt.allocPrint(allocator, "coverage-eviction-{d}", .{index});
+        defer allocator.free(name);
+        const database_path = try path(allocator, &tmp, name);
+        defer allocator.free(database_path);
+        var store = try persistence.Store.open(allocator, std.testing.io, database_path);
+        if (index == 0) first_closed = store;
+        try store.shutdown();
+    }
+
+    var evicted = first_closed.?;
+    try std.testing.expectEqual(persistence.State.closed, evicted.state());
+    try std.testing.expectEqual(@as(?persistence.Diagnostic, null), evicted.lastDiagnostic());
+    try std.testing.expectError(error.StoreClosed, evicted.mutate(.{ .context = &unused, .run = noOp }));
+    try evicted.shutdown();
+}
+
+test "allocator failures reclaim partial stores and executor registrations" {
+    const allocator = std.testing.allocator;
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    var open_failures: usize = 0;
+    var open_successes: usize = 0;
+    var mutation_oom: usize = 0;
+    var unused: void = {};
+
+    for (0..256) |failure_index| {
+        const name = try std.fmt.allocPrint(allocator, "coverage-allocation-{d}", .{failure_index});
+        defer allocator.free(name);
+        const database_path = try path(allocator, &tmp, name);
+        defer allocator.free(database_path);
+        var failing = std.testing.FailingAllocator.init(allocator, .{ .fail_index = failure_index });
+        if (persistence.Store.open(failing.allocator(), std.testing.io, database_path)) |opened| {
+            open_successes += 1;
+            var store = opened;
+            _ = store.mutate(.{ .context = &unused, .run = noOp }) catch |err| {
+                if (err == error.OutOfMemory) mutation_oom += 1;
+            };
+            store.shutdown() catch {};
+        } else |_| {
+            open_failures += 1;
+        }
+    }
+
+    try std.testing.expect(open_failures > 0);
+    try std.testing.expect(open_successes > 0);
+    try std.testing.expect(mutation_oom > 0);
+
+    const existing_path = try path(allocator, &tmp, "coverage-existing-allocation");
+    defer allocator.free(existing_path);
+    var created = try persistence.Store.open(allocator, std.testing.io, existing_path);
+    try created.shutdown();
+    for (0..16) |failure_index| {
+        var failing = std.testing.FailingAllocator.init(allocator, .{ .fail_index = failure_index });
+        if (persistence.Store.open(failing.allocator(), std.testing.io, existing_path)) |opened| {
+            var store = opened;
+            store.shutdown() catch {};
+        } else |_| {}
+    }
 }
 
 test "closing admission rejects observers and mutations while admitted work drains" {
@@ -576,11 +1222,150 @@ test "executor capabilities cover bound rows safe categories and startup runtime
     _ = try store.mutate(.{ .context = &normal_context, .run = richNormal });
     try std.testing.expect(normal_context.visits >= 2);
     try std.testing.expect(normal_context.denied);
+    try expectRichNormalDenied(normal_context.normal.?, &normal_context);
+    try expectRichNormalDenied(@enumFromInt(0), &normal_context);
+    try std.testing.expectError(
+        error.CallbackFailed,
+        store.mutate(.{ .context = &normal_context, .run = richNormal }),
+    );
+
+    var normal_alternate = RichAlternateContext{ .operation = .repeat_create, .rich = &normal_context };
+    try std.testing.expectError(
+        error.CallbackFailed,
+        store.mutate(.{ .context = &normal_alternate, .run = richNormalAlternate }),
+    );
+    var script = RuntimeScriptContext{ .script = "CREATE TABLE coverage_missing (body TEXT);" };
+    _ = try store.startupWrite(.{ .context = &script, .run = executeRuntimeScript });
+    normal_alternate.operation = .select_created_missing;
+    _ = try store.mutate(.{ .context = &normal_alternate, .run = richNormalAlternate });
+    normal_alternate.operation = .insert_nul;
+    try std.testing.expectError(
+        error.CallbackFailed,
+        store.mutate(.{ .context = &normal_alternate, .run = richNormalAlternate }),
+    );
+    normal_alternate.operation = .select_clean;
+    _ = try store.mutate(.{ .context = &normal_alternate, .run = richNormalAlternate });
 
     var startup_context = RichContext{};
     _ = try store.startupWrite(.{ .context = &startup_context, .run = richStartup });
     try std.testing.expect(startup_context.visits >= 2);
     try std.testing.expect(startup_context.denied);
+    try expectRichStartupDenied(startup_context.startup.?, &startup_context);
+    try expectRichStartupDenied(@enumFromInt(0), &startup_context);
+
+    var startup_alternate = StartupAlternateContext{ .operation = .insert_nul, .rich = &startup_context };
+    try std.testing.expectError(
+        error.StartupWriteFailed,
+        store.startupWrite(.{ .context = &startup_alternate, .run = richStartupAlternate }),
+    );
+
+    script.script = "DROP TABLE coverage_rich;";
+    _ = try store.startupWrite(.{ .context = &script, .run = executeRuntimeScript });
+    script.script = "DROP TABLE coverage_startup_rich;";
+    _ = try store.startupWrite(.{ .context = &script, .run = executeRuntimeScript });
+    normal_alternate.operation = .query_after_drop;
+    try std.testing.expectError(
+        error.CallbackFailed,
+        store.mutate(.{ .context = &normal_alternate, .run = richNormalAlternate }),
+    );
+    normal_alternate.operation = .query_bound_after_drop;
+    try std.testing.expectError(
+        error.CallbackFailed,
+        store.mutate(.{ .context = &normal_alternate, .run = richNormalAlternate }),
+    );
+    startup_alternate.operation = .query_after_drop;
+    try std.testing.expectError(
+        error.StartupWriteFailed,
+        store.startupWrite(.{ .context = &startup_alternate, .run = richStartupAlternate }),
+    );
+    startup_alternate.operation = .query_bound_after_drop;
+    try std.testing.expectError(
+        error.StartupWriteFailed,
+        store.startupWrite(.{ .context = &startup_alternate, .run = richStartupAlternate }),
+    );
+}
+
+test "row visitor failures abort normal and startup callbacks through live query callsites" {
+    const allocator = std.testing.allocator;
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const normal_path = try path(allocator, &tmp, "coverage-normal-visitor-failure");
+    defer allocator.free(normal_path);
+    var normal_store = try persistence.Store.open(allocator, std.testing.io, normal_path);
+    defer normal_store.shutdown() catch {};
+    var normal_context = RichContext{ .fail_visit = true };
+    try std.testing.expectError(
+        error.CallbackFailed,
+        normal_store.mutate(.{ .context = &normal_context, .run = richNormal }),
+    );
+    normal_context = .{
+        .insert_value = "nul\x00value",
+        .run_query = false,
+        .run_query_bound = false,
+        .run_error_checks = false,
+    };
+    try std.testing.expectError(
+        error.CallbackFailed,
+        normal_store.mutate(.{ .context = &normal_context, .run = richNormal }),
+    );
+    var drop_normal = RuntimeScriptContext{ .script = "DROP TABLE coverage_rich;" };
+    _ = try normal_store.startupWrite(.{ .context = &drop_normal, .run = executeRuntimeScript });
+    normal_context = .{
+        .skip_setup = true,
+        .run_query_bound = false,
+        .run_error_checks = false,
+    };
+    try std.testing.expectError(
+        error.CallbackFailed,
+        normal_store.mutate(.{ .context = &normal_context, .run = richNormal }),
+    );
+    normal_context = .{
+        .skip_setup = true,
+        .run_query = false,
+        .run_error_checks = false,
+    };
+    try std.testing.expectError(
+        error.CallbackFailed,
+        normal_store.mutate(.{ .context = &normal_context, .run = richNormal }),
+    );
+
+    const startup_path = try path(allocator, &tmp, "coverage-startup-visitor-failure");
+    defer allocator.free(startup_path);
+    var startup_store = try persistence.Store.open(allocator, std.testing.io, startup_path);
+    defer startup_store.shutdown() catch {};
+    var startup_context = RichContext{ .fail_visit = true };
+    try std.testing.expectError(
+        error.StartupWriteFailed,
+        startup_store.startupWrite(.{ .context = &startup_context, .run = richStartup }),
+    );
+    startup_context = .{
+        .insert_value = "nul\x00value",
+        .run_query = false,
+        .run_query_bound = false,
+        .run_error_checks = false,
+    };
+    try std.testing.expectError(
+        error.StartupWriteFailed,
+        startup_store.startupWrite(.{ .context = &startup_context, .run = richStartup }),
+    );
+    startup_context = .{
+        .skip_setup = true,
+        .run_query_bound = false,
+        .run_error_checks = false,
+    };
+    try std.testing.expectError(
+        error.StartupWriteFailed,
+        startup_store.startupWrite(.{ .context = &startup_context, .run = richStartup }),
+    );
+    startup_context = .{
+        .skip_setup = true,
+        .run_query = false,
+        .run_error_checks = false,
+    };
+    try std.testing.expectError(
+        error.StartupWriteFailed,
+        startup_store.startupWrite(.{ .context = &startup_context, .run = richStartup }),
+    );
 }
 
 test "durability completion covers committed checkpointed quarantined and ineligible states" {
@@ -616,6 +1401,26 @@ test "durability completion covers committed checkpointed quarantined and inelig
     try std.testing.expectError(error.DirectorySyncFailed, sync_store.mutate(.{ .context = &unused, .run = noOp }));
     persistence.testing.setFaults(&sync_store, .{});
     _ = try sync_store.completeDurability();
+
+    const identity_path = try path(allocator, &tmp, "coverage-complete-identity");
+    defer allocator.free(identity_path);
+    var identity_store = try persistence.Store.open(allocator, std.testing.io, identity_path);
+    defer identity_store.shutdown() catch {};
+    var identity_context = CountContext{};
+    persistence.testing.setFaults(&identity_store, .{ .identity_inspection = true });
+    try std.testing.expectError(
+        error.LeaseAcquireFailed,
+        identity_store.mutate(.{ .context = &identity_context, .run = countNoOp }),
+    );
+    try std.testing.expectEqual(@as(usize, 1), identity_context.calls);
+    try std.testing.expectEqual(
+        persistence.DiagnosticCategory.lease_acquire_failure,
+        identity_store.lastDiagnostic().?.category,
+    );
+    persistence.testing.setFaults(&identity_store, .{});
+    _ = try identity_store.completeDurability();
+    try std.testing.expectEqual(@as(usize, 1), identity_context.calls);
+    try std.testing.expectEqual(@as(?persistence.Diagnostic, null), identity_store.lastDiagnostic());
 
     const commit_path = try path(allocator, &tmp, "coverage-complete-commit");
     defer allocator.free(commit_path);
@@ -669,12 +1474,42 @@ test "callback-scoped executor drains admitted calls and rejects retained values
     try std.testing.expectEqual(@as(?anyerror, null), context.result);
     try std.testing.expectEqual(
         @as(usize, 0),
-        try persistence.testing.rowCount(&store, "SELECT body FROM coverage_admitted;"),
+        try admittedRowCount(&store),
     );
+    var unused: void = {};
+    try std.testing.expectError(
+        error.CallbackFailed,
+        store.mutate(.{ .context = &unused, .run = repeatAdmittedStatement }),
+    );
+    var drop_admitted = RuntimeScriptContext{ .script = "DROP TABLE coverage_admitted;" };
+    _ = try store.startupWrite(.{ .context = &drop_admitted, .run = executeRuntimeScript });
+    try std.testing.expectError(error.QueryFailed, admittedRowCount(&store));
     try std.testing.expectError(
         error.CapabilityDenied,
         context.executor.?.execute("CREATE TABLE coverage_admitted (body TEXT);"),
     );
+    try store.shutdown();
+    try std.testing.expectError(error.StoreClosed, admittedRowCount(&store));
+}
+
+test "executor admission barrier has a bounded unreleased deadline" {
+    const allocator = std.testing.allocator;
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const database_path = try path(allocator, &tmp, "coverage-executor-deadline");
+    defer allocator.free(database_path);
+    var barrier = persistence.testing.ExecutorCallBarrier{};
+    var store = try persistence.testing.openWithFaults(
+        allocator,
+        std.testing.io,
+        database_path,
+        .{ .executor_call_barrier = &barrier },
+    );
+    defer store.shutdown() catch {};
+    var unused: void = {};
+    _ = try store.mutate(.{ .context = &unused, .run = success });
+    try std.testing.expect(barrier.hasAdmitted());
+    try std.testing.expect(barrier.hasClosing());
 }
 
 test "critical branch: canonicalization_failure" {
