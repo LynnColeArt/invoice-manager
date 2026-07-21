@@ -204,10 +204,12 @@ production probe without expanding into WP10 application behavior:
    trailing-slash request instead of receiving a framework-owned redirect.
 2. In `tsconfig.json`, retain every accepted strictness option while changing the library from
    `ES2023` to `ES2024`, changing `jsx` from `preserve` to `react-jsx`, adding
-   `incremental: true`, and adding `.next/dev/types/**/*.ts` to `include`.
+   `incremental: true`, adding `.next/dev/types/**/*.ts` to `include`, and setting
+   `noUncheckedSideEffectImports: false` so a clean pre-build typecheck accepts locked Next.js
+   16.2.10's deterministic route-type side-effect import before `.next/types` exists.
 3. Format the corrected `tsconfig.json` with the accepted repository style so locked Next.js
    does not rewrite it. The expected SHA-256 is
-   `edd7c53f09f208e547ecb9f5fae6b8dbe60298b08d6e3ab52112a3942e95392c`.
+   `c36224bb0c4a2546c56709a2bfbca4c39b6c73f8945569fcd18c33e3e75b43f8`.
 4. Require corrected `next.config.ts` SHA-256
    `a6fbd459fab2c5103b177f0d50d19e7941e006a91a7aece417be37ecd6319496`.
 5. Create and commit locked Next.js 16.2.10's deterministic `apps/web/next-env.d.ts` with only
@@ -334,3 +336,4 @@ Run validation without installing packages or importing config modules through d
 - 2026-07-21T16:11:00Z – codex-wp09-t060-review – shell_pid=1807838 – Started review via action command
 - 2026-07-21T16:16:58Z – user – shell_pid=1807838 – Arbiter override: approved review-cycle-6.md at 755ef78 supersedes historical rejected cycle 5 after T060 commit 0b27389 independently resolved all five blockers with exact static evidence; WP10 retains runtime proof
 - 2026-07-21T16:57:39Z – codex-wp09-clean-typecheck-fix – shell_pid=1807838 – Started implementation via action command
+- 2026-07-21T17:01:11Z – codex-wp09-clean-typecheck-fix – shell_pid=1807838 – Corrective clean-typecheck cycle complete at ac4b0d2. Genuine exact-graph RED after deleting `.next` exited 2 with TS2882 at next-env.d.ts line 3. One explicit `noUncheckedSideEffectImports: false` insertion produced clean typecheck exit 0; a disposable clean clone combining the corrected config with current WP10 source passed literal contracts generation and the locked production build. Exact hashes: tsconfig=c36224bb, next=a6fbd459, next-env=7b550dda, package=816264f8, web=f31c4513, contracts=ee7fcc2f, lock=6ea2ffb8. Format, lint, and diff checks passed; temporary dependencies, caches, and build outputs were removed. Ready for independent review.
