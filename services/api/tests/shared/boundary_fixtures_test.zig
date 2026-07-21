@@ -2,7 +2,7 @@ const std = @import("std");
 const shared = @import("shared");
 
 test "all declared valid boundary fixture cases are visited and accepted" {
-    const fixture = try readFixture("../../contracts/fixtures/p0/v1/valid/common-boundaries.json");
+    const fixture = try readFixture("valid/common-boundaries.json");
     defer std.testing.allocator.free(fixture);
     var document = try std.json.parseFromSlice(std.json.Value, std.testing.allocator, fixture, .{});
     defer document.deinit();
@@ -36,7 +36,7 @@ test "all declared valid boundary fixture cases are visited and accepted" {
 }
 
 test "all declared invalid boundary fixture cases are visited and rejected" {
-    const fixture = try readFixture("../../contracts/fixtures/p0/v1/invalid/common-boundaries.json");
+    const fixture = try readFixture("invalid/common-boundaries.json");
     defer std.testing.allocator.free(fixture);
     var document = try std.json.parseFromSlice(std.json.Value, std.testing.allocator, fixture, .{});
     defer document.deinit();
@@ -197,8 +197,35 @@ fn assertRequiredCasesVisited(required: []const std.json.Value, cases: []const s
     }
 }
 
-fn readFixture(path: []const u8) ![]u8 {
-    return std.Io.Dir.cwd().readFileAlloc(std.testing.io, path, std.testing.allocator, .limited(1024 * 1024));
+fn readFixture(relative_path: []const u8) ![]u8 {
+    const allocator = std.testing.allocator;
+    const source_directory = try sourceDirectory(allocator);
+    const fixture_path = try std.fs.path.join(allocator, &.{
+        source_directory,
+        "../../../../contracts/fixtures/p0/v1",
+        relative_path,
+    });
+    defer allocator.free(fixture_path);
+    return std.Io.Dir.cwd().readFileAlloc(std.testing.io, fixture_path, allocator, .limited(1024 * 1024));
+}
+
+fn sourceDirectory(allocator: std.mem.Allocator) ![]const u8 {
+    if (std.fs.path.dirname(@src().file)) |source_directory| return source_directory;
+
+    const candidates = [_][]const u8{
+        "services/api/tests/shared",
+        "tests/shared",
+    };
+    for (candidates) |candidate| {
+        const source_path = try std.fs.path.join(allocator, &.{ candidate, @src().file });
+        defer allocator.free(source_path);
+        std.Io.Dir.cwd().access(std.testing.io, source_path, .{}) catch |err| switch (err) {
+            error.FileNotFound => continue,
+            else => return err,
+        };
+        return candidate;
+    }
+    return error.SourceDirectoryNotFound;
 }
 
 fn assertDefinitionCounts(root: std.json.ObjectMap, cases: []const std.json.Value, definitions: []const []const u8) !void {
