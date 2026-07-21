@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://invoice-manager.invalid/contracts/events/catalog/v1/schema.json",
+  "title": "Invoice Manager Owner Event Catalog v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["catalog_version", "owner_mission", "source", "events"],
+  "properties": {
+    "catalog_version": { "const": 1 },
+    "owner_mission": { "type": "string", "pattern": "^p[0-8]$" },
+    "source": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+    "events": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["event_type", "event_version", "aggregate_type", "payload_schema_id"],
+        "properties": {
+          "event_type": { "type": "string", "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+$" },
+          "event_version": { "type": "integer", "minimum": 1 },
+          "aggregate_type": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+          "payload_schema_id": { "type": "string", "pattern": "^https://invoice-manager\\.invalid/contracts/" }
+        }
+      }
+    }
+  }
+}
