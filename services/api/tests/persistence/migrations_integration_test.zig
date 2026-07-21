@@ -194,6 +194,88 @@ test "history-read checkpoint completion requires revalidation before pending mi
     try std.testing.expectEqualStrings("revalidation_required", @tagName(completed.status));
 }
 
+test "early-plan durability completion requires revalidation and never replays committed DDL" {
+    const allocator = std.testing.allocator;
+    const io = std.testing.io;
+    const pending_id = "018f6f10-7b7a-7c2d-8e65-0f7b1c2d3e50";
+    const FaultCase = struct {
+        category: migrations.CriticalCategory,
+        faults: migrations.testing.Faults,
+        checkpoint_complete: bool,
+    };
+    const cases = [_]FaultCase{
+        .{ .category = .checkpoint_failure, .faults = .{ .checkpoint = true }, .checkpoint_complete = false },
+        .{ .category = .directory_sync_failure, .faults = .{ .directory_sync = true }, .checkpoint_complete = true },
+        .{ .category = .unsupported_directory_sync, .faults = .{ .unsupported_directory_sync = true }, .checkpoint_complete = true },
+    };
+    var all_completion_results_require_revalidation = true;
+    for (cases) |case| {
+        var tmp = std.testing.tmpDir(.{});
+        defer tmp.cleanup();
+        const root_path = try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/p0", .{tmp.sub_path});
+        defer allocator.free(root_path);
+        try writeMigration(
+            allocator,
+            io,
+            root_path,
+            bootstrap_id,
+            "bootstrap_migration_history",
+            &.{},
+            "[]",
+            bootstrap_script,
+        );
+        try writeMigration(
+            allocator,
+            io,
+            root_path,
+            pending_id,
+            "pending_after_bootstrap",
+            &.{bootstrap_id},
+            "[\"018f6f10-7b7a-7c2d-8e65-0f7b1c2d3e4f\"]",
+            "CREATE TABLE pending_after_bootstrap (id TEXT);\n",
+        );
+        const database_path = try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/wp07-early-plan.shovel", .{tmp.sub_path});
+        defer allocator.free(database_path);
+        var store = try migrations.testing.openStoreWithFaults(allocator, io, database_path, case.faults);
+        defer store.shutdown() catch {};
+
+        var calls: usize = 0;
+        const interrupted = try migrations.testing.runObserved(
+            allocator,
+            io,
+            &store,
+            &.{.{ .owner = "p0", .path = root_path }},
+            "2026-07-21T12:34:56.789Z",
+            &calls,
+        );
+        try std.testing.expect(!interrupted.isReady());
+        try std.testing.expectEqual(migrations.ReadinessStatus.durability_unconfirmed, interrupted.status);
+        try std.testing.expectEqual(case.category, interrupted.category.?);
+        try std.testing.expectEqual(case.checkpoint_complete, interrupted.checkpoint_complete);
+        try std.testing.expect(!interrupted.directory_sync_complete);
+        try std.testing.expectEqual(@as(usize, 1), calls);
+
+        migrations.testing.setFaults(&store, .{});
+        const completed = try migrations.completeDurability(&store, interrupted);
+        const rerun = try migrations.testing.runObserved(
+            allocator,
+            io,
+            &store,
+            &.{.{ .owner = "p0", .path = root_path }},
+            "2026-07-21T12:34:56.789Z",
+            &calls,
+        );
+        try std.testing.expect(rerun.isReady());
+        try std.testing.expectEqual(@as(usize, 2), calls);
+        try std.testing.expectEqual(@as(usize, 1), rerun.applied_count);
+        try std.testing.expectEqual(@as(usize, 1), rerun.already_applied_count);
+        all_completion_results_require_revalidation = all_completion_results_require_revalidation and
+            !completed.isReady() and
+            std.mem.eql(u8, "revalidation_required", @tagName(completed.status));
+    }
+    try std.testing.expect(all_completion_results_require_revalidation);
+}
+
 const CompletionEvidence = struct {
     initial: migrations.Readiness,
     completed: migrations.Readiness,
