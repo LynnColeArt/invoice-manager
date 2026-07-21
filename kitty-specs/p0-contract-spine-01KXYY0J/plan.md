@@ -340,7 +340,7 @@ mutation.
 - Pin GPL-3.0-only engine commit `20dced69738bfce08f94368b8d017cfc283747fe`.
 - Consume the pin as the committed `git archive` source export under
   `deps/shovelerdb/`. Verify `PROVENANCE` records the source commit and
-  `source_tree_sha256=6bb2b4215aa50a8ffbbff3278aea4f32c4fc0f906da817037c44095cfd19480b`;
+  `source_tree_sha256=f21523ca0a4717fde4e5c34d073136983ff4ddf7ac33e137e2890977dcbe753d`;
   never use a submodule, sibling checkout, or floating branch.
 - Import through one module boundary and call only the documented embedding ABI
   behavior from the invoice adapter.
