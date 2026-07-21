@@ -22,7 +22,7 @@ remains valid. A pre-approval WP07 compatibility audit found one blocking
 adapter seam omission that must be corrected before WP06 can expose the generic
 application-neutral boundary required by the migration runner.
 
-## Blocking finding: only one dynamic text value can be bound safely
+## Blocking finding: required runtime statements cannot cross the adapter safely
 
 The accepted adapter exposes reviewed compile-time SQL through `execute` and a
 single escaped runtime text literal through `executeText`. WP07 T034 must write
@@ -36,6 +36,14 @@ execute unrestricted runtime SQL, weaken the required history schema, or edit
 an upstream work package. All three outcomes contradict the frozen ownership
 and SQL-safety decisions.
 
+The same audit found that recursively discovered `up.sql` is necessarily a
+runtime byte sequence. Even after WP07 validates its canonical path and exact
+published digest, the adapter's compile-time-only `execute` operation cannot
+run it. Calling the private runtime `executeOwned` is impossible outside WP04,
+and exporting raw adapter access would violate the persistence facade. WP04
+therefore also needs a narrow exact-script primitive for WP06's distinct
+startup-only executor; it is not a general domain-mutation API.
+
 ### Required correction
 
 1. Add one generic adapter operation that interleaves a compile-time-reviewed
@@ -46,13 +54,21 @@ and SQL-safety decisions.
    before engine execution when it does not.
 4. Preserve `OwnedResult` ownership and all existing `execute`/`executeText`
    behavior. Do not add migration-specific types or logic to WP04.
-5. Add red-first adapter tests that insert and query at least five independently
+5. Add an internal adapter operation for an exact runtime script byte sequence.
+   Reject embedded NUL, create the sentinel form without normalization, execute
+   the exact bytes, and keep this primitive out of downstream public exports.
+   WP06 will expose it only through a separate opaque startup capability.
+6. Add red-first adapter tests that insert and query at least five independently
    bound values, including quotes and empty text, and prove malformed arity,
    embedded NUL, allocation cleanup, and SQL-injection-shaped values are safe.
-6. Keep ShovelerDB C handles and raw runtime SQL absent from every downstream
+7. Add an exact-script regression that executes multi-statement synthetic DDL,
+   rejects embedded NUL, and proves the byte sequence is neither trimmed nor
+   newline-normalized.
+8. Keep ShovelerDB C handles and unrestricted runtime SQL absent from every downstream
    public signature. WP06 will translate the internal `OwnedResult` into
-   application-neutral persistence rows in its own correction cycle.
-7. Re-run adapter Debug/ReleaseSafe, discovery, provenance, ABI, and all
+   application-neutral persistence rows and a startup-only validated-script
+   capability in its own correction cycle.
+9. Re-run adapter Debug/ReleaseSafe, discovery, provenance, ABI, and all
    accepted coverage-isolation/adversarial gates. The public ShovelerDB pin and
    vendored digest must remain unchanged.
 
