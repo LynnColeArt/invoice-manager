@@ -16,11 +16,11 @@ test "bootstrap migration is discovered with immutable exact-byte digests" {
         bootstrap.id,
     );
     try std.testing.expectEqualStrings(
-        "68dff6daa265a0c0c6d603994438c43a0af3228fff72e677d9dcd0cd60b1fbd3",
+        "sha256:68dff6daa265a0c0c6d603994438c43a0af3228fff72e677d9dcd0cd60b1fbd3",
         bootstrap.script_digest,
     );
     try std.testing.expectEqualStrings(
-        "9e9b67956c64da3820c33fd36d858e1091aa79d15a418c7391c1cd82b9566088",
+        "sha256:0b5af56a66a73c1f0f96b76ad4307a6e3a76f3cd34cb0ba71197a5e90d4e7877",
         bootstrap.descriptor_digest,
     );
     try std.testing.expectEqualStrings(
