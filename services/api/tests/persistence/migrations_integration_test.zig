@@ -116,6 +116,84 @@ test "durability completion retries persistence and never replays migration DDL"
     }
 }
 
+test "history-read checkpoint completion requires revalidation before pending migration readiness" {
+    const allocator = std.testing.allocator;
+    const io = std.testing.io;
+    const pending_id = "018f6f10-7b7a-7c2d-8e65-0f7b1c2d3e50";
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const root_path = try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/p0", .{tmp.sub_path});
+    defer allocator.free(root_path);
+    try writeMigration(
+        allocator,
+        io,
+        root_path,
+        bootstrap_id,
+        "bootstrap_migration_history",
+        &.{},
+        "[]",
+        bootstrap_script,
+    );
+    const database_path = try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/wp07-history-read.shovel", .{tmp.sub_path});
+    defer allocator.free(database_path);
+    var store = try migrations.testing.openStoreWithFaults(allocator, io, database_path, .{});
+    defer store.shutdown() catch {};
+
+    var bootstrap_calls: usize = 0;
+    const bootstrap = try migrations.testing.runObserved(
+        allocator,
+        io,
+        &store,
+        &.{.{ .owner = "p0", .path = root_path }},
+        "2026-07-21T12:34:56.789Z",
+        &bootstrap_calls,
+    );
+    try std.testing.expect(bootstrap.isReady());
+    try std.testing.expectEqual(@as(usize, 1), bootstrap_calls);
+
+    try writeMigration(
+        allocator,
+        io,
+        root_path,
+        pending_id,
+        "pending_after_history",
+        &.{bootstrap_id},
+        "[\"018f6f10-7b7a-7c2d-8e65-0f7b1c2d3e4f\"]",
+        "CREATE TABLE pending_after_history (id TEXT);\n",
+    );
+    migrations.testing.setFaults(&store, .{ .checkpoint = true });
+    var pending_calls: usize = 0;
+    const interrupted = try migrations.testing.runObserved(
+        allocator,
+        io,
+        &store,
+        &.{.{ .owner = "p0", .path = root_path }},
+        "2026-07-21T12:34:56.789Z",
+        &pending_calls,
+    );
+    try std.testing.expect(!interrupted.isReady());
+    try std.testing.expectEqual(migrations.ReadinessStatus.durability_unconfirmed, interrupted.status);
+    try std.testing.expectEqual(migrations.CriticalCategory.checkpoint_failure, interrupted.category.?);
+    try std.testing.expectEqual(@as(usize, 0), pending_calls);
+
+    migrations.testing.setFaults(&store, .{});
+    const completed = try migrations.completeDurability(&store, interrupted);
+    const rerun = try migrations.testing.runObserved(
+        allocator,
+        io,
+        &store,
+        &.{.{ .owner = "p0", .path = root_path }},
+        "2026-07-21T12:34:56.789Z",
+        &pending_calls,
+    );
+    try std.testing.expect(rerun.isReady());
+    try std.testing.expectEqual(@as(usize, 1), pending_calls);
+    try std.testing.expectEqual(@as(usize, 1), rerun.applied_count);
+    try std.testing.expectEqual(@as(usize, 1), rerun.already_applied_count);
+    try std.testing.expect(!completed.isReady());
+    try std.testing.expectEqualStrings("revalidation_required", @tagName(completed.status));
+}
+
 const CompletionEvidence = struct {
     initial: migrations.Readiness,
     completed: migrations.Readiness,
