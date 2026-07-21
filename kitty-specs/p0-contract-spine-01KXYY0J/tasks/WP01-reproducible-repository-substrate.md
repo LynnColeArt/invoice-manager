@@ -40,7 +40,7 @@ requirement_refs:
   - C-009
 agent_profile: node-norris
 role: implementer
-agent: "codex-wp01-browser-fix"
+agent: "codex-wp01-browser-review"
 model: ""
 assignee: ""
 shell_pid: "1807838"
@@ -527,3 +527,7 @@ Verify the full command surface is compatible with later work without preempting
 - 2026-07-20T23:29:17Z – user – shell_pid=1807838 – Review passed cycle 5: commit 2fc13e7 removes only the redundant nested js-yaml row; two independent manifests-only npm 11.16.0 offline regenerations byte-match the canonical 610-entry committed lock (sha256 6ea2ffb8...), direct @hey-api/openapi-ts remains 0.99.0, one hoisted js-yaml 4.3.0 retains exact public-registry integrity, repeated offline npm ci is metadata-immutable, verify:substrate and npm ls --all problems=[] pass, and full/prod audits are zero.
 - 2026-07-21T15:01:12Z – codex-wp01-lock-rereview – shell_pid=1807838 – Moved to planned
 - 2026-07-21T15:05:34Z – codex-wp01-browser-fix – shell_pid=1807838 – Started implementation via action command
+- 2026-07-21T15:15:44Z – codex-wp01-browser-fix – shell_pid=1807838 – RED: isolated clean clone at prior accepted tip; pinned Node 24.18.0/npm 11.16.0 npm ci succeeded, locked Playwright plan reported chromium revision 1228 and chromium-headless-shell revision 1228, but an empty PLAYWRIGHT_BROWSERS_PATH lacked the expected managed executable and the probe exited 1. Baseline hashes: package 262d99dd, web f31c4513, contracts ee7fcc2f, lock 6ea2ffb8.
+- 2026-07-21T15:15:53Z – codex-wp01-browser-fix – shell_pid=1807838 – GREEN: commit e89d3bb changes only package.json. In a fresh isolated clone, pinned npm ci succeeded; PLAYWRIGHT_BROWSERS_PATH began empty; npm run browser:install resolved local Playwright 1.61.1 with npm exec --offline and installed managed chromium plus chromium-headless-shell revision 1228; both executables passed X_OK; a prepared-cache repeat exited 0 without download. verify:substrate passed, npm audit found 0 vulnerabilities, npm ls problems=[], and http:smoke failed actionably at its first absent producer. Final hashes: package 816264f8, web f31c4513, contracts ee7fcc2f, lock 6ea2ffb8.
+- 2026-07-21T15:16:13Z – codex-wp01-browser-fix – shell_pid=1807838 – Ready for review: e89d3bb adds offline local Playwright Chromium provisioning and the ordered production smoke harness contract; isolated empty/prepared-cache revision-1228 evidence and immutable metadata hashes recorded.
+- 2026-07-21T15:17:32Z – codex-wp01-browser-review – shell_pid=1807838 – Started review via action command
