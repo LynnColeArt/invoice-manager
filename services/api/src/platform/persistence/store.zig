@@ -45,6 +45,14 @@ pub const Store = enum(u128) {
         return admission.implementation.startupWrite(operation);
     }
 
+    /// Runs one startup write only for storage that this Store created from an
+    /// absent canonical path and only before any Store operation becomes durable.
+    pub fn initializeFresh(self: *Store, operation: durability.StartupWriteOperation) diagnostics.StoreError!durability.DurableReceipt {
+        const admission = try admit(self.*);
+        defer admission.release();
+        return admission.implementation.initializeFresh(operation);
+    }
+
     /// Completes only checkpoint and directory synchronization for an already
     /// committed operation. It never invokes or replays an application callback.
     pub fn completeDurability(self: *Store) diagnostics.StoreError!durability.DurableReceipt {
@@ -405,6 +413,8 @@ const StoreImpl = struct {
     reopen_count: usize = 0,
     directory_stats: directory_sync.Stats = .{},
     receipt_issued: bool = false,
+    fresh_origin: bool,
+    durable_operation_completed: bool = false,
 
     fn mutate(self: *StoreImpl, operation: durability.WriteOperation) diagnostics.StoreError!durability.DurableReceipt {
         lock(&self.mutex);
@@ -418,6 +428,22 @@ const StoreImpl = struct {
         defer self.mutex.unlock();
         try self.requireReady();
 
+        return self.startupWriteLocked(operation);
+    }
+
+    fn initializeFresh(self: *StoreImpl, operation: durability.StartupWriteOperation) diagnostics.StoreError!durability.DurableReceipt {
+        lock(&self.mutex);
+        defer self.mutex.unlock();
+        try self.requireReady();
+        if (!self.fresh_origin or self.durable_operation_completed) {
+            self.setStateAndDiagnostic(.ready, .not_fresh, .internal);
+            return diagnostics.StoreError.NotFresh;
+        }
+
+        return self.startupWriteLocked(operation);
+    }
+
+    fn startupWriteLocked(self: *StoreImpl, operation: durability.StartupWriteOperation) diagnostics.StoreError!durability.DurableReceipt {
         self.resetOperation();
         self.setState(.mutating);
         durability.begin(&self.adapter, self.faults) catch |err| {
@@ -585,6 +611,7 @@ const StoreImpl = struct {
             .durability = .directory_synchronized,
         };
         self.receipt_issued = true;
+        self.durable_operation_completed = true;
         self.events.append(.receipt_issued);
         self.setReadyWithoutDiagnostic();
         return receipt;
@@ -800,6 +827,7 @@ pub fn openWithFaults(
         persistence_coverage.hit(.partial_open_cleanup);
         return diagnostics.StoreError.EngineOpenFailed;
     }
+    const fresh_origin = canonicalPathAbsent(io, canonical_path);
     var adapter = shovelerdb.Adapter.open(allocator, canonical_path) catch {
         persistence_coverage.hit(.engine_open_failure);
         persistence_coverage.hit(.partial_open_cleanup);
@@ -822,12 +850,24 @@ pub fn openWithFaults(
         .lifecycle = .ready,
         .store_id = store_id,
         .faults = faults,
+        .fresh_origin = fresh_origin,
     };
     if (faults.registration) {
         persistence_coverage.hit(.partial_open_cleanup);
         return diagnostics.StoreError.OutOfMemory;
     }
     return register(implementation);
+}
+
+fn canonicalPathAbsent(io: std.Io, canonical_path: []const u8) bool {
+    const file = std.Io.Dir.openFileAbsolute(io, canonical_path, .{
+        .allow_directory = false,
+    }) catch |err| switch (err) {
+        error.FileNotFound => return true,
+        else => return false,
+    };
+    file.close(io);
+    return false;
 }
 
 fn rejectHardLinkedFile(
