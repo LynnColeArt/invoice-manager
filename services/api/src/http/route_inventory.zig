@@ -297,7 +297,7 @@ fn validMountKey(value: []const u8) bool {
     if (value.len == 0 or value.len > 64) return false;
     if (value[0] < 'a' or value[0] > 'z') return false;
     for (value[1..]) |byte| {
-        if ((byte >= 'a' and byte <= 'z') or (byte >= '0' and byte <= '9') or byte == '_' or byte == '-') continue;
+        if ((byte >= 'a' and byte <= 'z') or (byte >= '0' and byte <= '9') or byte == '_') continue;
         return false;
     }
     return true;

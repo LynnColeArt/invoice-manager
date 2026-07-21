@@ -2,6 +2,7 @@ const std = @import("std");
 const envelope = @import("envelope.zig");
 const error_mapping = @import("error_mapping.zig");
 const route_inventory = @import("route_inventory.zig");
+const route_policy = @import("route_policy.zig");
 
 pub const maximum_header_bytes = 16 * 1024;
 pub const maximum_request_line_bytes = 2 * 1024;
@@ -84,6 +85,9 @@ pub fn dispatch(
         .method_not_allowed => return failureResponse(allocator, generated_request_id, .method_not_allowed),
         .not_found => return failureResponse(allocator, generated_request_id, .not_found),
     };
+    if (route_policy.classify(resolved.route) != .public) {
+        return failureResponse(allocator, generated_request_id, .not_found);
+    }
 
     context.handler_calls.* += 1;
     const body = resolved.binding.handler(allocator, generated_request_id) catch
