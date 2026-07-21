@@ -7,6 +7,49 @@ const bootstrap_script = "CREATE TABLE app_schema_migrations (id TEXT, owner TEX
 const bootstrap_manifest =
     "{\"id\":\"018f6f10-7b7a-7c2d-8e65-0f7b1c2d3e4f\",\"owner\":\"p0\",\"name\":\"bootstrap_migration_history\",\"depends_on\":[],\"script_path\":\"up.sql\",\"script_digest\":\"sha256:68dff6daa265a0c0c6d603994438c43a0af3228fff72e677d9dcd0cd60b1fbd3\",\"descriptor_digest\":\"sha256:0b5af56a66a73c1f0f96b76ad4307a6e3a76f3cd34cb0ba71197a5e90d4e7877\"}";
 
+const FixturePaths = struct {
+    migration_root: []const u8,
+    digest_vector: []const u8,
+};
+
+fn sourceAnchoredFixtures(io: std.Io) !FixturePaths {
+    const source_name = std.fs.path.basename(@src().file);
+    const candidates = [_]struct {
+        source_directory: []const u8,
+        paths: FixturePaths,
+    }{
+        .{
+            .source_directory = "services/api/tests/persistence",
+            .paths = .{
+                .migration_root = "services/api/migrations/p0",
+                .digest_vector = "services/api/tests/persistence/migrations_digest_vector.json",
+            },
+        },
+        .{
+            .source_directory = "tests/persistence",
+            .paths = .{
+                .migration_root = "migrations/p0",
+                .digest_vector = "tests/persistence/migrations_digest_vector.json",
+            },
+        },
+    };
+
+    for (candidates) |candidate| {
+        var directory = std.Io.Dir.openDir(.cwd(), io, candidate.source_directory, .{}) catch |err| switch (err) {
+            error.FileNotFound => continue,
+            else => return err,
+        };
+        defer directory.close(io);
+
+        directory.access(io, source_name, .{}) catch |err| switch (err) {
+            error.FileNotFound => continue,
+            else => return err,
+        };
+        return candidate.paths;
+    }
+    return error.SourceDirectoryNotFound;
+}
+
 fn temporaryPath(
     allocator: std.mem.Allocator,
     tmp: *const std.testing.TmpDir,
@@ -47,10 +90,13 @@ fn discoverFailure(
 }
 
 test "bootstrap migration is discovered with immutable exact-byte digests" {
+    const allocator = std.testing.allocator;
+    const io = std.testing.io;
+    const fixtures = try sourceAnchoredFixtures(io);
     var discovered = try migrations.discover(
-        std.testing.allocator,
-        std.testing.io,
-        &.{.{ .owner = "p0", .path = "migrations/p0" }},
+        allocator,
+        io,
+        &.{.{ .owner = "p0", .path = fixtures.migration_root }},
     );
     defer discovered.deinit();
 
@@ -78,15 +124,9 @@ test "bootstrap migration is discovered with immutable exact-byte digests" {
     try std.testing.expect(std.mem.indexOf(u8, bootstrap.script, "invoice") == null);
     try std.testing.expect(std.mem.indexOf(u8, bootstrap.script, "client") == null);
     try std.testing.expect(std.mem.indexOf(u8, bootstrap.script, "bank") == null);
-    try std.testing.expectError(
-        error.FileNotFound,
-        std.Io.Dir.access(
-            .cwd(),
-            std.testing.io,
-            "migrations/p0/018f6f10-7b7a-7c2d-8e65-0f7b1c2d3e4f/down.sql",
-            .{},
-        ),
-    );
+    const down_sql = try std.fs.path.join(allocator, &.{ fixtures.migration_root, bootstrap_id, "down.sql" });
+    defer allocator.free(down_sql);
+    try std.testing.expectError(error.FileNotFound, std.Io.Dir.access(.cwd(), io, down_sql, .{}));
 }
 
 test "owner root basename must exactly match the configured owner" {
@@ -235,14 +275,17 @@ fn sha256Wire(bytes: []const u8, output: *[71]u8) []const u8 {
 }
 
 test "fixed JCS vector sorts a copy and preserves exact canonical bytes" {
+    const allocator = std.testing.allocator;
+    const io = std.testing.io;
+    const fixtures = try sourceAnchoredFixtures(io);
     const bytes = try std.Io.Dir.readFileAlloc(
         .cwd(),
-        std.testing.io,
-        "tests/persistence/migrations_digest_vector.json",
-        std.testing.allocator,
+        io,
+        fixtures.digest_vector,
+        allocator,
         .limited(64 * 1024),
     );
-    defer std.testing.allocator.free(bytes);
+    defer allocator.free(bytes);
     var parsed = try std.json.parseFromSlice(DigestVector, std.testing.allocator, bytes, .{
         .ignore_unknown_fields = true,
     });

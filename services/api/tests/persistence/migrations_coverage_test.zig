@@ -2,6 +2,38 @@ const std = @import("std");
 const migrations = @import("migrations");
 const OwnerRoot = migrations.OwnerRoot;
 
+fn migrationRoot(io: std.Io) ![]const u8 {
+    const source_name = std.fs.path.basename(@src().file);
+    const candidates = [_]struct {
+        source_directory: []const u8,
+        migration_root: []const u8,
+    }{
+        .{
+            .source_directory = "services/api/tests/persistence",
+            .migration_root = "services/api/migrations/p0",
+        },
+        .{
+            .source_directory = "tests/persistence",
+            .migration_root = "migrations/p0",
+        },
+    };
+
+    for (candidates) |candidate| {
+        var directory = std.Io.Dir.openDir(.cwd(), io, candidate.source_directory, .{}) catch |err| switch (err) {
+            error.FileNotFound => continue,
+            else => return err,
+        };
+        defer directory.close(io);
+
+        directory.access(io, source_name, .{}) catch |err| switch (err) {
+            error.FileNotFound => continue,
+            else => return err,
+        };
+        return candidate.migration_root;
+    }
+    return error.SourceDirectoryNotFound;
+}
+
 test "migration production declarations are analyzed" {
     std.testing.refAllDecls(migrations);
 }
@@ -188,7 +220,7 @@ fn completeWithoutReplay(
         allocator,
         io,
         &store,
-        &.{.{ .owner = "p0", .path = "migrations/p0" }},
+        &.{.{ .owner = "p0", .path = try migrationRoot(io) }},
         "2026-07-21T12:34:56.789Z",
         &calls,
     );
@@ -273,7 +305,7 @@ fn expectRawHistoryFailure(
             allocator,
             io,
             &store,
-            &.{.{ .owner = "p0", .path = "migrations/p0" }},
+            &.{.{ .owner = "p0", .path = try migrationRoot(io) }},
             "2026-07-21T12:34:56.789Z",
         ),
     );
@@ -294,7 +326,7 @@ fn expectSeedRowsFailure(allocator: std.mem.Allocator, io: std.Io, rows: []const
             allocator,
             io,
             &store,
-            &.{.{ .owner = "p0", .path = "migrations/p0" }},
+            &.{.{ .owner = "p0", .path = try migrationRoot(io) }},
             "2026-07-21T12:34:56.789Z",
         ),
     );
@@ -380,7 +412,7 @@ fn historyFailure(
         allocator,
         io,
         &store,
-        &.{.{ .owner = "p0", .path = "migrations/p0" }},
+        &.{.{ .owner = "p0", .path = try migrationRoot(io) }},
         "2026-07-21T12:34:56.789Z",
     );
 }
@@ -397,7 +429,7 @@ fn reopenFailure(allocator: std.mem.Allocator, io: std.Io, quarantine: bool) !vo
         allocator,
         io,
         &store,
-        &.{.{ .owner = "p0", .path = "migrations/p0" }},
+        &.{.{ .owner = "p0", .path = try migrationRoot(io) }},
         "2026-07-21T12:34:56.789Z",
         &run_diagnostic,
     ) catch |err| {
@@ -617,7 +649,7 @@ fn exercisePositiveSweep(allocator: std.mem.Allocator, io: std.Io) !void {
     var discovered = try migrations.discover(
         allocator,
         io,
-        &.{.{ .owner = "p0", .path = "migrations/p0" }},
+        &.{.{ .owner = "p0", .path = try migrationRoot(io) }},
     );
     defer discovered.deinit();
     var ordered = try migrations.plan(allocator, discovered.descriptors);
@@ -671,7 +703,7 @@ fn exercisePositiveSweep(allocator: std.mem.Allocator, io: std.Io) !void {
         allocator,
         io,
         &store,
-        &.{.{ .owner = "p0", .path = "migrations/p0" }},
+        &.{.{ .owner = "p0", .path = try migrationRoot(io) }},
         "2026-07-21T12:34:56.789Z",
     );
     try std.testing.expect(first.isReady());
@@ -679,7 +711,7 @@ fn exercisePositiveSweep(allocator: std.mem.Allocator, io: std.Io) !void {
         allocator,
         io,
         &store,
-        &.{.{ .owner = "p0", .path = "migrations/p0" }},
+        &.{.{ .owner = "p0", .path = try migrationRoot(io) }},
         "2026-07-21T12:34:56.789Z",
     );
     try std.testing.expect(second.isReady());
@@ -955,7 +987,7 @@ fn exerciseStartupRecoveryDiagnosticSweep(allocator: std.mem.Allocator, io: std.
                 allocator,
                 io,
                 &store,
-                &.{.{ .owner = "p0", .path = "migrations/p0" }},
+                &.{.{ .owner = "p0", .path = try migrationRoot(io) }},
                 "2026-07-21T12:34:56.789Z",
                 &diagnostic,
             ),
@@ -1228,7 +1260,7 @@ fn exerciseFreshRefusalSweep(allocator: std.mem.Allocator, io: std.Io) !void {
             allocator,
             io,
             &store,
-            &.{.{ .owner = "p0", .path = "migrations/p0" }},
+            &.{.{ .owner = "p0", .path = try migrationRoot(io) }},
             "2026-07-21T12:34:56.789Z",
         ),
     );
@@ -1395,7 +1427,7 @@ fn exerciseValidationSweep(allocator: std.mem.Allocator, io: std.Io) !void {
             allocator,
             io,
             &store,
-            &.{.{ .owner = "p0", .path = "migrations/p0" }},
+            &.{.{ .owner = "p0", .path = try migrationRoot(io) }},
             "not-an-instant",
         ),
     );
@@ -1443,7 +1475,7 @@ fn exerciseRemainingBoundarySweep(allocator: std.mem.Allocator, io: std.Io) !voi
             allocator,
             io,
             &store,
-            &.{.{ .owner = "p0", .path = "migrations/p0" }},
+            &.{.{ .owner = "p0", .path = try migrationRoot(io) }},
             "2026-07-21T12:34:56.789Z",
         );
         try std.testing.expect(!initial.isReady());
@@ -1695,7 +1727,7 @@ fn allocationFailureScenario(allocator: std.mem.Allocator, io: std.Io) !void {
             allocator,
             io,
             &setup_store,
-            &.{.{ .owner = "p0", .path = "migrations/p0" }},
+            &.{.{ .owner = "p0", .path = try migrationRoot(io) }},
             "2026-07-21T12:34:56.789Z",
             &setup_diagnostic,
         ),
@@ -1709,7 +1741,7 @@ fn allocationFailureScenario(allocator: std.mem.Allocator, io: std.Io) !void {
         var discovered = migrations.discover(
             failing.allocator(),
             io,
-            &.{.{ .owner = "p0", .path = "migrations/p0" }},
+            &.{.{ .owner = "p0", .path = try migrationRoot(io) }},
         ) catch |err| {
             if (err == error.AllocationFailureCleanup) observed = true;
             continue;
