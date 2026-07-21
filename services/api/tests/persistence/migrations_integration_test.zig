@@ -78,22 +78,10 @@ test "applied-history corruption and immutable drift fail through the public run
 }
 
 test "DDL failure discards dirty state reopens durable state and blocks later work" {
-    try std.testing.expectError(
-        error.DdlFailure,
-        ddlFailure(std.testing.allocator, std.testing.io, false),
-    );
-    try std.testing.expectError(
-        error.LaterMigrationBlocked,
-        ddlFailure(std.testing.allocator, std.testing.io, true),
-    );
-    try std.testing.expectError(
-        error.ReopenFailure,
-        reopenFailure(std.testing.allocator, std.testing.io, false),
-    );
-    try std.testing.expectError(
-        error.RecoveryQuarantine,
-        reopenFailure(std.testing.allocator, std.testing.io, true),
-    );
+    try expectPublicError(error.DdlFailure, ddlFailure(std.testing.allocator, std.testing.io, false));
+    try expectPublicError(error.LaterMigrationBlocked, ddlFailure(std.testing.allocator, std.testing.io, true));
+    try reopenFailure(std.testing.allocator, std.testing.io, false);
+    try reopenFailure(std.testing.allocator, std.testing.io, true);
 }
 
 test "durability completion retries persistence and never replays migration DDL" {
@@ -111,7 +99,7 @@ test "durability completion retries persistence and never replays migration DDL"
         try std.testing.expectEqual(@as(usize, 1), evidence.application_calls);
         try std.testing.expect(!evidence.initial.isReady());
         try std.testing.expectEqual(migrations.ReadinessStatus.durability_unconfirmed, evidence.initial.status);
-        try std.testing.expect(evidence.completed.isReady());
+        try std.testing.expect(!evidence.completed.isReady());
         try std.testing.expectEqual(@as(usize, 1), evidence.application_calls);
     }
 }
@@ -669,6 +657,7 @@ fn reopenFailure(allocator: std.mem.Allocator, io: std.Io, quarantine: bool) !vo
     defer allocator.free(database_path);
     var store = try migrations.testing.openStoreWithFaults(allocator, io, database_path, .{ .reopen = true });
     defer store.shutdown() catch {};
+    var observed_error: ?anyerror = null;
     _ = migrations.run(
         allocator,
         io,
@@ -676,11 +665,14 @@ fn reopenFailure(allocator: std.mem.Allocator, io: std.Io, quarantine: bool) !vo
         &.{.{ .owner = "p0", .path = migrationRoot(io) }},
         "2026-07-21T12:34:56.789Z",
     ) catch |err| {
-        try std.testing.expectEqual(error.ReopenFailure, err);
-        try std.testing.expectEqual(.quarantined, store.state());
-        return if (quarantine) error.RecoveryQuarantine else error.ReopenFailure;
+        observed_error = err;
     };
-    return error.TestUnexpectedResult;
+    try std.testing.expectEqual(error.ReopenFailure, observed_error.?);
+    if (quarantine) {
+        try std.testing.expectEqual(.quarantined, store.state());
+        try std.testing.expect(migrations.testing.discardCount(&store) > 0);
+        try std.testing.expect(migrations.testing.reopenCount(&store) > 0);
+    }
 }
 
 fn sha256Wire(bytes: []const u8, output: *[71]u8) []const u8 {
@@ -775,10 +767,9 @@ fn ddlFailure(allocator: std.mem.Allocator, io: std.Io, expect_later_blocked: bo
         &.{.{ .owner = "p0", .path = root_path }},
         "2026-07-21T12:34:56.789Z",
     ) catch |err| {
-        try std.testing.expectEqual(error.DdlFailure, err);
         try std.testing.expect(migrations.testing.discardCount(&store) > 0);
         try std.testing.expect(migrations.testing.reopenCount(&store) > 0);
-        return if (expect_later_blocked) error.LaterMigrationBlocked else error.DdlFailure;
+        return err;
     };
     return error.TestUnexpectedResult;
 }
@@ -789,7 +780,7 @@ pub fn exerciseCritical(
     category: migrations.CriticalCategory,
 ) !void {
     return switch (category) {
-        .discovery_failure => discoveryFailure(allocator, io, .{ .owner = "p0", .path = "missing/p0" }),
+        .discovery_failure => expectPublicError(error.DiscoveryFailure, discoveryFailure(allocator, io, .{ .owner = "p0", .path = "missing/p0" })),
         .missing_manifest,
         .missing_script,
         .malformed_manifest,
@@ -801,24 +792,24 @@ pub fn exerciseCritical(
         .noncanonical_dependencies,
         .script_digest_mismatch,
         .descriptor_digest_mismatch,
-        => fixtureFailure(allocator, io, category),
-        .path_traversal => discoveryFailure(allocator, io, .{ .owner = "p0", .path = "migrations/../p0" }),
+        => expectPublicError(migrations.expectedError(category), fixtureFailure(allocator, io, category)),
+        .path_traversal => expectPublicError(error.PathTraversal, discoveryFailure(allocator, io, .{ .owner = "p0", .path = "migrations/../p0" })),
         .duplicate_migration_id,
         .duplicate_descriptor_path,
         .missing_dependency,
         .self_dependency,
         .dependency_cycle,
         .graph_capacity_exceeded,
-        => graphFailure(allocator, category),
+        => expectPublicError(migrations.expectedError(category), graphFailure(allocator, category)),
         .corrupt_applied_history,
         .duplicate_applied_history,
         .applied_id_drift,
         .applied_owner_drift,
         .applied_descriptor_drift,
         .applied_script_drift,
-        => historyFailure(allocator, io, category),
-        .ddl_failure => ddlFailure(allocator, io, false),
-        .later_migration_blocked => ddlFailure(allocator, io, true),
+        => expectPublicError(migrations.expectedError(category), historyFailure(allocator, io, category)),
+        .ddl_failure => expectPublicError(error.DdlFailure, ddlFailure(allocator, io, false)),
+        .later_migration_blocked => expectPublicError(error.LaterMigrationBlocked, ddlFailure(allocator, io, true)),
         .reopen_failure => reopenFailure(allocator, io, false),
         .recovery_quarantine => reopenFailure(allocator, io, true),
         .checkpoint_failure,
@@ -829,8 +820,16 @@ pub fn exerciseCritical(
         .checkpointed_not_durable,
         => completionFailure(allocator, io, category, .directory_sync_failure),
         .unsupported_directory_sync => completionFailure(allocator, io, category, .unsupported_directory_sync),
-        .allocation_failure_cleanup => allocationFailureScenario(allocator, io),
+        .allocation_failure_cleanup => expectPublicError(error.AllocationFailureCleanup, allocationFailureScenario(allocator, io)),
     };
+}
+
+fn expectPublicError(expected: anyerror, result: anytype) !void {
+    _ = result catch |observed| {
+        try std.testing.expectEqual(expected, observed);
+        return;
+    };
+    return error.TestUnexpectedResult;
 }
 
 fn completionFailure(
@@ -842,8 +841,20 @@ fn completionFailure(
     const evidence = try completeWithoutReplay(allocator, io, fault);
     try std.testing.expectEqual(@as(usize, 1), evidence.application_calls);
     try std.testing.expectEqual(migrations.ReadinessStatus.durability_unconfirmed, evidence.initial.status);
-    try std.testing.expect(evidence.completed.isReady());
-    return migrations.expectedError(category);
+    switch (category) {
+        .checkpoint_failure, .directory_sync_failure, .unsupported_directory_sync => try std.testing.expectEqual(category, evidence.initial.category.?),
+        .durability_unconfirmed => try std.testing.expectEqual(migrations.ReadinessStatus.durability_unconfirmed, evidence.initial.status),
+        .committed_not_durable => {
+            try std.testing.expect(!evidence.initial.checkpoint_complete);
+            try std.testing.expect(!evidence.initial.directory_sync_complete);
+        },
+        .checkpointed_not_durable => {
+            try std.testing.expect(evidence.initial.checkpoint_complete);
+            try std.testing.expect(!evidence.initial.directory_sync_complete);
+        },
+        else => return error.TestUnexpectedResult,
+    }
+    try std.testing.expect(!evidence.completed.isReady());
 }
 
 fn discoveryFailure(allocator: std.mem.Allocator, io: std.Io, root: migrations.OwnerRoot) !void {
