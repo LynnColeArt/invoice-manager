@@ -45,7 +45,7 @@ subtasks:
 - T057
 phase: Phase 6
 assignee: ''
-agent: "codex-wp12-implementer"
+agent: "codex"
 scope: codebase-wide
 history: []
 agent_profile: implementer-ivan
@@ -494,3 +494,4 @@ documents it covers are still current, and make every next program action or blo
   exact migration-negative, deterministic licensing, governed-doc sync, and manifest ownership.
 - 2026-07-21T18:46:39Z – codex-wp12-implementer – shell_pid=1807838 – Assigned agent via action command
 - 2026-07-21T20:27:57Z – codex-wp12-implementer – shell_pid=1807838 – Moved to planned
+- 2026-07-21T22:59:52Z – codex – shell_pid=1807838 – Started implementation via action command
