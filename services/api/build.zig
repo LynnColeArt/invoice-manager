@@ -18,6 +18,7 @@ pub const stable_step_names = [_][]const u8{
     "migration-negative",
     "coverage-migration",
     "test-http",
+    "run",
     "coverage",
     "test",
 };
@@ -357,7 +358,8 @@ pub fn build(b: *std.Build) void {
     );
 
     const http_step = b.step("test-http", "Materialize contracts then run WP08 HTTP tests");
-    configureHttp(b, snapshot, target, optimize, abi_library, http_step);
+    const run_step = b.step("run", "Materialize contracts then run the WP08 API service");
+    configureHttp(b, snapshot, target, optimize, abi_library, http_step, run_step);
 
     const coverage_step = b.step("coverage", "Aggregate non-vacuous shared, persistence, and migration coverage");
     addSequentialGate(b, coverage_step, &aggregate_coverage_order, optimize);
@@ -422,6 +424,19 @@ fn addGroupTests(
     imports: []const std.Build.Module.Import,
     step: *std.Build.Step,
 ) void {
+    addGroupTestsAfter(b, snapshot, group, target, optimize, imports, null, step);
+}
+
+fn addGroupTestsAfter(
+    b: *std.Build,
+    snapshot: Snapshot,
+    group: Group,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    imports: []const std.Build.Module.Import,
+    compile_prerequisite: ?*std.Build.Step,
+    step: *std.Build.Step,
+) void {
     var previous: ?*std.Build.Step = null;
     for (snapshot.entries) |entry| {
         if (entry.group != group) continue;
@@ -435,6 +450,9 @@ fn addGroupTests(
             .name = b.fmt("{s}-{s}", .{ @tagName(group), std.fs.path.stem(entry.path) }),
             .root_module = module,
         });
+        if (compile_prerequisite) |prerequisite| {
+            test_artifact.step.dependOn(prerequisite);
+        }
         const run = b.addRunArtifact(test_artifact);
         if (previous) |dependency| run.step.dependOn(dependency);
         previous = &run.step;
@@ -1295,6 +1313,62 @@ const ParsedSource = struct {
     }
 };
 
+const PublicServiceModules = struct {
+    shared: *std.Build.Module,
+    persistence: *std.Build.Module,
+    migrations: *std.Build.Module,
+};
+
+fn createPublicServiceModules(
+    b: *std.Build,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    abi_library: *std.Build.Step.Compile,
+) PublicServiceModules {
+    const adapter = createAdapterModule(b, target, optimize, abi_library);
+    const shared_probe = createCoverageProbeModule(
+        b,
+        target,
+        "src/platform/persistence/shovelerdb_shared_coverage_probe.zig",
+    );
+    const shared = createSharedModule(b, target, optimize, shared_probe, false);
+    const persistence_probe = createCoverageProbeModule(
+        b,
+        target,
+        "src/platform/persistence/shovelerdb_persistence_coverage_probe.zig",
+    );
+    const persistence = createPersistenceModule(
+        b,
+        target,
+        optimize,
+        adapter,
+        shared,
+        persistence_probe,
+        false,
+    );
+    const migration_probe = createCoverageProbeModule(
+        b,
+        target,
+        "src/platform/persistence/shovelerdb_coverage_probe.zig",
+    );
+    const migrations = createMigrationModule(
+        b,
+        "src/platform/persistence/migrations.zig",
+        target,
+        optimize,
+        adapter,
+        migration_probe,
+        shared,
+        persistence,
+        false,
+    );
+    return .{
+        .shared = shared,
+        .persistence = persistence,
+        .migrations = migrations,
+    };
+}
+
 fn configureHttp(
     b: *std.Build,
     snapshot: Snapshot,
@@ -1302,23 +1376,58 @@ fn configureHttp(
     optimize: std.builtin.OptimizeMode,
     abi_library: *std.Build.Step.Compile,
     test_step: *std.Build.Step,
+    run_step: *std.Build.Step,
 ) void {
     const producer = pathExists(b, "src/main.zig") or pathExists(b, "src/http") or snapshot.count(.http) > 0;
     if (!producer) {
         missingProducer(b, test_step, "[test-http:error] expected src/main.zig, src/http/**, and tests/http/** from owning WP08; observed producer absent, count 0");
+        missingProducer(b, run_step, "[run:error] expected src/main.zig and src/http/** from owning WP08; observed producer absent, count 0");
         return;
     }
-    if (!pathExists(b, "src/main.zig") or !pathExists(b, "src/http/root.zig") or snapshot.count(.http) == 0) {
-        missingProducer(b, test_step, "[test-http:error] WP08 producer present but HTTP source/test root set is missing or empty");
+    const public_graph_complete = pathExists(b, "src/shared/root.zig") and
+        pathExists(b, "src/platform/persistence/root.zig") and
+        pathExists(b, "src/platform/persistence/migrations.zig");
+    if (!pathExists(b, "src/main.zig") or !pathExists(b, "src/http/root.zig") or
+        snapshot.count(.http) == 0 or !public_graph_complete)
+    {
+        missingProducer(b, test_step, "[test-http:error] WP08 producer present but HTTP roots or named shared/persistence/migrations module graph are missing");
+        missingProducer(b, run_step, "[run:error] WP08 producer present but src/main.zig, src/http/root.zig, or named shared/persistence/migrations module graph is missing");
         return;
     }
 
     const materialize = b.addSystemCommand(&.{ "npm", "run", "contracts:generate" });
     materialize.setCwd(b.path("../.."));
-    const adapter = createAdapterModule(b, target, optimize, abi_library);
-    const imports = [_]std.Build.Module.Import{.{ .name = "shovelerdb_adapter", .module = adapter }};
-    addGroupTests(b, snapshot, .http, target, optimize, &imports, test_step);
-    test_step.dependOn(&materialize.step);
+    const modules = createPublicServiceModules(b, target, optimize, abi_library);
+    const imports = [_]std.Build.Module.Import{
+        .{ .name = "shared", .module = modules.shared },
+        .{ .name = "persistence", .module = modules.persistence },
+        .{ .name = "migrations", .module = modules.migrations },
+    };
+    addGroupTestsAfter(
+        b,
+        snapshot,
+        .http,
+        target,
+        optimize,
+        &imports,
+        &materialize.step,
+        test_step,
+    );
+
+    const runtime_module = b.createModule(.{
+        .root_source_file = b.path("src/main.zig"),
+        .target = target,
+        .optimize = optimize,
+        .imports = &imports,
+    });
+    const executable = b.addExecutable(.{
+        .name = "invoice-manager-api",
+        .root_module = runtime_module,
+    });
+    executable.step.dependOn(&materialize.step);
+    const run = b.addRunArtifact(executable);
+    if (b.args) |args| run.addArgs(args);
+    run_step.dependOn(&run.step);
 }
 
 fn requireDependencyFiles(b: *std.Build) void {
