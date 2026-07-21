@@ -49,7 +49,7 @@ owned_files:
 role: implementer
 tags: []
 task_type: implement
-shell_pid: "1807838"
+shell_pid: "1384230"
 ---
 
 # Work Package Prompt: WP04 – Pinned ShovelerDB Service Integration
@@ -559,3 +559,4 @@ Review `THIRD_PARTY_NOTICES.md` and the complete upstream license as acceptance-
 - 2026-07-21T03:03:22Z – codex – shell_pid=1317556 – GREEN: WP04-COVERAGE-OWNERSHIP-006 final binary proof; fresh lane-f full-PC map /tmp/wp06-final-all-pcs.txt resolves all 205 denominator PCs only to WP06-owned files (store 140, durability 38, directory_sync 17, root 9, diagnostics 1), adapter 0 and other 0. Removing adapter .fuzz=false in an adversarial clean build made the runner fail before ratio at PC 15/356 mapped to shovelerdb.zig with OutOfScopeCoverageSite after 42/42 prerequisites; restoring committed code returned 185/205, 20/20 probes.
 - 2026-07-21T03:03:25Z – codex – shell_pid=1317556 – Cycle 6 corrected: 0/205 adapter PCs; runtime ownership gate rejects contamination
 - 2026-07-21T03:04:35Z – codex – shell_pid=1807838 – Started review via action command
+- 2026-07-21T03:19:51Z – codex – shell_pid=1384230 – Started implementation via action command
