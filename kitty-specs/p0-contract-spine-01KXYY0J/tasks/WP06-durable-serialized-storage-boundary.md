@@ -459,20 +459,20 @@ existing service policy provides an approved alternative.
 
 ## Definition of Done
 
-- [ ] Every T025-T030 behavior has red-first Activity Log evidence.
-- [ ] One canonical path can have only one live writer lease.
-- [ ] Mutations and durability operations are serialized through one live handle.
-- [ ] Transaction callbacks execute once and failures receive correct rollback handling.
-- [ ] Durable receipts appear only after checkpoint and Linux parent-directory sync.
-- [ ] Post-commit durability failures become explicit uncertainty/quarantine.
-- [ ] Failed uncheckpointed startup writes discard the dirty handle and reopen durable state.
-- [ ] Reopen failure quarantines the store and produces a typed diagnostic.
-- [ ] The real engine passes at least 20 durability cycles and required crash cases.
-- [ ] The public facade exposes the later migration-runner seam without raw engine types.
-- [ ] Persistence diagnostics distinguish failures without exposing sensitive data.
-- [ ] WP04 focused persistence tests, measured persistence coverage, formatting, and ReleaseSafe checks pass.
-- [ ] No service build file, migration file, domain module, or frontend file was changed.
-- [ ] `git diff --check` passes for all owned changes.
+- [x] Every T025-T030 behavior has red-first Activity Log evidence.
+- [x] One canonical path can have only one live writer lease.
+- [x] Mutations and durability operations are serialized through one live handle.
+- [x] Transaction callbacks execute once and failures receive correct rollback handling.
+- [x] Durable receipts appear only after checkpoint and Linux parent-directory sync.
+- [x] Post-commit durability failures become explicit uncertainty/quarantine.
+- [x] Failed uncheckpointed startup writes discard the dirty handle and reopen durable state.
+- [x] Reopen failure quarantines the store and produces a typed diagnostic.
+- [x] The real engine passes at least 20 durability cycles and required crash cases.
+- [x] The public facade exposes the later migration-runner seam without raw engine types.
+- [x] Persistence diagnostics distinguish failures without exposing sensitive data.
+- [x] WP04 focused persistence tests, measured persistence coverage, formatting, and ReleaseSafe checks pass.
+- [x] No service build file, migration file, domain module, or frontend file was changed by the WP06 implementation commit.
+- [x] `git diff --check` passes for all owned changes.
 
 ## Review Guidance
 
@@ -533,3 +533,16 @@ and the final full verification matrix.
   sanitizer-PC-to-DWARF map proved that 151 denominator sites belonged to the WP04
   ShovelerDB adapter. The genuine WP06 classification was 185/205 (90.24%). Routed
   the adapter-scope mismatch to WP04 and did not pad the ratio with adapter behavior.
+- 2026-07-21T03:05:00Z — After applying WP04 correction `e725562`, a fresh-cache
+  verification passed: 39/39 persistence unit tests, 1/1 integration test, 2/2
+  crash tests, ReleaseSafe unit tests, and exact coverage at 185/205 owned sites
+  (90.24%) with 20/20 critical branches and 26/26 coverage tests. The complete
+  all-PC DWARF map contains 205 owned records: 140 `store.zig`, 38
+  `durability.zig`, 17 `directory_sync.zig`, 9 `root.zig`, and 1
+  `diagnostics.zig`; it contains zero adapter and zero other out-of-scope records.
+- 2026-07-21T03:07:00Z — Adversarially removed the adapter's `.fuzz = false`,
+  cleared the cache, and ran `cd services/api && zig build coverage-persistence`.
+  The corrected runner failed before ratio enforcement with
+  `sanitizer PC 15/356 ... shovelerdb.zig` and `OutOfScopeCoverageSite` while all
+  42 ordinary dependencies passed. Restored the committed WP04 isolation setting
+  and removed the generated cache.
