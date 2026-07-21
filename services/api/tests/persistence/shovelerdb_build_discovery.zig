@@ -2,6 +2,201 @@ const std = @import("std");
 const registry = @import("build_registry");
 const coverage = registry.migration_coverage_contract;
 
+const HttpFixture = struct {
+    tmp: std.testing.TmpDir,
+    api_path: []u8,
+
+    fn deinit(self: *HttpFixture, allocator: std.mem.Allocator) void {
+        allocator.free(self.api_path);
+        self.tmp.cleanup();
+    }
+};
+
+fn writeFixtureFile(dir: std.Io.Dir, path: []const u8, contents: []const u8) !void {
+    if (std.fs.path.dirname(path)) |parent_path| {
+        var parent = try dir.createDirPathOpen(std.testing.io, parent_path, .{});
+        parent.close(std.testing.io);
+    }
+    var file = try dir.createFile(std.testing.io, path, .{ .truncate = true });
+    defer file.close(std.testing.io);
+    try file.writeStreamingAll(std.testing.io, contents);
+}
+
+fn expectCommandExit(
+    allocator: std.mem.Allocator,
+    cwd: ?[]const u8,
+    argv: []const []const u8,
+    expected_code: u8,
+) !std.process.RunResult {
+    const result = try std.process.run(allocator, std.testing.io, .{
+        .argv = argv,
+        .cwd = if (cwd) |path| .{ .path = path } else .inherit,
+        .stdout_limit = .limited(4 * 1024 * 1024),
+        .stderr_limit = .limited(4 * 1024 * 1024),
+    });
+    errdefer {
+        allocator.free(result.stdout);
+        allocator.free(result.stderr);
+    }
+    switch (result.term) {
+        .exited => |code| if (code != expected_code) {
+            std.debug.print(
+                "command exited {d}, expected {d}\nstdout:\n{s}\nstderr:\n{s}\n",
+                .{ code, expected_code, result.stdout, result.stderr },
+            );
+            return error.UnexpectedCommandExit;
+        },
+        else => {
+            std.debug.print(
+                "command terminated unexpectedly\nstdout:\n{s}\nstderr:\n{s}\n",
+                .{ result.stdout, result.stderr },
+            );
+            return error.UnexpectedCommandTermination;
+        },
+    }
+    return result;
+}
+
+fn prepareHttpFixture(
+    allocator: std.mem.Allocator,
+    delay_ms: u64,
+    http_test_source: []const u8,
+) !HttpFixture {
+    var fixture = HttpFixture{
+        .tmp = std.testing.tmpDir(.{}),
+        .api_path = undefined,
+    };
+    errdefer fixture.tmp.cleanup();
+
+    var root_buffer: [std.fs.max_path_bytes]u8 = undefined;
+    const root_length = try fixture.tmp.dir.realPath(std.testing.io, &root_buffer);
+    const root_path = root_buffer[0..root_length];
+    fixture.api_path = try std.fs.path.join(allocator, &.{ root_path, "services/api" });
+    errdefer allocator.free(fixture.api_path);
+
+    var api_dir = try fixture.tmp.dir.createDirPathOpen(std.testing.io, "services/api", .{});
+    api_dir.close(std.testing.io);
+
+    const deps_path = try std.fs.path.join(allocator, &.{ root_path, "deps" });
+    defer allocator.free(deps_path);
+    const copy_deps = try expectCommandExit(
+        allocator,
+        null,
+        &.{ "cp", "-a", "../../deps", deps_path },
+        0,
+    );
+    defer allocator.free(copy_deps.stdout);
+    defer allocator.free(copy_deps.stderr);
+
+    const fixture_src = try std.fs.path.join(allocator, &.{ fixture.api_path, "src" });
+    defer allocator.free(fixture_src);
+    const copy_src = try expectCommandExit(
+        allocator,
+        null,
+        &.{ "cp", "-a", "src", fixture_src },
+        0,
+    );
+    defer allocator.free(copy_src.stdout);
+    defer allocator.free(copy_src.stderr);
+
+    const fixture_build = try std.fs.path.join(allocator, &.{ fixture.api_path, "build.zig" });
+    defer allocator.free(fixture_build);
+    const copy_build = try expectCommandExit(
+        allocator,
+        null,
+        &.{ "cp", "build.zig", fixture_build },
+        0,
+    );
+    defer allocator.free(copy_build.stdout);
+    defer allocator.free(copy_build.stderr);
+
+    const fixture_zon = try std.fs.path.join(allocator, &.{ fixture.api_path, "build.zig.zon" });
+    defer allocator.free(fixture_zon);
+    const copy_zon = try expectCommandExit(
+        allocator,
+        null,
+        &.{ "cp", "build.zig.zon", fixture_zon },
+        0,
+    );
+    defer allocator.free(copy_zon.stdout);
+    defer allocator.free(copy_zon.stderr);
+
+    const fixture_notice = try std.fs.path.join(allocator, &.{ root_path, "THIRD_PARTY_NOTICES.md" });
+    defer allocator.free(fixture_notice);
+    const copy_notice = try expectCommandExit(
+        allocator,
+        null,
+        &.{ "cp", "../../THIRD_PARTY_NOTICES.md", fixture_notice },
+        0,
+    );
+    defer allocator.free(copy_notice.stdout);
+    defer allocator.free(copy_notice.stderr);
+
+    try writeFixtureFile(
+        fixture.tmp.dir,
+        "package.json",
+        "{\"private\":true,\"scripts\":{\"contracts:generate\":\"node tools/contracts/materialize-fixture.mjs\"}}\n",
+    );
+    const materializer = try std.fmt.allocPrint(
+        allocator,
+        "import {{ mkdir, writeFile }} from 'node:fs/promises';\n" ++
+            "await new Promise((resolve) => setTimeout(resolve, {d}));\n" ++
+            "await mkdir('tools/contracts/.generated/runtime/v1', {{ recursive: true }});\n" ++
+            "await writeFile('tools/contracts/.generated/runtime/v1/route-inventory.json', '{{\"routes\":[]}}\\n');\n" ++
+            "await writeFile('services/api/tests/http/generated-route-inventory.json', '{{\"routes\":[]}}\\n');\n",
+        .{delay_ms},
+    );
+    defer allocator.free(materializer);
+    try writeFixtureFile(
+        fixture.tmp.dir,
+        "tools/contracts/materialize-fixture.mjs",
+        materializer,
+    );
+
+    try writeFixtureFile(
+        fixture.tmp.dir,
+        "services/api/src/shared/root.zig",
+        "const probe = @import(\"shared_coverage_probe\");\n" ++
+            "pub const marker: u8 = 1;\n" ++
+            "pub fn touch() void { _ = probe; }\n",
+    );
+    try writeFixtureFile(
+        fixture.tmp.dir,
+        "services/api/src/platform/persistence/root.zig",
+        "const adapter = @import(\"shovelerdb_adapter\");\n" ++
+            "const shared = @import(\"shared\");\n" ++
+            "const probe = @import(\"persistence_coverage_probe\");\n" ++
+            "pub const marker = shared.marker;\n" ++
+            "pub fn touch() void { _ = adapter; _ = probe; }\n",
+    );
+    try writeFixtureFile(
+        fixture.tmp.dir,
+        "services/api/src/platform/persistence/migrations.zig",
+        "const adapter = @import(\"shovelerdb_adapter\");\n" ++
+            "const shared = @import(\"shared\");\n" ++
+            "const persistence = @import(\"persistence\");\n" ++
+            "const probe = @import(\"migration_coverage_probe\");\n" ++
+            "pub const marker = shared.marker + persistence.marker;\n" ++
+            "pub fn touch() void { _ = adapter; _ = probe; }\n",
+    );
+    try writeFixtureFile(
+        fixture.tmp.dir,
+        "services/api/src/http/root.zig",
+        "pub const marker: u8 = 1;\n",
+    );
+    try writeFixtureFile(
+        fixture.tmp.dir,
+        "services/api/src/main.zig",
+        "pub fn main() !void {}\n",
+    );
+    try writeFixtureFile(
+        fixture.tmp.dir,
+        "services/api/tests/http/http_fixture_test.zig",
+        http_test_source,
+    );
+    return fixture;
+}
+
 fn expectPaths(expected: []const []const u8, actual: []const registry.Classified) !void {
     try std.testing.expectEqual(expected.len, actual.len);
     for (expected, actual) |expected_path, entry| {
@@ -48,10 +243,14 @@ test "stable step names and aggregate order are exact" {
         "migration-negative",
         "coverage-migration",
         "test-http",
+        "run",
         "coverage",
         "test",
     };
-    try std.testing.expectEqualDeep(expected_steps, registry.stable_step_names);
+    try std.testing.expectEqual(expected_steps.len, registry.stable_step_names.len);
+    for (registry.stable_step_names, 0..) |actual, index| {
+        try std.testing.expectEqualStrings(expected_steps[index], actual);
+    }
     try std.testing.expectEqualStrings(
         "npm run contracts:generate",
         registry.http_contract_materializer,
@@ -75,6 +274,56 @@ test "stable step names and aggregate order are exact" {
         [_][]const u8{ "coverage-shared", "coverage-persistence", "coverage-migration" },
         registry.aggregate_coverage_order,
     );
+}
+
+test "isolated HTTP roots compile against the public service module graph" {
+    const allocator = std.testing.allocator;
+    var fixture = try prepareHttpFixture(
+        allocator,
+        0,
+        "const std = @import(\"std\");\n" ++
+            "const shared = @import(\"shared\");\n" ++
+            "const persistence = @import(\"persistence\");\n" ++
+            "const migrations = @import(\"migrations\");\n" ++
+            "test \"public HTTP dependencies compile\" {\n" ++
+            "    std.testing.refAllDecls(shared);\n" ++
+            "    std.testing.refAllDecls(persistence);\n" ++
+            "    std.testing.refAllDecls(migrations);\n" ++
+            "}\n",
+    );
+    defer fixture.deinit(allocator);
+
+    const result = try expectCommandExit(
+        allocator,
+        fixture.api_path,
+        &.{ "zig", "build", "test-http", "-j16", "--summary", "all" },
+        0,
+    );
+    defer allocator.free(result.stdout);
+    defer allocator.free(result.stderr);
+}
+
+test "HTTP materialization completes before every compile step" {
+    const allocator = std.testing.allocator;
+    var fixture = try prepareHttpFixture(
+        allocator,
+        1200,
+        "const std = @import(\"std\");\n" ++
+            "const inventory = @embedFile(\"generated-route-inventory.json\");\n" ++
+            "test \"generated route inventory exists at compile time\" {\n" ++
+            "    try std.testing.expect(inventory.len > 0);\n" ++
+            "}\n",
+    );
+    defer fixture.deinit(allocator);
+
+    const result = try expectCommandExit(
+        allocator,
+        fixture.api_path,
+        &.{ "zig", "build", "test-http", "-j16", "--summary", "all" },
+        0,
+    );
+    defer allocator.free(result.stdout);
+    defer allocator.free(result.stderr);
 }
 
 test "creation order does not change normalized bytewise order" {
