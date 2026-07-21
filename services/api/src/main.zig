@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const persistence = @import("persistence");
 const migrations = @import("migrations");
 const http = @import("http");
@@ -41,30 +42,18 @@ pub fn main(init: std.process.Init) u8 {
 
 fn run(init: std.process.Init) !void {
     const config = try parseConfig(init.environ_map);
-    var store = persistence.Store.open(init.gpa, init.io, config.database_path) catch
-        return error.StoreUnavailable;
-    var store_open = true;
-    errdefer if (store_open) store.shutdown() catch {
+    var started = try startWithOpener(
+        init.gpa,
+        init.io,
+        config,
+        &canonical_migration_roots,
+        .{ .context = null, .open = openProductionStore },
+        null,
+    );
+    var started_open = true;
+    errdefer if (started_open) started.shutdown(init.io) catch {
         std.debug.print("[api:error] safe shutdown failed\n", .{});
     };
-    if (store.state() != .ready) return error.StoreUnavailable;
-    const migration_readiness = establishMigrationReadiness(init.gpa, init.io, &store) catch
-        return error.MigrationsUnavailable;
-    if (!migration_readiness.isReady() or store.state() != .ready) return error.ServiceNotReady;
-
-    var inventory = try http.route_inventory.loadCanonical(init.gpa);
-    defer inventory.deinit();
-    try http.route_inventory.validateP0(&inventory);
-    const bindings = [_]http.route_inventory.HandlerBinding{.{
-        .operation_id = "P0Health",
-        .handler = http.health.respond,
-    }};
-    try http.route_inventory.validateBindings(&inventory, &bindings);
-    const address = std.Io.net.IpAddress.parse(config.bind_address, config.port) catch
-        return error.InvalidConfiguration;
-    // Socket construction is deliberately the final startup action, after
-    // typed store readiness, migrations, inventory, and binding validation.
-    var listener = try http.server.Listener.listen(init.io, address);
     std.debug.print("[api:ready] listening\n", .{});
 
     var handler_calls: usize = 0;
@@ -73,13 +62,108 @@ fn run(init: std.process.Init) !void {
         .io = init.io,
     };
     while (true) {
-        _ = listener.serveOne(init.gpa, init.io, &inventory, &bindings, &dispatch_context) catch |err| switch (err) {
+        _ = started.listener.serveOne(init.gpa, init.io, &started.inventory, &health_bindings, &dispatch_context) catch |err| switch (err) {
             error.Canceled => break,
         };
     }
-    listener.deinit(init.io);
-    store.shutdown() catch return error.ShutdownFailed;
+    started_open = false;
+    try started.shutdown(init.io);
+}
+
+const canonical_migration_roots = [_]migrations.OwnerRoot{.{
+    .owner = "p0",
+    .path = "services/api/migrations/p0",
+}};
+
+const health_bindings = [_]http.route_inventory.HandlerBinding{.{
+    .operation_id = "P0Health",
+    .handler = http.health.respond,
+}};
+
+pub const StartupObservation = struct {
+    bind_attempts: usize = 0,
+};
+
+const StoreOpener = struct {
+    context: ?*anyopaque,
+    open: *const fn (?*anyopaque, std.mem.Allocator, std.Io, []const u8) anyerror!persistence.Store,
+};
+
+pub const Started = struct {
+    store: persistence.Store,
+    migration_readiness: migrations.Readiness,
+    inventory: http.route_inventory.Inventory,
+    listener: http.server.Listener,
+
+    /// Stop accepting before releasing inventory and the durable store.
+    pub fn shutdown(self: *Started, io: std.Io) !void {
+        self.listener.deinit(io);
+        self.inventory.deinit();
+        var store = self.store;
+        self.* = undefined;
+        try store.shutdown();
+    }
+};
+
+fn openProductionStore(
+    _: ?*anyopaque,
+    allocator: std.mem.Allocator,
+    io: std.Io,
+    path: []const u8,
+) !persistence.Store {
+    return persistence.Store.open(allocator, io, path);
+}
+
+fn startWithOpener(
+    allocator: std.mem.Allocator,
+    io: std.Io,
+    config: Config,
+    roots: []const migrations.OwnerRoot,
+    opener: StoreOpener,
+    observation: ?*StartupObservation,
+) !Started {
+    const address = std.Io.net.IpAddress.parse(config.bind_address, config.port) catch
+        return error.InvalidConfiguration;
+    var store = try opener.open(opener.context, allocator, io, config.database_path);
+    var store_open = true;
+    errdefer if (store_open) store.shutdown() catch {
+        std.debug.print("[api:error] safe shutdown failed\n", .{});
+    };
+    if (store.state() != .ready) return error.StoreUnavailable;
+    const migration_readiness = try establishMigrationReadinessAt(allocator, io, &store, roots);
+    if (!migration_readiness.isReady() or store.state() != .ready) return error.ServiceNotReady;
+
+    var inventory = try http.route_inventory.loadCanonical(allocator);
+    var inventory_open = true;
+    errdefer if (inventory_open) inventory.deinit();
+    try http.route_inventory.validateP0(&inventory);
+    try http.route_inventory.validateBindings(&inventory, &health_bindings);
+    if (observation) |value| value.bind_attempts += 1;
+    const listener = try listenWhenReady(io, address, &store, migration_readiness);
     store_open = false;
+    inventory_open = false;
+    return .{
+        .store = store,
+        .migration_readiness = migration_readiness,
+        .inventory = inventory,
+        .listener = listener,
+    };
+}
+
+/// The composition root is the only ordinary constructor for the HTTP ready
+/// capability. It consumes the typed WP06/WP07 results before socket creation.
+pub fn listenWhenReady(
+    io: std.Io,
+    address: std.Io.net.IpAddress,
+    store: *const persistence.Store,
+    migration_readiness: migrations.Readiness,
+) !http.server.Listener {
+    if (store.state() != .ready or !migration_readiness.isReady()) {
+        return error.ServiceNotReady;
+    }
+    var marker: u8 = 0;
+    const ready_context: *const http.server.ReadyContext = @ptrCast(&marker);
+    return http.server.Listener.listen(io, address, ready_context);
 }
 
 pub fn establishMigrationReadiness(
@@ -87,12 +171,39 @@ pub fn establishMigrationReadiness(
     io: std.Io,
     store: *persistence.Store,
 ) !migrations.Readiness {
-    const roots = &[_]migrations.OwnerRoot{.{
-        .owner = "p0",
-        .path = "services/api/migrations/p0",
-    }};
-    return establishMigrationReadinessAt(allocator, io, store, roots);
+    return establishMigrationReadinessAt(allocator, io, store, &canonical_migration_roots);
 }
+
+pub const testing = if (builtin.is_test) struct {
+    fn openFaultedStore(
+        raw_context: ?*anyopaque,
+        allocator: std.mem.Allocator,
+        io: std.Io,
+        path: []const u8,
+    ) !persistence.Store {
+        const faults: *const persistence.testing.Faults = @ptrCast(@alignCast(raw_context.?));
+        return persistence.testing.openWithFaults(allocator, io, path, faults.*);
+    }
+
+    pub fn startWithFaults(
+        allocator: std.mem.Allocator,
+        io: std.Io,
+        config: Config,
+        roots: []const migrations.OwnerRoot,
+        faults: persistence.testing.Faults,
+        observation: *StartupObservation,
+    ) !Started {
+        var fault_context = faults;
+        return startWithOpener(
+            allocator,
+            io,
+            config,
+            roots,
+            .{ .context = &fault_context, .open = openFaultedStore },
+            observation,
+        );
+    }
+} else struct {};
 
 pub fn establishMigrationReadinessAt(
     allocator: std.mem.Allocator,

@@ -132,7 +132,11 @@ pub const Listener = struct {
     /// The composition root calls this only after it has consumed the typed
     /// WP06/WP07 readiness results. This module has no dependency capability
     /// with which to mint or bypass persistence readiness.
-    pub fn listen(io: std.Io, bind_address_value: std.Io.net.IpAddress) !Listener {
+    pub fn listen(
+        io: std.Io,
+        bind_address_value: std.Io.net.IpAddress,
+        _: *const ReadyContext,
+    ) !Listener {
         var bind_address = bind_address_value;
         return .{ .server = try bind_address.listen(io, .{ .reuse_address = true }) };
     }
@@ -245,6 +249,10 @@ pub const ServeOutcome = enum {
     accept_failed,
 };
 
+/// An opaque capability consumed only while constructing the listener. The
+/// HTTP package cannot mint it from a boolean or dependency state.
+pub const ReadyContext = opaque {};
+
 const ReceiveHeadResult = union(enum) {
     request: std.http.Server.Request,
     invalid,
@@ -279,7 +287,7 @@ fn canonicalMethod(method: std.http.Method) ?[]const u8 {
         .PATCH => "patch",
         .HEAD => "head",
         .OPTIONS => "options",
-        .CONNECT => "connect",
+        .CONNECT => null,
         .TRACE => "trace",
     };
 }

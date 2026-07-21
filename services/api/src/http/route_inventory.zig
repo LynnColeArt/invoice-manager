@@ -161,7 +161,6 @@ pub fn parseOwned(allocator: std.mem.Allocator, bytes: []const u8) !Inventory {
         return if (err == error.DuplicateField) error.ClosedShapeViolation else error.InvalidJson;
     defer dynamic.deinit();
     try validateClosedShape(dynamic.value);
-    try validateMemberCounts(bytes, dynamic.value.object.get("routes").?.array.items.len);
 
     var parsed = std.json.parseFromSlice(WireInventory, allocator, bytes, .{
         .allocate = .alloc_always,
@@ -269,11 +268,10 @@ fn validateClosedShape(value: std.json.Value) InventoryError!void {
 fn validateWireRoute(route: WireRoute) InventoryError!void {
     if (!validMethod(route.method)) return error.InvalidMethod;
     if (route.path.len < "/api/v1/".len or !std.mem.startsWith(u8, route.path, "/api/v1/") or
-        std.mem.indexOf(u8, route.path, "//") != null or
-        std.mem.indexOf(u8, route.path, "..") != null or
-        std.mem.indexOfAny(u8, route.path, "?#\\") != null)
-    {
-        return error.InvalidPath;
+        std.mem.indexOf(u8, route.path, "//") != null) return error.InvalidPath;
+    var segments = std.mem.splitScalar(u8, route.path, '/');
+    while (segments.next()) |segment| {
+        if (std.mem.eql(u8, segment, ".") or std.mem.eql(u8, segment, "..")) return error.InvalidPath;
     }
     if (!validIdentifier(route.operation_id)) return error.InvalidOperationId;
     if (route.owner.len != 2 or route.owner[0] != 'p' or route.owner[1] < '0' or route.owner[1] > '8') {
@@ -294,7 +292,7 @@ fn validMethod(value: []const u8) bool {
 }
 
 fn validMountKey(value: []const u8) bool {
-    if (value.len == 0 or value.len > 64) return false;
+    if (value.len == 0) return false;
     if (value[0] < 'a' or value[0] > 'z') return false;
     for (value[1..]) |byte| {
         if ((byte >= 'a' and byte <= 'z') or (byte >= '0' and byte <= '9') or byte == '_') continue;
@@ -338,43 +336,8 @@ fn freeRoute(allocator: std.mem.Allocator, route: Route) void {
     allocator.free(route.mount_key);
 }
 
-fn validateMemberCounts(bytes: []const u8, route_count: usize) InventoryError!void {
-    if (countOccurrences(bytes, "\"format_version\"") != 1 or
-        countOccurrences(bytes, "\"routes\"") != 1)
-    {
-        return error.ClosedShapeViolation;
-    }
-    const route_fields = [_][]const u8{
-        "\"path\"",
-        "\"method\"",
-        "\"operation_id\"",
-        "\"owner\"",
-        "\"mount_key\"",
-        "\"access\"",
-    };
-    for (route_fields) |field| {
-        if (countOccurrences(bytes, field) != route_count) return error.ClosedShapeViolation;
-    }
-}
-
-fn countOccurrences(haystack: []const u8, needle: []const u8) usize {
-    var count: usize = 0;
-    var offset: usize = 0;
-    while (std.mem.indexOfPos(u8, haystack, offset, needle)) |index| {
-        count += 1;
-        offset = index + needle.len;
-    }
-    return count;
-}
-
 fn validIdentifier(value: []const u8) bool {
-    if (value.len == 0 or value.len > 128) return false;
-    for (value) |byte| {
-        if ((byte >= 'A' and byte <= 'Z') or (byte >= 'a' and byte <= 'z') or
-            (byte >= '0' and byte <= '9') or byte == '_') continue;
-        return false;
-    }
-    return true;
+    return value.len != 0;
 }
 
 fn validateUnique(routes: []const Route) InventoryError!void {

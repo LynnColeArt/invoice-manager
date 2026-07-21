@@ -28,6 +28,9 @@ test "WP08-ROUTE-POLICY-001 protected canonical mutation never invokes the actua
     const mutated = &mutated_inventory.routes[0];
     try std.testing.expectEqualStrings("P0Health", mutated.operation_id);
     try std.testing.expectEqual(route_inventory.Access.protected, mutated.access);
+    try std.testing.expectEqual(route_inventory.Access.public, inventory.routes[0].access);
+    try std.testing.expectEqualStrings("get", inventory.routes[0].method);
+    try std.testing.expectEqualStrings("/api/v1/health", inventory.routes[0].path);
 
     var handler_calls: usize = 0;
     var context = server.DispatchContext{
@@ -44,6 +47,8 @@ test "WP08-ROUTE-POLICY-001 protected canonical mutation never invokes the actua
     // The public boundary must stop protected routes before their binding.
     // Before T039 enforcement this deliberately observes one handler call.
     try std.testing.expectEqual(@as(usize, 0), handler_calls);
+    try std.testing.expectEqual(@as(u16, 404), response.status);
+    try std.testing.expect(std.mem.indexOf(u8, response.body, "\"code\":\"route_not_found\"") != null);
 }
 
 test "canonical inventory has one exact public P0 health route and no domain routes" {
@@ -58,18 +63,40 @@ test "canonical inventory has one exact public P0 health route and no domain rou
     try std.testing.expect(inventory.byOperation("ListClients") == null);
 }
 
+test "P0 startup rejects missing and extra otherwise-valid inventory routes" {
+    var empty = try route_inventory.parseOwned(std.testing.allocator, "{\"format_version\":1,\"routes\":[]}");
+    defer empty.deinit();
+    try std.testing.expectError(error.P0ContractMismatch, route_inventory.validateP0(&empty));
+
+    var extra = try route_inventory.parseOwned(std.testing.allocator, "{\"format_version\":1,\"routes\":[{\"access\":\"public\",\"method\":\"get\",\"mount_key\":\"foundation\",\"operation_id\":\"P0Health\",\"owner\":\"p0\",\"path\":\"/api/v1/health\"},{\"access\":\"protected\",\"method\":\"post\",\"mount_key\":\"foundation\",\"operation_id\":\"Synthetic\",\"owner\":\"p0\",\"path\":\"/api/v1/synthetic\"}]}");
+    defer extra.deinit();
+    try std.testing.expectError(error.P0ContractMismatch, route_inventory.validateP0(&extra));
+}
+
 test "inventory parser rejects noncanonical closed-shape and normalization drift" {
     try expectInventoryError(error.InvalidJson, "{");
     try expectInventoryError(error.UnsupportedVersion, "{\"format_version\":2,\"routes\":[]}");
     try expectInventoryError(error.ClosedShapeViolation, "{\"format_version\":1,\"routes\":[],\"extra\":true}");
     try expectInventoryError(error.ClosedShapeViolation, "{\"format_version\":1,\"routes\":[{\"access\":\"public\",\"method\":\"get\",\"mount_key\":\"foundation\",\"operation_id\":\"P0Health\",\"owner\":\"p0\"}]}");
     try expectInventoryError(error.ClosedShapeViolation, "{\"format_version\":1,\"format_version\":1,\"routes\":[]}");
+    try expectInventoryError(error.ClosedShapeViolation, "{\"format_version\":1,\"routes\":[{\"access\":\"public\",\"access\":\"protected\",\"method\":\"get\",\"mount_key\":\"foundation\",\"operation_id\":\"P0Health\",\"owner\":\"p0\",\"path\":\"/api/v1/health\"}]}");
+    try expectInventoryError(error.ClosedShapeViolation, "{\"format_version\":1,\"routes\":[{\"access\":\"public\",\"method\":\"get\",\"mount_key\":\"foundation\",\"operation_id\":\"P0Health\",\"owner\":\"p0\",\"path\":\"/api/v1/health\",\"unknown\":true}]}");
+    try expectInventoryError(error.ClosedShapeViolation, "{\"format_version\":1,\"routes\":[{\"method\":\"get\",\"mount_key\":\"foundation\",\"operation_id\":\"P0Health\",\"owner\":\"p0\",\"path\":\"/api/v1/health\"}]}");
     try expectInventoryError(error.InvalidMethod, "{\"format_version\":1,\"routes\":[{\"access\":\"public\",\"method\":\"connect\",\"mount_key\":\"foundation\",\"operation_id\":\"P0Health\",\"owner\":\"p0\",\"path\":\"/api/v1/health\"}]}");
     try expectInventoryError(error.InvalidPath, "{\"format_version\":1,\"routes\":[{\"access\":\"public\",\"method\":\"get\",\"mount_key\":\"foundation\",\"operation_id\":\"P0Health\",\"owner\":\"p0\",\"path\":\"/api/v1/../health\"}]}");
-    try expectInventoryError(error.InvalidOperationId, "{\"format_version\":1,\"routes\":[{\"access\":\"public\",\"method\":\"get\",\"mount_key\":\"foundation\",\"operation_id\":\"P0-Health\",\"owner\":\"p0\",\"path\":\"/api/v1/health\"}]}");
+    try expectInventoryError(error.InvalidOperationId, "{\"format_version\":1,\"routes\":[{\"access\":\"public\",\"method\":\"get\",\"mount_key\":\"foundation\",\"operation_id\":\"\",\"owner\":\"p0\",\"path\":\"/api/v1/health\"}]}");
     try expectInventoryError(error.InvalidOwner, "{\"format_version\":1,\"routes\":[{\"access\":\"public\",\"method\":\"get\",\"mount_key\":\"foundation\",\"operation_id\":\"P0Health\",\"owner\":\"p9\",\"path\":\"/api/v1/health\"}]}");
     try expectInventoryError(error.InvalidMountKey, "{\"format_version\":1,\"routes\":[{\"access\":\"public\",\"method\":\"get\",\"mount_key\":\"Foundation\",\"operation_id\":\"P0Health\",\"owner\":\"p0\",\"path\":\"/api/v1/health\"}]}");
+    try expectInventoryError(error.InvalidMountKey, "{\"format_version\":1,\"routes\":[{\"access\":\"protected\",\"method\":\"get\",\"mount_key\":\"foundation-x\",\"operation_id\":\"protected-operation\",\"owner\":\"p0\",\"path\":\"/api/v1/protected..name\"}]}");
     try expectInventoryError(error.InvalidAccess, "{\"format_version\":1,\"routes\":[{\"access\":\"unknown\",\"method\":\"get\",\"mount_key\":\"foundation\",\"operation_id\":\"P0Health\",\"owner\":\"p0\",\"path\":\"/api/v1/health\"}]}");
+}
+
+test "generic parser preserves schema-valid long mounts and protected operation ids" {
+    const bytes = "{\"format_version\":1,\"routes\":[{\"access\":\"protected\",\"method\":\"trace\",\"mount_key\":\"foundation_0123456789012345678901234567890123456789012345678901234567890123456789\",\"operation_id\":\"path\",\"owner\":\"p8\",\"path\":\"/api/v1/protected..name\"}]}";
+    var inventory = try route_inventory.parseOwned(std.testing.allocator, bytes);
+    defer inventory.deinit();
+    try std.testing.expectEqual(@as(usize, 1), inventory.routes.len);
+    try std.testing.expectEqual(route_inventory.Access.protected, inventory.routes[0].access);
 }
 
 test "inventory parser rejects route and operation collisions" {
@@ -113,6 +140,18 @@ test "fresh method path and operation mutations alter real resolution or fail st
     defer operation_drift.deinit();
     try std.testing.expectError(error.P0ContractMismatch, route_inventory.validateP0(&operation_drift));
     try std.testing.expectError(error.ExtraBinding, route_inventory.validateBindings(&operation_drift, &bindings));
+
+    var owner_drift = try canonical.cloneWithOverride(std.testing.allocator, "P0Health", .{ .owner = "p1" });
+    defer owner_drift.deinit();
+    try std.testing.expectError(error.P0ContractMismatch, route_inventory.validateP0(&owner_drift));
+
+    var mount_drift = try canonical.cloneWithOverride(std.testing.allocator, "P0Health", .{ .mount_key = "foundation_drift" });
+    defer mount_drift.deinit();
+    try std.testing.expectError(error.P0ContractMismatch, route_inventory.validateP0(&mount_drift));
+
+    var access_drift = try canonical.cloneWithOverride(std.testing.allocator, "P0Health", .{ .access = .protected });
+    defer access_drift.deinit();
+    try std.testing.expectError(error.P0ContractMismatch, route_inventory.validateP0(&access_drift));
 }
 
 test "missing or invalid effective access defaults protected before handler dispatch" {
