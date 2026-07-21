@@ -15,6 +15,7 @@ merge_target_branch: feat/p0-contract-spine
 branch_strategy: "Planning artifacts for this mission were generated on feat/p0-contract-spine. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/p0-contract-spine unless the human explicitly redirects the landing branch."
 execution_mode: code_change
 owned_files:
+  - "LICENSE"
   - ".node-version"
   - ".zig-version"
   - ".npmrc"
@@ -24,6 +25,7 @@ owned_files:
   - "apps/web/package.json"
 authoritative_surface: "package"
 create_intent:
+  - "LICENSE"
   - ".node-version"
   - ".zig-version"
   - ".npmrc"
@@ -40,7 +42,7 @@ requirement_refs:
   - C-009
 agent_profile: node-norris
 role: implementer
-agent: "codex-wp01-browser-review"
+agent: "codex:gpt-5:reviewer-renata:reviewer"
 model: ""
 assignee: ""
 shell_pid: "1807838"
@@ -96,6 +98,7 @@ This work package is the sole immutable npm metadata and root-lock owner.
 Create or modify only paths matched by the declared ownership patterns:
 
 - `.node-version`
+- `LICENSE`
 - `.zig-version`
 - `.npmrc`
 - `package.json`
@@ -168,7 +171,11 @@ Do not enable a setting that would silently change downstream package lifecycle 
 Express the supported runtime assumptions in `package.json` using exact `engines` values.
 Record the package manager with the exact `npm@11.16.0` declaration.
 Keep the repository package private so it cannot be accidentally published.
-Use the project license identity selected by the mission rather than inventing a second license policy.
+Create the canonical root `LICENSE` with the complete GPL-3.0-only text selected
+by the owner-approved charter amendment. Use that exact project license identity
+in every owned package manifest and lockfile record rather than inventing a
+second policy. The substrate verification must fail if the root license is
+missing, truncated, or disagrees with package metadata.
 
 Add an executable root prerequisite check using only root package metadata.
 Because no helper-script path is owned here, keep its implementation within `package.json` scripts.
@@ -532,3 +539,11 @@ Verify the full command surface is compatible with later work without preempting
 - 2026-07-21T15:16:13Z – codex-wp01-browser-fix – shell_pid=1807838 – Ready for review: e89d3bb adds offline local Playwright Chromium provisioning and the ordered production smoke harness contract; isolated empty/prepared-cache revision-1228 evidence and immutable metadata hashes recorded.
 - 2026-07-21T15:17:32Z – codex-wp01-browser-review – shell_pid=1807838 – Started review via action command
 - 2026-07-21T15:25:30Z – user – shell_pid=1807838 – Arbiter override: superseded rejected review-cycle-3 is closed by committed parseable approval review-cycle-7 at 4e8f592 after independent empty-cache rev1228 provisioning, idempotency, exact substrate, ownership, and immutable-hash verification; implementation e89d3bb passes all corrective requirements.
+- 2026-07-21T20:28:03Z – codex-wp01-browser-review – shell_pid=1807838 – Moved to planned
+- 2026-07-21T20:41:21Z – codex:gpt-5:node-norris:implementer – shell_pid=1807838 – Started implementation via action command
+- 2026-07-21T20:50:27Z – codex:gpt-5:node-norris:implementer – shell_pid=1807838 – Ready for review: c7fc303 adopts canonical GPL-3.0-only metadata/text with exact hash and manifest/lock fail-closed checks; Node24/npm11/Zig0.16 immutable installs, mutation negatives, wrappers, audit, diff scope, and fresh-clone gates verified
+- 2026-07-21T20:51:59Z – codex:gpt-5:reviewer-renata:reviewer – shell_pid=1807838 – Started review via action command
+- 2026-07-21T21:01:26Z – user – shell_pid=1807838 – Moved to planned
+- 2026-07-21T21:03:32Z – codex:gpt-5:node-norris:implementer – shell_pid=1807838 – Started implementation via action command
+- 2026-07-21T21:27:48Z – codex:gpt-5:node-norris:implementer – shell_pid=1807838 – Cycle-2 handoff at 11b8c0d (GPL c7fc303 + wrapper restore). Node v24.18.0/npm 11.16.0/Zig 0.16.0: fresh clone npm ci --offline twice PASS with immutable hashes; verify:substrate PASS; npm ls problems=[]; full/prod audit 0. Both real wrappers fail actionably at absent WP03 and remove all newly created outputs; pre-existing regular entries, dangling symlink, and EACCES-classified entry survive. Injected cleanup failure continues through all 11 targets and promotes success to 1; earlier child exits 7/13 remain 7/13. Bootstrap calls exactly ci, substrate, contracts, api, migration-negative, persistence, web, one http:smoke; no aggregate/license/browser leakage; active system-browser fallbacks absent. Empty/prepared Playwright caches PASS at Chromium and headless-shell rev1228 with X_OK executables and immutable metadata. Canonical GPL3 hash 3972dc97; missing/truncated/byte mutations plus 3 manifest and 3 lock mismatches all reject; restored baseline PASS. Effective product diff only LICENSE, package.json, package-lock.json, apps/web/package.json, tools/contracts/package.json; no aborted-merge residue. git diff --check PASS; changed Python files none, diff-scoped ruff N/A exit 0; lane porcelain empty; no test processes.
+- 2026-07-21T21:29:19Z – codex:gpt-5:reviewer-renata:reviewer – shell_pid=1807838 – Started review via action command

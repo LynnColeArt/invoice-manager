@@ -1,7 +1,7 @@
 {
-  "event_count": 254,
-  "last_event_id": "01KY300QJHTMHWV8VNBKBQVZSG",
-  "materialized_at": "2026-07-21T18:46:38.929142+00:00",
+  "event_count": 280,
+  "last_event_id": "01KY3EGCFK5VYZ1EF7MXPEGE82",
+  "materialized_at": "2026-07-21T22:59:51.913888+00:00",
   "mission_number": "",
   "mission_slug": "p0-contract-spine-01KXYY0J",
   "mission_type": "software-dev",
@@ -19,10 +19,10 @@
   "work_packages": {
     "WP01": {
       "actor": "user",
-      "force_count": 4,
+      "force_count": 6,
       "lane": "approved",
-      "last_event_id": "01KY2MGD45R2PK059AMAWT94WQ",
-      "last_transition_at": "2026-07-21T15:25:29.605571+00:00"
+      "last_event_id": "01KY3AASMXZGFZ2YJ9V7ARBYR7",
+      "last_transition_at": "2026-07-21T21:46:54.493310+00:00"
     },
     "WP02": {
       "actor": "user",
@@ -40,10 +40,10 @@
     },
     "WP04": {
       "actor": "user",
-      "force_count": 13,
+      "force_count": 14,
       "lane": "approved",
-      "last_event_id": "01KY2DHHTE7N1X6QH7CW4A8CC9",
-      "last_transition_at": "2026-07-21T13:23:47.150803+00:00"
+      "last_event_id": "01KY3C7GJPBHW2A1WFPZER2N41",
+      "last_transition_at": "2026-07-21T22:20:04.054884+00:00"
     },
     "WP05": {
       "actor": "user",
@@ -89,17 +89,17 @@
     },
     "WP11": {
       "actor": "user",
-      "force_count": 0,
+      "force_count": 1,
       "lane": "approved",
-      "last_event_id": "01KY2ZTFXCQNNRRRR3Y0HPPZ9N",
-      "last_transition_at": "2026-07-21T18:43:14.476691+00:00"
+      "last_event_id": "01KY3EC395A9F26KQNN9W1TFVZ",
+      "last_transition_at": "2026-07-21T22:57:31.429574+00:00"
     },
     "WP12": {
-      "actor": "codex-wp12-implementer",
-      "force_count": 0,
+      "actor": "codex",
+      "force_count": 1,
       "lane": "in_progress",
-      "last_event_id": "01KY300QJHTMHWV8VNBKBQVZSG",
-      "last_transition_at": "2026-07-21T18:46:38.929142+00:00"
+      "last_event_id": "01KY3EGCFK5VYZ1EF7MXPEGE82",
+      "last_transition_at": "2026-07-21T22:59:51.913888+00:00"
     }
   }
 }
