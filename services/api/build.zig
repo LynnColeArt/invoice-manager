@@ -306,11 +306,20 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+    const coverage_runner_core_module = b.createModule(.{
+        .root_source_file = b.path("src/platform/persistence/shovelerdb_coverage_runner_core.zig"),
+        .target = target,
+        .optimize = optimize,
+        .fuzz = false,
+    });
     const discovery_module = b.createModule(.{
         .root_source_file = b.path("tests/persistence/shovelerdb_build_discovery.zig"),
         .target = target,
         .optimize = optimize,
-        .imports = &.{.{ .name = "build_registry", .module = registry_module }},
+        .imports = &.{
+            .{ .name = "build_registry", .module = registry_module },
+            .{ .name = "coverage_runner_core", .module = coverage_runner_core_module },
+        },
     });
     const discovery_tests = b.addTest(.{
         .name = "shovelerdb-build-discovery-tests",

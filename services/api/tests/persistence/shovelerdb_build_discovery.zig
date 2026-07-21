@@ -1,6 +1,21 @@
 const std = @import("std");
 const registry = @import("build_registry");
 const coverage = registry.migration_coverage_contract;
+const runner = @import("coverage_runner_core");
+
+fn ownsPersistenceSource(path: []const u8) bool {
+    const relative = runner.sourceRelativePath(
+        path,
+        "src/platform/persistence/",
+        "src\\platform\\persistence\\",
+    ) orelse return false;
+    if (std.mem.indexOfAny(u8, relative, "/\\") != null) return false;
+    return std.mem.eql(u8, relative, "root.zig") or
+        std.mem.startsWith(u8, relative, "store") or
+        std.mem.startsWith(u8, relative, "durability") or
+        std.mem.startsWith(u8, relative, "directory_sync") or
+        std.mem.startsWith(u8, relative, "diagnostic");
+}
 
 fn expectPaths(expected: []const []const u8, actual: []const registry.Classified) !void {
     try std.testing.expectEqual(expected.len, actual.len);
@@ -75,6 +90,113 @@ test "stable step names and aggregate order are exact" {
         [_][]const u8{ "coverage-shared", "coverage-persistence", "coverage-migration" },
         registry.aggregate_coverage_order,
     );
+}
+
+test "coverage uses canonical direct origins and excludes known non-owned sites" {
+    const return_pc: usize = 0x101;
+    const adjusted_pc = try runner.originatingInstructionPc(return_pc);
+    try std.testing.expectEqual(@as(usize, 0x100), adjusted_pc);
+    try std.testing.expectError(error.InvalidCoveragePc, runner.originatingInstructionPc(0));
+
+    const Boundary = struct {
+        fn frames(pc: usize) []const runner.OriginFrame {
+            const canonical = [_]runner.OriginFrame{.{
+                .source_path = "src/platform/persistence/shovelerdb.zig",
+            }};
+            const unadjusted = [_]runner.OriginFrame{.{
+                .source_path = "src/platform/persistence/store.zig",
+            }};
+            return if (pc == 0x100) &canonical else &unadjusted;
+        }
+    };
+
+    const canonical_boundary_origin = try runner.directOriginFromFrames(Boundary.frames(adjusted_pc));
+    const unadjusted_boundary_origin = try runner.directOriginFromFrames(Boundary.frames(return_pc));
+    try std.testing.expectEqualStrings(
+        "src/platform/persistence/shovelerdb.zig",
+        canonical_boundary_origin.known,
+    );
+    try std.testing.expectEqualStrings(
+        "src/platform/persistence/store.zig",
+        unadjusted_boundary_origin.known,
+    );
+
+    const origins = [_]runner.DirectOrigin{
+        .{ .known = "src/platform/persistence/store.zig" },
+        .{ .known = "src/platform/persistence/durability.zig" },
+        canonical_boundary_origin,
+        .{ .known = "src/platform/persistence/shovelerdb_persistence_coverage_probe.zig" },
+        .{ .known = "tests/persistence/durability_coverage_test.zig" },
+        .{ .known = "/zig/lib/std/mem.zig" },
+    };
+    var owned_mask: [origins.len]bool = undefined;
+    const classification = try runner.classifyDirectOrigins(
+        &origins,
+        &owned_mask,
+        ownsPersistenceSource,
+    );
+    try std.testing.expectEqual(@as(usize, 2), classification.owned_sites);
+    try std.testing.expectEqual(@as(usize, 4), classification.excluded_known_sites);
+    try std.testing.expectEqual(origins.len, classification.total_sites);
+    try std.testing.expectEqualDeep(
+        [_]bool{ true, true, false, false, false, false },
+        owned_mask,
+    );
+
+    const counters = [_]u8{ 1, 0, 1, 1, 1, 1 };
+    var aggregate = [_]u8{0} ** origins.len;
+    const production_delta = runner.accumulateOwnedCoverage(
+        &counters,
+        &owned_mask,
+        &aggregate,
+    );
+    try std.testing.expectEqual(@as(usize, 1), production_delta);
+    try std.testing.expectEqual(@as(usize, 1), runner.countOwnedCoverage(&aggregate, &owned_mask));
+}
+
+test "coverage origin classification fails closed for missing and ambiguous debug sources" {
+    try std.testing.expectError(
+        error.MissingPcOrigin,
+        runner.directOriginFromFrames(&.{}),
+    );
+    try std.testing.expectError(
+        error.MissingPcOrigin,
+        runner.directOriginFromFrames(&.{.{ .source_path = null }}),
+    );
+    try std.testing.expectError(
+        error.AmbiguousPcOrigin,
+        runner.directOriginFromFrames(&.{
+            .{ .source_path = "src/platform/persistence/shovelerdb.zig" },
+            .{ .source_path = "src/platform/persistence/store.zig" },
+        }),
+    );
+
+    const missing = [_]runner.DirectOrigin{.missing};
+    var missing_mask: [1]bool = undefined;
+    try std.testing.expectError(
+        error.MissingPcOrigin,
+        runner.classifyDirectOrigins(&missing, &missing_mask, ownsPersistenceSource),
+    );
+
+    const ambiguous = [_]runner.DirectOrigin{.ambiguous};
+    var ambiguous_mask: [1]bool = undefined;
+    try std.testing.expectError(
+        error.AmbiguousPcOrigin,
+        runner.classifyDirectOrigins(&ambiguous, &ambiguous_mask, ownsPersistenceSource),
+    );
+}
+
+test "coverage instrumentation policy instruments only domain production" {
+    try std.testing.expect(registry.coverageInstrumentationEnabled(.domain_production));
+    inline for (&.{
+        registry.CoverageArtifactRole.adapter,
+        .probe,
+        .test_root,
+        .runner,
+        .dependency,
+    }) |role| {
+        try std.testing.expect(!registry.coverageInstrumentationEnabled(role));
+    }
 }
 
 test "creation order does not change normalized bytewise order" {
