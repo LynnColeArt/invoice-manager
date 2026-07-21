@@ -202,10 +202,11 @@ database; only metadata, paths, versions, and digests are stored.
 HTTP-contract, migration-negative, and license jobs. P0 creates real assertions
 for current surfaces, not empty future PDF or browser jobs.
 
-The GPL-2.0-only audit covers runtime npm/Zig dependencies, fonts, TeX packages,
+The GPL-3.0-only audit covers runtime npm/Zig dependencies, fonts, TeX packages,
 and distributed container contents. Apache-2.0 build/orchestration tools can
 remain separate programs, but Apache-2.0 code must not become a combined
-GPL-2.0-only runtime without an explicit compatibility decision. ShovelerDB's
+GPL-3.0-only runtime without an explicit compatibility decision. GPL-2.0-only
+combined-runtime material remains incompatible and must be excluded. ShovelerDB's
 GPLv2 license direction is compatible with this project and requires pinned
 dependency attribution.
 

@@ -14,4 +14,4 @@ SRC-012,official-web,typescript-eslint dependency support,https://typescript-esl
 SRC-013,official-web,Zig downloads,https://ziglang.org/download/,2026-07-19,Current stable Zig toolchain
 SRC-014,official-web,TeX Live distribution,https://tug.org/texlive/,2026-07-19,Later P2 toolchain baseline
 SRC-015,official-web,Docker Engine 29 release notes,https://docs.docker.com/engine/release-notes/29/#2962,2026-07-19,Later P3 container baseline
-SRC-016,official-web,GNU license compatibility list,https://www.gnu.org/licenses/license-list.html#apache2,2026-07-19,GPL-2.0-only compatibility constraint
+SRC-016,official-web,GNU license compatibility list,https://www.gnu.org/licenses/license-list.html#apache2,2026-07-19,GPL-3.0-only compatibility basis and GPL-2.0-only exclusion

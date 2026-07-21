@@ -61,11 +61,16 @@ mandatory `migration:negative`, and runtime-license audit
 applications plus repository-owned contract tooling
 **Performance Goals**: Health p99 under one second for 100 local requests;
 complete P0 validation within 15 minutes on the reference CI runner
-**Constraints**: GPL-2.0-only distribution; exact integer money; no floating
+**Constraints**: GPL-3.0-only distribution; exact integer money; no floating
 dependency revisions; no feature behavior; one storage process/handle per path;
 generated aggregates are not committed
 **Scale/Scope**: One internal organization and administrator, four Wave A
 consumer missions, one local database file, and only foundation entities in P0
+
+The licensing-policy migration uses `occurrence_map.yaml` to classify all
+eight bulk-edit risk surfaces. Current policy and tests are reviewed for
+migration, while append-only events and immutable historical review evidence
+retain the license policy they evaluated at that time.
 
 ## Charter Check
 
@@ -79,7 +84,7 @@ consumer missions, one local database file, and only foundation entities in P0
 | Exact money and separated currencies | Canonical decimal-string minor units plus checked signed 64-bit parsing | Pass |
 | Test-first critical persistence, migration, and route-policy behavior | Reviewable red-first evidence names the failing case and command before production changes, then records the green result | Pass |
 | 90% Zig domain coverage | Coverage gate applies to P0 shared value/migration/durability logic | Pass |
-| GPL-2.0-only and dependency notices | Dedicated runtime compatibility/notice gate | Pass |
+| GPL-3.0-only compatibility and dependency notices | Dedicated real-artifact compatibility/notice gate; GPL-2.0-only combined-runtime code and incomplete evidence fail closed | Pass |
 | Living behavior documentation | Versioned schemas/fixtures plus orchestrator pre-acceptance sync for governed mission docs/quickstart/glossary; closure updates README and ledger | Pass |
 | Frontend accessibility and Playwright workflow | The real shell/Route-Handler integration owns component accessibility checks and a same-origin Playwright health workflow | Pass |
 | Persistence concurrency and idempotency | Durable-store tests exercise serialization/competing handles; migration tests prove repeatable no-op application | Pass |
