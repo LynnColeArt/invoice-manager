@@ -233,18 +233,9 @@ jobs:
           test -f deps/shovelerdb/PROVENANCE
       - name: Install locked dependencies
         run: npm ci
-      - name: Build exact Next standalone artifact
-        run: |
-          npm run contracts:generate
-          npm run build --workspace @invoice-manager/web
-      - name: Build exact Zig release install
-        run: |
-          rm -rf tools/licenses/.runtime/zig
-          mkdir -p tools/licenses/.runtime/zig
-          zig build --build-file services/api/build.zig -Doptimize=ReleaseSafe --prefix tools/licenses/.runtime/zig
       - name: Static typecheck license tooling
         run: npm exec --workspace @invoice-manager/contracts -- tsc --noEmit --strict --skipLibCheck --module NodeNext --moduleResolution NodeNext --target ES2022 --types node,vitest ../licenses/src/audit.ts ../licenses/src/main.ts ../licenses/tests/artifact-closure.test.ts ../licenses/tests/cli.test.ts ../licenses/tests/license-audit.test.ts
-      - name: Test license policy, artifact, and CLI mutations
+      - name: Test license policy, source closure, and CLI mutations
         run: npm exec --workspace @invoice-manager/contracts -- vitest run --root .. licenses/tests
       - name: Verify exact ShovelerDB source evidence
         run: npm exec --workspace @invoice-manager/contracts -- tsx ../licenses/src/main.ts source-check

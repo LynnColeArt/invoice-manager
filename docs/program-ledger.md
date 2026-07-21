@@ -1,12 +1,14 @@
 # Invoice Manager Spec Kitty Program Ledger
 
-- Status: P0 task generation finalized and ready for the implement-review loop;
-  P1-P4 remain planned Draft missions parked at their dependency gates
-- Review-bearing baseline: `a71448b` on `main`; P0 was refreshed from this
-  baseline before tasking, while P1-P4 must still refresh immediately before
-  their own task generation
-- Contract posture: every published contract remains `0.1.0-draft.1` and Draft;
-  P0 implementation is authorized by finalized WPs, but no contract is Frozen
+- Status: P0 is implementing; WP01-WP11 are approved and WP12 has a local
+  GPL-3.0-only source-distribution candidate with all focused and aggregate
+  gates passing. Public-repository and GitHub Actions evidence remain pending.
+- Review-bearing baseline: accepted WP11 receipt commit
+  `97b4094de279a0b568760f2e9a202f98dc64021d`; the WP12 lane was reconciled to
+  accepted target `9e16701452bac3883a26ec6b893043de1ac6dff3` before implementation.
+- Contract posture: canonical P0 `0.1.0-draft.1` is Frozen at content digest
+  `sha256:6ff2126ce659465dfdded2e33aab6fa61c1ded90bf3ef22f2d6daceb30864a15`;
+  P1-P4 remain immutable `0.1.0-draft.1` planning inputs.
 - Source brief: `docs/planning-brief.md`
 - Governance source: `.kittify/charter/charter.md`
 
@@ -51,7 +53,7 @@ summarizes only the latest authoritative state.
 
 | ID | Mission handle | Branch | State | Implementation dependencies | Contract state | Primary owner | Merge wave |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| P0 | `p0-contract-spine-01KXYY0J` | `feat/p0-contract-spine` | Tasking (10 WPs finalized; implementation ready) | None | `0.1.0-draft.1` Draft | Integration steward | Foundation |
+| P0 | `p0-contract-spine-01KXYY0J` | `feat/p0-contract-spine` | Implementing (WP01-WP11 approved; WP12 local candidate) | None | `0.1.0-draft.1` Frozen | Integration steward | Foundation |
 | P1 | `p1-parties-projects-01KXYZD3` | `feat/p1-parties-projects` | Tasking (parked; no WPs) | P0 Frozen and merged | `0.1.0-draft.1` Draft | Parties/projects owner | A1 |
 | P2 | `p2-invoice-document-engine-01KXZ0ET` | `feat/p2-invoice-document-engine` | Tasking (parked; no WPs) | P0 and P1 Frozen and merged | `0.1.0-draft.1` Draft | Document-engine owner | A2 |
 | P3 | `p3-platform-security-operations-01KXZ0Y2` | `feat/p3-platform-security-operations` | Tasking (parked; no WPs) | P0 Frozen and merged | `0.1.0-draft.1` Draft | Platform owner | A1 |
@@ -70,10 +72,10 @@ records the blocker in the dependency register.
 
 | Contract | Owner | Consumers | Version or commit | State | Evidence |
 | --- | --- | --- | --- | --- | --- |
-| Identifier, money, currency, date, and digest primitives | P0 | P1, P2, P4, P5, P6 | `0.1.0-draft.1` / `63d0543` | Draft | `feat/p0-contract-spine:kitty-specs/p0-contract-spine-01KXYY0J/contracts/common-v1.schema.json` |
-| API envelope, structured errors, and route-access metadata | P0 | P1-P6 | `0.1.0-draft.1` / `63d0543` | Draft | `feat/p0-contract-spine:kitty-specs/p0-contract-spine-01KXYY0J/contracts/api-v1.openapi.yaml` |
-| Domain event envelope and discriminator catalog | P0 | P1, P3, P4, P5, P6 | `0.1.0-draft.1` / `63d0543` | Draft | `feat/p0-contract-spine:kitty-specs/p0-contract-spine-01KXYY0J/contracts/event-catalog-v1.schema.json` |
-| Migration naming, descriptor/script digests, and schema-version protocol | P0 | P1, P3, P4, P5, P6 | `0.1.0-draft.1` / `63d0543` | Draft | `feat/p0-contract-spine:kitty-specs/p0-contract-spine-01KXYY0J/contracts/migration-manifest-v1.schema.json` |
+| Identifier, money, currency, date, and digest primitives | P0 | P1, P2, P4, P5, P6 | `0.1.0-draft.1` / `sha256:6ff2126c…` | Frozen | `contracts/manifests/p0.json`; accepted WP11 receipt `97b4094…` |
+| API envelope, structured errors, and route-access metadata | P0 | P1-P6 | `0.1.0-draft.1` / `sha256:6ff2126c…` | Frozen | `contracts/manifests/p0.json`; accepted WP11 receipt `97b4094…` |
+| Domain event envelope and discriminator catalog | P0 | P1, P3, P4, P5, P6 | `0.1.0-draft.1` / `sha256:6ff2126c…` | Frozen | `contracts/manifests/p0.json`; accepted WP11 receipt `97b4094…` |
+| Migration naming, descriptor/script digests, and schema-version protocol | P0 | P1, P3, P4, P5, P6 | `0.1.0-draft.1` / `sha256:6ff2126c…` | Frozen | `contracts/manifests/p0.json`; accepted WP11 receipt `97b4094…` |
 | Mutable Resolved Invoice Configuration | P1 | P2, P5, P6 | `0.1.0-draft.1` / `47638a9` | Draft | `feat/p1-parties-projects:kitty-specs/p1-parties-projects-01KXYZD3/contracts/resolved-invoice-configuration-v1.schema.json` |
 | Invoice document input; snapshot, preview, digest, and staged-artifact interfaces remain planned | P2 | P5, P6 | `0.1.0-draft.1` / `8830e8b` | Draft | `feat/p2-invoice-document-engine:kitty-specs/p2-invoice-document-engine-01KXZ0ET/contracts/` |
 | Backup manifest; restore, auth, and private-deployment contracts remain planned | P3 | P8 | `0.1.0-draft.1` / `1a83ce0` | Draft | `feat/p3-platform-security-operations:kitty-specs/p3-platform-security-operations-01KXZ0Y2/contracts/` |
@@ -108,10 +110,10 @@ mission plans.
 
 | Consumer | Dependency or blocker | Required state | Current state | Owner | Next evidence |
 | --- | --- | --- | --- | --- | --- |
-| P0 tasking | Cross-mission Draft review | Approved | Ready with corrections applied; task finalizer passed at `231b858` | P0/integration steward | Run the dependency-aware P0 implement-review loop |
+| P0 tasking | Cross-mission Draft review | Approved | Complete; WP01-WP11 approved and accepted receipt fixed at `97b4094…` | P0/integration steward | Finish WP12 publication evidence, review, accept, and merge |
 | P0-P4 task generation | Healthy registered topology and current target branch | Healthy and refreshed per mission gate | Workspace doctor passes; P0 consumed `a71448b`; P1-P4 retain aligned Draft heads but still predate current `main` | Integration steward | Refresh each remaining target branch immediately before generating its WPs; coordination branches remain planning infrastructure |
-| P1, P3, P4 | P0 shared contracts | Frozen | `0.1.0-draft.1` Draft | P0 | Implement P0, validate fixtures, promote exact manifest, merge, then refresh baselines |
-| P2 | P0 shared contracts | Frozen | `0.1.0-draft.1` Draft | P0 | Same P0 freeze/merge evidence |
+| P1, P3, P4 | P0 shared contracts | Frozen and merged | `0.1.0-draft.1` Frozen on the WP12 lane; not accepted or merged | P0 | Finish public/CI closure, approve and merge P0, then refresh consumer baselines |
+| P2 | P0 shared contracts | Frozen and merged | `0.1.0-draft.1` Frozen on the WP12 lane; not accepted or merged | P0 | Same P0 publication, acceptance, and merge evidence |
 | P2 | P1 Resolved Invoice Configuration | Frozen | `0.1.0-draft.1` Draft | P1 | Decision fixtures, schema compatibility, and Frozen P1 manifest |
 | P4 | P4 normalized reporting input | Frozen | `0.1.0-draft.1` Draft | P4 | Golden/invalid fixtures and cross-mission Draft review |
 | P5 | P1 configuration contract and P2 document contract | Implemented | Not drafted | P1/P2 | Contract tests passing on program baseline |
@@ -147,8 +149,9 @@ wave.
 | Initial repository baseline | `e185ecc` | Pass | Governance, planning brief, canonical GPL-2.0-only license, worktree ignore | P0-P4 feature branches must refresh from this baseline before tasking |
 | P0-P4 planning snapshot | `78a7aaa`; heads `84f0be0`, `cf74aae`, `1575fcd`, `c691dd5`, `bb010e4` | Pass for planning only | Five specs, plans, manifests, schemas, and quickstarts | Cross-mission Draft review pending; implementation blocked |
 | P0-P4 Draft contract review | Corrected heads `63d0543`, `47638a9`, `8830e8b`, `1a83ce0`, `860ee50` | Ready with corrections applied for P0 tasking | `docs/draft-contract-review-2026-07-20.md`; canonical schemas compile and all five manifests conform | Later-mission correction queue remains gated to each mission's task review |
-| P0 task generation | `231b858` | Pass | 10 finalized WPs, 53 subtasks, complete FR-001–FR-016 coverage, ownership-safe DAG, generated lanes | Begin implement-review with WP01 as the initial ready package |
-| P0 foundation | Pending | Pending | TBD | TBD |
+| P0 task generation | `231b858` | Pass | 12 finalized WPs, complete FR-001–FR-016 coverage, ownership-safe DAG, generated lanes | Implement-review advanced through WP11; WP12 remains active |
+| P0 governed documentation sync | `97b4094de279a0b568760f2e9a202f98dc64021d` | Pass | Accepted WP11 receipt `docs/governance/p0-governed-doc-sync.json`; immutable P1-P4 Draft inputs preserved | Receipt commit is fixed and may not be replaced |
+| P0 WP12 local foundation candidate | WP12 lane, pre-publication | Local pass | Frozen manifest digest `sha256:6ff2126c…`; focused contracts 5.19s, web 18.37s, API 50.15s, migration-negative 0.61s, persistence 0.34s, HTTP 116.63s, license 0.54s; aggregate `verify:foundation` 148.33s | Exact clean candidate commit, public clone/bootstrap, GitHub Actions, lifecycle Verified, review, accept, and merge remain pending |
 | Wave A integration | Pending | Pending | TBD | TBD |
 | Wave B integration | Pending | Pending | TBD | TBD |
 | Release candidate | Pending | Pending | TBD | TBD |

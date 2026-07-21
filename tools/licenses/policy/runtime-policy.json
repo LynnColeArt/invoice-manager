@@ -1,6 +1,15 @@
 {
-  "schema": "invoice-manager.runtime-license-policy/v2",
-  "project_license": "GPL-2.0-only",
+  "schema": "invoice-manager.runtime-license-policy/v3",
+  "project_license": "GPL-3.0-only",
+  "distribution": {
+    "kind": "source-repository",
+    "shipped_surface": "git-tracked-source",
+    "deferred_packaging": [
+      "container-image",
+      "next-standalone",
+      "zig-installed-binary"
+    ]
+  },
   "target": {
     "os": "linux",
     "cpu": "x64",
@@ -8,17 +17,19 @@
   },
   "compatible_combined_runtime": [
     "0BSD",
+    "Apache-2.0",
     "BSD-2-Clause",
     "BSD-3-Clause",
-    "GPL-2.0-only",
+    "CC-BY-4.0",
+    "GPL-3.0-only",
     "ISC",
+    "LGPL-3.0-or-later",
     "MIT",
     "MIT-0"
   ],
   "incompatible_combined_runtime": [
-    "Apache-2.0",
-    "GPL-3.0-only",
-    "LGPL-3.0-or-later"
+    "GPL-2.0-only",
+    "GPL-2.0-or-later"
   ],
   "license_selections": {},
   "notice_evidence": {
@@ -26,9 +37,21 @@
       "path": "node_modules/@img/colour/LICENSE.md",
       "sha256": "e2eaa4603c14cb26f301e88648c12a853fa3f0f5da6d4b0972958c666e7f2ab8"
     },
+    "npm:@img/sharp-libvips-linux-x64@1.2.4": {
+      "path": "tools/licenses/evidence/LGPL-3.0-or-later.txt",
+      "sha256": "e3a994d82e644b03a792a930f574002658412f62407f5fee083f2555c5f23118"
+    },
     "npm:@img/sharp-linux-x64@0.34.5": {
       "path": "node_modules/@img/sharp-linux-x64/LICENSE",
       "sha256": "73ba74dfaa520b49a401b5d21459a8523a146f3b7518a833eea5efa85130bf68"
+    },
+    "npm:@next/env@16.2.10": {
+      "path": "node_modules/next/license.md",
+      "sha256": "ee765244e2d59f5234d474f62e0766fa0c8b99af967fdd4c0cb8dcb0c76ea224"
+    },
+    "npm:@next/swc-linux-x64-gnu@16.2.10": {
+      "path": "node_modules/next/license.md",
+      "sha256": "ee765244e2d59f5234d474f62e0766fa0c8b99af967fdd4c0cb8dcb0c76ea224"
     },
     "npm:@swc/helpers@0.5.15": {
       "path": "node_modules/@swc/helpers/LICENSE",
@@ -41,6 +64,10 @@
     "npm:caniuse-lite@1.0.30001806": {
       "path": "node_modules/caniuse-lite/LICENSE",
       "sha256": "fd3a263fe19ed8faa9068b43abaebafc02c77897b0c6fc09abc04bb592e5f16e"
+    },
+    "npm:client-only@0.0.1": {
+      "path": "node_modules/next/license.md",
+      "sha256": "ee765244e2d59f5234d474f62e0766fa0c8b99af967fdd4c0cb8dcb0c76ea224"
     },
     "npm:detect-libc@2.1.2": {
       "path": "node_modules/detect-libc/LICENSE",
@@ -95,60 +122,45 @@
       "sha256": "210b19e543130388c68654b7497e967119ce17145f66ab7d85688fbd70f08751"
     }
   },
+  "lgpl_obligations": {
+    "npm:@img/sharp-libvips-linux-x64@1.2.4": {
+      "selected_license": "LGPL-3.0-or-later",
+      "license_path": "tools/licenses/evidence/LGPL-3.0-or-later.txt",
+      "license_sha256": "e3a994d82e644b03a792a930f574002658412f62407f5fee083f2555c5f23118",
+      "source_url": "https://github.com/libvips/libvips/archive/0c9151a4f416d2f8ae20a755db218f6637050eec.tar.gz",
+      "source_commit": "0c9151a4f416d2f8ae20a755db218f6637050eec",
+      "source_archive_sha256": "cfdff3dfaf1fdb74823a1e329b04eaefeb29fd779c25fbe21dde04bd46f6a7a1",
+      "versions_path": "node_modules/@img/sharp-libvips-linux-x64/versions.json",
+      "versions_sha256": "e823074bfa33ed7b1861b797dd3c60d7ef8c34cd2faa9a7d22ec32dd6d6ad8ad",
+      "linked_version": "8.17.3",
+      "dynamic_library_path": "node_modules/@img/sharp-libvips-linux-x64/lib/libvips-cpp.so.8.17.3",
+      "dynamic_library_sha256": "9a2a2cf2b53ec123b3ee293bf66c234f8306681a5edfb058815b6bf66b9df8e9",
+      "relinking_mode": "replaceable-dynamic-shared-object"
+    }
+  },
   "source_components": {
     "shovelerdb": {
-      "commit": "021e3b3d9247a181252329d6ba7ec8d2ed943a97",
+      "commit": "20dced69738bfce08f94368b8d017cfc283747fe",
       "source": "https://github.com/LynnColeArt/ShovelerDB.git",
-      "spdx_expression": "GPL-2.0-only",
+      "spdx_expression": "GPL-3.0-only",
       "license_path": "deps/shovelerdb/LICENSE",
-      "license_sha256": "240a15a1d0f34d3abca462cdb7e5fb89470967563f16b0e71169e51c1e74cf2b",
-      "notice_path": "THIRD_PARTY_NOTICES.md",
-      "notice_sha256": "759b231a154dbc903e40d7a81661fa20d9e3b9d0269233b3bf21c825a73e509a",
+      "license_sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+      "upstream_notice_path": "deps/shovelerdb/NOTICE",
+      "upstream_notice_sha256": "59936d400c1c13e6a7e35aa1711277e695a94c50c2472fcbc01368a11b171283",
+      "distribution_notice_path": "THIRD_PARTY_NOTICES.md",
+      "distribution_notice_sha256": "d300a981d9388757e2bdecbe7add42230684e6ab6ab788c551c532283e4c837f",
       "provenance_path": "deps/shovelerdb/PROVENANCE",
-      "provenance_sha256": "379cbc9cb498cf0dc0ef6bb3687be413577d9f763d487d3b5d982b3d5715e28d",
-      "source_tree_sha256": "6bb2b4215aa50a8ffbbff3278aea4f32c4fc0f906da817037c44095cfd19480b"
+      "provenance_sha256": "732e0e0549b7660f50c284c53a0a756c272c26f6b2c6bd2abd6ca7c41fc32c06",
+      "source_file_count": 43,
+      "source_tree_sha256": "681d76ebe2ab6b05b3a94c7ab86749e5c3013520adb7c84f83dabfd15b2a544c",
+      "code_tree_sha256": "1fbc377ac6b54f105af3d09a627c2a7896c68626c8b03dfbdffbbe5c3204f782",
+      "build_zig_sha256": "a69e8d470cf1db44d0469e00e7db089b6ad7ca2e62b7607c03ac964843b483cc",
+      "abi_header_sha256": "177535ee08de90ee3f68f708046f19815e283f1072102afb594f6697708f676a"
     },
-    "zig_stdlib": {
+    "zig_toolchain": {
       "version": "0.16.0",
       "source": "https://ziglang.org/download/0.16.0/",
-      "spdx_expression": "MIT",
-      "version_path": ".zig-version",
-      "required_license_sha256": "5c537d6853e005298a285d508cff9ac7192cea23576c840d485b2b586a7ff177",
-      "committed_license_path": null
+      "version_path": ".zig-version"
     }
-  },
-  "artifact_inventory": {
-    "manifest_count": 66,
-    "identity_count": 66,
-    "projection_sha256": "844f7808354f691e9367f46e1c205eca7ad76238524e36f2d5911bc13906540e"
-  },
-  "root_distribution_files": {
-    "LICENSE": {
-      "sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643",
-      "distributed_path": "LICENSE"
-    },
-    "THIRD_PARTY_NOTICES.md": {
-      "sha256": "759b231a154dbc903e40d7a81661fa20d9e3b9d0269233b3bf21c825a73e509a",
-      "distributed_path": "THIRD_PARTY_NOTICES.md"
-    },
-    "deps/shovelerdb/LICENSE": {
-      "sha256": "240a15a1d0f34d3abca462cdb7e5fb89470967563f16b0e71169e51c1e74cf2b",
-      "distributed_path": "licenses/source-shovelerdb.LICENSE"
-    },
-    "deps/shovelerdb/PROVENANCE": {
-      "sha256": "379cbc9cb498cf0dc0ef6bb3687be413577d9f763d487d3b5d982b3d5715e28d",
-      "distributed_path": "licenses/source-shovelerdb.PROVENANCE"
-    }
-  },
-  "zig_artifact": {
-    "root": "tools/licenses/.runtime/zig",
-    "required_paths": [
-      "bin/invoice-manager-api",
-      "lib/libinvoice_manager_shovelerdb_abi.a",
-      "LICENSE",
-      "THIRD_PARTY_NOTICES.md",
-      "licenses/source-shovelerdb.LICENSE",
-      "licenses/source-shovelerdb.PROVENANCE"
-    ]
   }
 }
