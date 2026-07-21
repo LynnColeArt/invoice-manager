@@ -1,0 +1,13 @@
+{
+  "catalog_version": 1,
+  "owner_mission": "p0",
+  "source": "foundation",
+  "events": [
+    {
+      "event_type": "foundation.ready",
+      "event_version": 1,
+      "aggregate_type": "foundation",
+      "payload_schema_id": "https://invoice-manager.invalid/contracts/events/v1/payloads/p0/foundation-ready.schema.json"
+    }
+  ]
+}
