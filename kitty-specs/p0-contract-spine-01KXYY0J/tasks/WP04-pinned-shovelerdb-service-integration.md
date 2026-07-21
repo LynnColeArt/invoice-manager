@@ -27,7 +27,7 @@ subtasks:
 - T019
 phase: Phase 2 - Service Dependency Integration
 assignee: ''
-agent: "codex"
+agent: "codex-wp04-pc-review"
 history: []
 agent_profile: reviewer-renata
 authoritative_surface: deps/shovelerdb/
@@ -572,3 +572,9 @@ Review `THIRD_PARTY_NOTICES.md` and the complete upstream license as acceptance-
 - 2026-07-21T04:22:49Z – codex:implementer-ivan – Cycle 8 implementation commits `0c32098` (chronological public RED) and `69458f9` (production GREEN) are ready for independent review; reviewer profile restored for governed handoff.
 - 2026-07-21T04:25:36Z – codex – shell_pid=1549469 – Cycle 8 public RED, production GREEN, clean-source matrix, provenance, ABI, discovery, and coverage-isolation regressions complete at 0c32098/69458f9
 - 2026-07-21T04:27:12Z – codex – shell_pid=1807838 – Started review via action command
+- 2026-07-21T04:39:57Z – user – shell_pid=1807838 – Arbiter override of stale historical review-cycle-6 rejection: review-cycle-9.md at coordination commit 8f787a9 independently approves cycle-eight correction 0c32098/69458f9 with zero blockers and verifies all accepted coverage/privacy corrections remain green.
+- 2026-07-21T04:55:49Z – codex – shell_pid=1807838 – Cycle 10 direct-origin PC audit proves 72 non-owned sites inflate WP06 coverage; reopen WP04 coverage runner
+- 2026-07-21T04:57:18Z – codex – shell_pid=1807838 – Started implementation via action command
+- 2026-07-21T05:02:57Z – codex – shell_pid=1807838 – RED: WP04-COVERAGE-DIRECT-ORIGIN-010; commit 0c83f9c; command: (cd services/api && zig build test-build-discovery --summary all); expected: public discovery adversarial cases require one-byte return-PC bias, direct-origin-only ownership mask, missing/ambiguous fail-closed behavior, owned-only numerator/denominator, and explicit domain-only instrumentation policy; observed: exit 1 with three compile errors because shovelerdb_coverage_runner_core lacks originatingInstructionPc/directOriginFromFrames and build.zig lacks coverageInstrumentationEnabled, before any production correction.
+- 2026-07-21T05:04:12Z – codex – shell_pid=1807838 – RED refinement: WP04-COVERAGE-DIRECT-FRAME-010; commit 4b280ef; the public adversarial contract now requires first/canonical direct frame precedence, proves later owned inline/caller frames cannot confer ownership, and requires a missing direct frame to fail even when a later frame appears owned. The same discovery command remains RED on the three intentionally absent production APIs.
+- 2026-07-21T05:16:58Z – codex-wp04-pc-review – shell_pid=1807838 – Started review via action command
