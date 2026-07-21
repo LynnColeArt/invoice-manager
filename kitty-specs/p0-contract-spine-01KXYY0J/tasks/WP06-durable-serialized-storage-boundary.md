@@ -498,3 +498,38 @@ During implementation, append timestamped entries for each red command/failure,
 the corresponding production change, each green command/result, scope decisions,
 and the final full verification matrix.
 - 2026-07-21T02:09:15Z – codex – shell_pid=1807838 – Assigned agent via action command
+- 2026-07-21T02:12:00Z — RED: after adding the owned WP06 unit,
+  integration, crash, and exact coverage roots but before adding production code,
+  `cd services/api && zig build test-persistence` failed with
+  `[test-persistence:error] WP06 producer present but unit/integration/crash classification is incomplete`;
+  `zig build test-persistence-integration` failed because the expected integration
+  root count was 0; `zig build test-persistence-crash` failed because the expected
+  crash root count was 0; and `zig build coverage-persistence` failed because the
+  WP06 coverage groups were incomplete.
+- 2026-07-21T02:20:00Z — Implemented the canonical-path exclusive filesystem
+  lease, one-handle serialization boundary, begin/rollback/commit/checkpoint/Linux
+  parent-directory-sync choreography, explicit durability states and receipts,
+  uncertain/quarantined handling, dirty startup-handle discard/reopen, typed
+  redacted diagnostics, and the narrow adapter-opaque public facade.
+- 2026-07-21T02:25:00Z — RED: the focused allocator-ownership test
+  `an existing canonical database path retains exact allocator ownership` failed
+  under `cd services/api && zig build test-persistence`: `realPathFileAlloc`
+  returned a sentinel allocation of length 101 while canonicalization freed a
+  shortened `[]u8` view of length 100. Changed canonicalization to free the exact
+  sentinel allocation and return a separately owned ordinary slice.
+- 2026-07-21T02:40:00Z — GREEN: `cd services/api && zig build test-persistence`,
+  `zig build test-persistence-integration`, and `zig build test-persistence-crash`
+  passed with the real pinned ShovelerDB library. The integration root performs
+  20 acknowledged open/write/checkpoint/sync/close/reopen cycles; the crash root
+  covers before commit, after commit/before checkpoint, after checkpoint/before
+  directory sync, and after durable acknowledgment.
+- 2026-07-21T02:55:00Z — Added real cross-process lease evidence, DML rollback
+  observation, reopened-snapshot observation after failed startup DDL, real engine
+  statement failures, canonicalization/OS open failures, and closed-facade paths.
+  GREEN: Debug and ReleaseSafe `test-persistence`, `test-persistence-integration`,
+  and `test-persistence-crash` all passed.
+- 2026-07-21T02:57:00Z — Coverage scope audit: the pre-correction artifact
+  measured 257/356 aggregate sites and 20/20 exact critical branches, but a full
+  sanitizer-PC-to-DWARF map proved that 151 denominator sites belonged to the WP04
+  ShovelerDB adapter. The genuine WP06 classification was 185/205 (90.24%). Routed
+  the adapter-scope mismatch to WP04 and did not pad the ratio with adapter behavior.
