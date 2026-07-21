@@ -45,6 +45,25 @@ pub const aggregate_coverage_order = [_][]const u8{
     "coverage-migration",
 };
 
+pub const AggregateInvocation = struct {
+    argv: [6][]const u8,
+    cwd_from_service_root: []const u8,
+};
+
+pub fn aggregateInvocation(step_name: []const u8, optimize_arg: []const u8) AggregateInvocation {
+    return .{
+        .argv = .{
+            "zig",
+            "build",
+            step_name,
+            optimize_arg,
+            "--build-file",
+            "services/api/build.zig",
+        },
+        .cwd_from_service_root = "../..",
+    };
+}
+
 pub const Group = enum {
     shovelerdb_integration,
     build_discovery,
@@ -469,8 +488,9 @@ fn addSequentialGate(
     var previous: ?*std.Build.Step = null;
     const optimize_arg = b.fmt("-Doptimize={s}", .{@tagName(optimize)});
     for (ordered_steps) |step_name| {
-        const command = b.addSystemCommand(&.{ "zig", "build", step_name, optimize_arg });
-        command.setCwd(b.path("."));
+        const invocation = aggregateInvocation(step_name, optimize_arg);
+        const command = b.addSystemCommand(&invocation.argv);
+        command.setCwd(b.path(invocation.cwd_from_service_root));
         if (previous) |dependency| command.step.dependOn(dependency);
         previous = &command.step;
     }
@@ -1395,8 +1415,9 @@ fn configureHttp(
         return;
     }
 
+    const repository_root = b.path("../..");
     const materialize = b.addSystemCommand(&.{ "npm", "run", "contracts:generate" });
-    materialize.setCwd(b.path("../.."));
+    materialize.setCwd(repository_root);
     const modules = createPublicServiceModules(b, target, optimize, abi_library);
     const route_inventory = b.createModule(.{
         .root_source_file = b.path("../../tools/contracts/.generated/runtime/v1/route-inventory.json"),
@@ -1451,6 +1472,7 @@ fn configureHttp(
     );
 
     const run = b.addRunArtifact(executable);
+    run.setCwd(repository_root);
     if (b.args) |args| run.addArgs(args);
     run_step.dependOn(&run.step);
 }
