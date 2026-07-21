@@ -26,7 +26,7 @@ subtasks:
 - T041
 phase: Phase 4 - Application Boundaries
 assignee: ''
-agent: "codex-wp08-cycle1-reviewer"
+agent: "codex-wp08-shutdown-proof-fix"
 history: []
 agent_profile: implementer-ivan
 authoritative_surface: services/api/src/http/
@@ -486,3 +486,5 @@ events or frontmatter state by hand.
 - 2026-07-21T14:06:28Z – codex-wp08-implementer – shell_pid=1807838 – FINAL GREEN WP08 integration at lane tip 54f90ed after approved WP04/WP05/WP07 corrections. Product/test commits 438e397, 6a63d78, ea0c4ee, f58f651, 4079342, febfd2d, 4774d2e, 4e881eb, 108e946, 75904ab, 21d2740, 2a46be8, 31ebb16, 2361349 implement the real health listener, canonical envelopes, inventory-bound protected-default dispatch, typed store/migration readiness, fail-closed startup, bounded parsing, graceful SIGINT/SIGTERM shutdown, snapshot preservation, and slow-client deadline proof. Exact root command zig build test-http --build-file services/api/build.zig passed twice in Debug with 100/100 valid responses and zero failures: median/p99/max 281/356/358 us and 273/339/341 us. Exact ReleaseSafe command zig build -Doptimize=ReleaseSafe test-http --build-file services/api/build.zig passed 100/100 with median/p99/max 198/247/250 us. Exact zig build test --build-file services/api/build.zig --summary all passed 12/12 deterministic groups; integrated HTTP was 100/100 with median/p99/max 276/316/319 us. Exact zig build coverage --build-file services/api/build.zig --summary all passed: shared 221/243 plus 24/24 critical branches, persistence 577/641 plus 20/20, migration 571/631 plus 36/36. Exact npm run api:check passed with final HTTP 100/100, median/p99/max 277/336/339 us. zig fmt --check services/api/build.zig services/api/src services/api/tests and git diff --check passed. T041 causal startup matrix covers store open/corruption/checkpoint/directory-sync/unsupported-filesystem and migration dependency/cycle/duplicate/digest/DDL/lease/transaction/executor/recovery/quarantine/reopen failures: every case exits nonzero before bind/readiness, preserves seeded durable snapshots, and activates no fallback.
 - 2026-07-21T14:07:53Z – codex-wp08-implementer – shell_pid=1807838 – WP08 lane tip cbb08ff fully green; code tip 54f90ed; final evidence 22fded6
 - 2026-07-21T14:08:03Z – codex-wp08-cycle1-reviewer – shell_pid=1807838 – Started review via action command
+- 2026-07-21T14:25:17Z – user – shell_pid=1807838 – Moved to planned
+- 2026-07-21T14:25:27Z – codex-wp08-shutdown-proof-fix – shell_pid=1807838 – Started implementation via action command
