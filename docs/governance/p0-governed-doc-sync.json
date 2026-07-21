@@ -1,0 +1,249 @@
+{
+  "schema": "invoice-manager.governed-doc-sync/v1",
+  "producer_baseline_commit": "263b8a25190775f54b280788da0135a7862d2b4e",
+  "synchronized_baseline_commit": "03818d8573ce50443a863d6ed9fdcc5b0cd1b921",
+  "required_artifacts": [
+    ".kittify/charter/charter.md",
+    "kitty-specs/p0-contract-spine-01KXYY0J/contracts/README.md",
+    "kitty-specs/p0-contract-spine-01KXYY0J/contracts/api-v1.openapi.yaml",
+    "kitty-specs/p0-contract-spine-01KXYY0J/contracts/common-v1.schema.json",
+    "kitty-specs/p0-contract-spine-01KXYY0J/contracts/contract-manifest-v1.schema.json",
+    "kitty-specs/p0-contract-spine-01KXYY0J/contracts/event-catalog-v1.schema.json",
+    "kitty-specs/p0-contract-spine-01KXYY0J/contracts/event-envelope-v1.schema.json",
+    "kitty-specs/p0-contract-spine-01KXYY0J/contracts/governed-doc-sync-v1.schema.json",
+    "kitty-specs/p0-contract-spine-01KXYY0J/contracts/migration-manifest-v1.schema.json",
+    "kitty-specs/p0-contract-spine-01KXYY0J/contracts/module-contribution-v1.schema.json",
+    "kitty-specs/p0-contract-spine-01KXYY0J/contracts/p0-contract-manifest.json",
+    "kitty-specs/p0-contract-spine-01KXYY0J/data-model.md",
+    "kitty-specs/p0-contract-spine-01KXYY0J/plan.md",
+    "kitty-specs/p0-contract-spine-01KXYY0J/quickstart.md",
+    "kitty-specs/p0-contract-spine-01KXYY0J/research.md",
+    "kitty-specs/p0-contract-spine-01KXYY0J/research/evidence-log.csv",
+    "kitty-specs/p0-contract-spine-01KXYY0J/research/source-register.csv",
+    "kitty-specs/p0-contract-spine-01KXYY0J/spec.md"
+  ],
+  "checked_artifacts": [
+    {
+      "path": ".kittify/charter/charter.md",
+      "sha256": "a1176517b273e322d3dc408e369ef836c40e3bb84c69ae140ad554cffbb53f0f",
+      "status": "no_change",
+      "rationale": "Read-only charter remains aligned with the accepted P0 architecture, security, durability, licensing, and documentation boundaries."
+    },
+    {
+      "path": "kitty-specs/p0-contract-spine-01KXYY0J/contracts/README.md",
+      "sha256": "6df115c3a79f7591d19d92a9262a6957009cf0b4e84d7705c8e9ea5f1796df76",
+      "status": "changed",
+      "rationale": "Updated by the sole governed sync commit to describe accepted repository contracts and fixtures while reserving Frozen promotion for WP12."
+    },
+    {
+      "path": "kitty-specs/p0-contract-spine-01KXYY0J/contracts/api-v1.openapi.yaml",
+      "sha256": "d9411d1a9cd8ef94043065bf5bfb32103e5aaaa5d0728af496098db7b06cc911",
+      "status": "no_change",
+      "rationale": "Accepted HTTP health behavior, canonical response envelopes, and public-access metadata conform to this Draft OpenAPI example."
+    },
+    {
+      "path": "kitty-specs/p0-contract-spine-01KXYY0J/contracts/common-v1.schema.json",
+      "sha256": "64137e41dba172a3bf98cf9e7da358af89223b87119baedd6afa3b6658682e43",
+      "status": "no_change",
+      "rationale": "Accepted Zig and TypeScript wire values preserve the schema's identifiers, int64 money, dates, instants, digests, and request IDs."
+    },
+    {
+      "path": "kitty-specs/p0-contract-spine-01KXYY0J/contracts/contract-manifest-v1.schema.json",
+      "sha256": "5772fc46faf0832dbd0c0fb20b386d4b0bafee2a0874bdf3cd4f0c654962db86",
+      "status": "no_change",
+      "rationale": "Accepted contract tooling enforces the documented lifecycle, ownership, immutable-pin, output, and fixture constraints."
+    },
+    {
+      "path": "kitty-specs/p0-contract-spine-01KXYY0J/contracts/event-catalog-v1.schema.json",
+      "sha256": "41d819526354483b412ee6d72c79f2480c720654be2457c1d699bb2fe4f3bb66",
+      "status": "no_change",
+      "rationale": "Accepted composition tooling enforces owner event identities, payload bindings, and collision rejection represented by this schema."
+    },
+    {
+      "path": "kitty-specs/p0-contract-spine-01KXYY0J/contracts/event-envelope-v1.schema.json",
+      "sha256": "3a180f57d16bfbeb3d00234125cc621d9ce6bbd53b405a55c42e1d56b092d267",
+      "status": "no_change",
+      "rationale": "Accepted validators and synthetic fixtures preserve the immutable envelope fields and extensible data object represented by this schema."
+    },
+    {
+      "path": "kitty-specs/p0-contract-spine-01KXYY0J/contracts/governed-doc-sync-v1.schema.json",
+      "sha256": "bd48919fa8b43bde823211489cb553f04a9b9f8da4e487192a80480e08c472f2",
+      "status": "no_change",
+      "rationale": "The authoritative receipt schema remains consistent with the closed inventory, topology, command, and disposition rules used by this attestation."
+    },
+    {
+      "path": "kitty-specs/p0-contract-spine-01KXYY0J/contracts/migration-manifest-v1.schema.json",
+      "sha256": "053ff0fdf5567682f02659c2913c818c9e84d360f69465681eee59adbe07a60c",
+      "status": "no_change",
+      "rationale": "Accepted migration discovery and validation enforce owner-scoped IDs, exact dependencies, paths, and script and descriptor digests represented by this schema."
+    },
+    {
+      "path": "kitty-specs/p0-contract-spine-01KXYY0J/contracts/module-contribution-v1.schema.json",
+      "sha256": "259ce203515b32ceee8468ab0f5115388331930a4af44e2fb330f901215ae7b5",
+      "status": "no_change",
+      "rationale": "Accepted module discovery and route-policy composition enforce owner paths, mount keys, catalogs, migration roots, and protected-default access."
+    },
+    {
+      "path": "kitty-specs/p0-contract-spine-01KXYY0J/contracts/p0-contract-manifest.json",
+      "sha256": "73538e1e40214112198ff004aa4e3e506e930e37db7352c0cb8a663efd214825",
+      "status": "changed",
+      "rationale": "Updated by the sole governed sync commit to match the accepted repository Draft manifest and its actual canonical fixture paths."
+    },
+    {
+      "path": "kitty-specs/p0-contract-spine-01KXYY0J/data-model.md",
+      "sha256": "747fa56e1ae5a111781a2dea148e06933a0c07160db47f97e0d01d600b326a64",
+      "status": "changed",
+      "rationale": "Updated by the sole governed sync commit to match accepted persistence State, DurableReceipt, StoreError, and Diagnostic shapes."
+    },
+    {
+      "path": "kitty-specs/p0-contract-spine-01KXYY0J/plan.md",
+      "sha256": "5b974e0236a6a9dfb52de437e3804186b591de00ba88051b9727c98da6d3202b",
+      "status": "changed",
+      "rationale": "Updated by the sole governed sync commit to record the selected ShovelerDB source export and the producer-versus-closure evidence boundary."
+    },
+    {
+      "path": "kitty-specs/p0-contract-spine-01KXYY0J/quickstart.md",
+      "sha256": "89c3897c15b13cbc7166a09764f5134ebe89340228a5c6b6d031dfdc9745efe7",
+      "status": "changed",
+      "rationale": "Updated by the sole governed sync commit to describe accepted WP03-WP10 commands, the committed source export, and WP12 closure evidence."
+    },
+    {
+      "path": "kitty-specs/p0-contract-spine-01KXYY0J/research.md",
+      "sha256": "0cdc6b3b020bef64a006a51fbe3be3554aebf03727f6f3af7799c00b439ab65a",
+      "status": "changed",
+      "rationale": "Updated by the sole governed sync commit to record the resolved ShovelerDB packaging decision and reproducible source export."
+    },
+    {
+      "path": "kitty-specs/p0-contract-spine-01KXYY0J/research/evidence-log.csv",
+      "sha256": "33e75603b70b7d7da7b5f1b85b14f902cbac5dea57dcbc2d28ecfaa6b847160a",
+      "status": "no_change",
+      "rationale": "Research evidence entries remain consistent with accepted dependency, contract, persistence, HTTP, and toolchain decisions."
+    },
+    {
+      "path": "kitty-specs/p0-contract-spine-01KXYY0J/research/source-register.csv",
+      "sha256": "b7058b607c88d4e5ce252a9d6b91ad42bef2a7d0cbb62481715fbcc76027decf",
+      "status": "changed",
+      "rationale": "Updated by the sole governed sync commit to replace host-local locations with public commit-pinned ShovelerDB evidence URLs."
+    },
+    {
+      "path": "kitty-specs/p0-contract-spine-01KXYY0J/spec.md",
+      "sha256": "cbf96c32d255558dd1464b73a21ad4d101c171f0e3af45823b85823dfbf87420",
+      "status": "no_change",
+      "rationale": "Requirements and acceptance scenarios remain aligned with accepted WP03-WP10 behavior and the WP12 closure boundary."
+    }
+  ],
+  "example_mappings": [
+    {
+      "path": "kitty-specs/p0-contract-spine-01KXYY0J/contracts/api-v1.openapi.yaml",
+      "requirement_refs": [
+        "FR-002",
+        "FR-004"
+      ],
+      "acceptance_refs": [
+        "US-1/AS-1",
+        "SC-001"
+      ]
+    },
+    {
+      "path": "kitty-specs/p0-contract-spine-01KXYY0J/contracts/common-v1.schema.json",
+      "requirement_refs": [
+        "FR-003",
+        "NFR-004",
+        "C-006"
+      ],
+      "acceptance_refs": [
+        "US-2/AS-3",
+        "SC-005"
+      ]
+    },
+    {
+      "path": "kitty-specs/p0-contract-spine-01KXYY0J/contracts/contract-manifest-v1.schema.json",
+      "requirement_refs": [
+        "FR-008",
+        "FR-016"
+      ],
+      "acceptance_refs": [
+        "US-2/AS-4",
+        "SC-003"
+      ]
+    },
+    {
+      "path": "kitty-specs/p0-contract-spine-01KXYY0J/contracts/event-catalog-v1.schema.json",
+      "requirement_refs": [
+        "FR-005",
+        "FR-006",
+        "FR-007",
+        "NFR-003"
+      ],
+      "acceptance_refs": [
+        "US-2/AS-1",
+        "US-2/AS-2",
+        "SC-002",
+        "SC-003"
+      ]
+    },
+    {
+      "path": "kitty-specs/p0-contract-spine-01KXYY0J/contracts/event-envelope-v1.schema.json",
+      "requirement_refs": [
+        "FR-007"
+      ],
+      "acceptance_refs": [
+        "US-2/AS-3",
+        "SC-003"
+      ]
+    },
+    {
+      "path": "kitty-specs/p0-contract-spine-01KXYY0J/contracts/migration-manifest-v1.schema.json",
+      "requirement_refs": [
+        "FR-009",
+        "FR-010",
+        "NFR-003"
+      ],
+      "acceptance_refs": [
+        "US-2/AS-2",
+        "SC-003"
+      ]
+    },
+    {
+      "path": "kitty-specs/p0-contract-spine-01KXYY0J/contracts/module-contribution-v1.schema.json",
+      "requirement_refs": [
+        "FR-005",
+        "FR-006",
+        "C-007"
+      ],
+      "acceptance_refs": [
+        "US-2/AS-1",
+        "US-2/AS-2",
+        "SC-002",
+        "SC-003"
+      ]
+    },
+    {
+      "path": "kitty-specs/p0-contract-spine-01KXYY0J/contracts/p0-contract-manifest.json",
+      "requirement_refs": [
+        "FR-008",
+        "FR-016",
+        "C-007"
+      ],
+      "acceptance_refs": [
+        "US-2/AS-4",
+        "US-4/AS-2",
+        "SC-006"
+      ]
+    }
+  ],
+  "architecture": {
+    "status": "not_applicable",
+    "rationale": "No standalone tracked project architecture artifact exists; accepted architecture is governed through the charter, plan, and data model in the required inventory."
+  },
+  "glossary": {
+    "status": "not_applicable",
+    "rationale": "No standalone tracked project glossary exists; canonical terminology is governed through the charter, specification, plan, data model, and contract schemas in the required inventory."
+  },
+  "commands": {
+    "resolver": "git ls-files --error-unmatch -- .kittify/charter/charter.md kitty-specs/p0-contract-spine-01KXYY0J/contracts/README.md kitty-specs/p0-contract-spine-01KXYY0J/contracts/api-v1.openapi.yaml kitty-specs/p0-contract-spine-01KXYY0J/contracts/common-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/contract-manifest-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/event-catalog-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/event-envelope-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/governed-doc-sync-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/migration-manifest-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/module-contribution-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/p0-contract-manifest.json kitty-specs/p0-contract-spine-01KXYY0J/data-model.md kitty-specs/p0-contract-spine-01KXYY0J/plan.md kitty-specs/p0-contract-spine-01KXYY0J/quickstart.md kitty-specs/p0-contract-spine-01KXYY0J/research.md kitty-specs/p0-contract-spine-01KXYY0J/research/evidence-log.csv kitty-specs/p0-contract-spine-01KXYY0J/research/source-register.csv kitty-specs/p0-contract-spine-01KXYY0J/spec.md",
+    "sync_safe_commit": "spec-kitty safe-commit kitty-specs/p0-contract-spine-01KXYY0J/contracts/README.md kitty-specs/p0-contract-spine-01KXYY0J/contracts/api-v1.openapi.yaml kitty-specs/p0-contract-spine-01KXYY0J/contracts/common-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/contract-manifest-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/event-catalog-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/event-envelope-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/governed-doc-sync-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/migration-manifest-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/module-contribution-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/p0-contract-manifest.json kitty-specs/p0-contract-spine-01KXYY0J/data-model.md kitty-specs/p0-contract-spine-01KXYY0J/plan.md kitty-specs/p0-contract-spine-01KXYY0J/quickstart.md kitty-specs/p0-contract-spine-01KXYY0J/research.md kitty-specs/p0-contract-spine-01KXYY0J/research/evidence-log.csv kitty-specs/p0-contract-spine-01KXYY0J/research/source-register.csv kitty-specs/p0-contract-spine-01KXYY0J/spec.md --message \"docs: synchronize governed P0 artifacts\" --to-branch feat/p0-contract-spine",
+    "drift": "test -n \"$accepted_wp11_receipt_commit\" && test \"$accepted_wp11_receipt_commit\" = \"$(git log -1 --format=%H -- docs/governance/p0-governed-doc-sync.json)\" && git diff --exit-code \"$accepted_wp11_receipt_commit\" -- .kittify/charter/charter.md kitty-specs/p0-contract-spine-01KXYY0J/contracts/README.md kitty-specs/p0-contract-spine-01KXYY0J/contracts/api-v1.openapi.yaml kitty-specs/p0-contract-spine-01KXYY0J/contracts/common-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/contract-manifest-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/event-catalog-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/event-envelope-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/governed-doc-sync-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/migration-manifest-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/module-contribution-v1.schema.json kitty-specs/p0-contract-spine-01KXYY0J/contracts/p0-contract-manifest.json kitty-specs/p0-contract-spine-01KXYY0J/data-model.md kitty-specs/p0-contract-spine-01KXYY0J/plan.md kitty-specs/p0-contract-spine-01KXYY0J/quickstart.md kitty-specs/p0-contract-spine-01KXYY0J/research.md kitty-specs/p0-contract-spine-01KXYY0J/research/evidence-log.csv kitty-specs/p0-contract-spine-01KXYY0J/research/source-register.csv kitty-specs/p0-contract-spine-01KXYY0J/spec.md docs/governance/p0-governed-doc-sync.json",
+    "receipt_safe_commit": "spec-kitty safe-commit docs/governance/p0-governed-doc-sync.json --message \"docs: attest governed P0 artifacts\" --to-branch feat/p0-contract-spine"
+  }
+}
