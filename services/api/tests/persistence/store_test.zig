@@ -38,6 +38,16 @@ const monotonic_second = std.Io.Clock.Duration{
     .clock = .awake,
 };
 
+const child_process_timeout = std.Io.Clock.Duration{
+    .raw = .fromSeconds(5),
+    .clock = .awake,
+};
+
+fn isLeaseProbeProcess() bool {
+    return std.process.Environ.getPosix(std.testing.environ, "WP06_HARDLINK_PROBE_PATH") != null or
+        std.process.Environ.getPosix(std.testing.environ, "WP06_LEASE_PROBE_PATH") != null;
+}
+
 const monotonic_millisecond = std.Io.Clock.Duration{
     .raw = .fromMilliseconds(1),
     .clock = .awake,
@@ -245,7 +255,7 @@ test "hard-link aliases cannot acquire independent writer leases" {
     const result = try std.process.run(allocator, std.testing.io, .{
         .argv = &.{"/proc/self/exe"},
         .environ_map = &environment,
-        .timeout = .{ .duration = monotonic_second },
+        .timeout = .{ .duration = child_process_timeout },
     });
     defer allocator.free(result.stdout);
     defer allocator.free(result.stderr);
@@ -280,7 +290,7 @@ test "a second process cannot acquire the live canonical lease" {
     const result = try std.process.run(allocator, std.testing.io, .{
         .argv = &.{"/proc/self/exe"},
         .environ_map = &environment,
-        .timeout = .{ .duration = monotonic_second },
+        .timeout = .{ .duration = child_process_timeout },
     });
     defer allocator.free(result.stdout);
     defer allocator.free(result.stderr);
@@ -411,6 +421,7 @@ test "public capabilities use non-sequential unguessable nonces and forged tags 
 }
 
 test "store registry grows beyond 256 simultaneously live isolated stores" {
+    if (isLeaseProbeProcess()) return;
     const allocator = std.testing.allocator;
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
@@ -435,6 +446,7 @@ test "store registry grows beyond 256 simultaneously live isolated stores" {
 }
 
 test "executor registry grows beyond 256 simultaneously admitted callback scopes" {
+    if (isLeaseProbeProcess()) return;
     const allocator = std.testing.allocator;
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
@@ -480,6 +492,7 @@ test "executor registry grows beyond 256 simultaneously admitted callback scopes
 }
 
 test "open shutdown churn reclaims registry storage" {
+    if (isLeaseProbeProcess()) return;
     const allocator = std.testing.allocator;
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();

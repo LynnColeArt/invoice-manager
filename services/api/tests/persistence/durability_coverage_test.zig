@@ -112,7 +112,7 @@ fn richStartup(raw_context: *anyopaque, executor: persistence.StartupExecutor) !
     _ = executor.executeScript("CREATE TABLE coverage_nul (body TEXT);\x00") catch {};
     _ = executor.executeScript("CREATE TABLE coverage_one (body TEXT); CREATE TABLE coverage_two (body TEXT);") catch {};
     const forged: persistence.Executor = @enumFromInt(@intFromEnum(executor));
-    _ = forged.execute("SELECT id FROM coverage_startup_rich;") catch |err| {
+    _ = forged.execute("CREATE TABLE coverage_admitted (body TEXT);") catch |err| {
         if (err == error.CapabilityDenied) context.denied = true;
     };
 }
@@ -447,6 +447,50 @@ test "hard-link identity rejection and inspection cleanup use the public open bo
     );
     var reopened = try persistence.Store.open(allocator, std.testing.io, database_path);
     try reopened.shutdown();
+
+    const rename_source = try path(allocator, &tmp, "coverage-rename-source");
+    defer allocator.free(rename_source);
+    const rename_target = try path(allocator, &tmp, "coverage-rename-target");
+    defer allocator.free(rename_target);
+    var renamed_store = try persistence.Store.open(allocator, std.testing.io, rename_source);
+    var unused: void = {};
+    _ = try renamed_store.mutate(.{ .context = &unused, .run = success });
+    try std.Io.Dir.rename(.cwd(), rename_source, .cwd(), rename_target, std.testing.io);
+    try std.testing.expectError(
+        error.LeaseConflict,
+        persistence.Store.open(allocator, std.testing.io, rename_target),
+    );
+    try renamed_store.shutdown();
+    var renamed_reopen = try persistence.Store.open(allocator, std.testing.io, rename_target);
+    try renamed_reopen.shutdown();
+}
+
+test "dynamic registries reclaim non-head stores and executor scopes" {
+    const allocator = std.testing.allocator;
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const first_path = try path(allocator, &tmp, "coverage-registry-first");
+    defer allocator.free(first_path);
+    const second_path = try path(allocator, &tmp, "coverage-registry-second");
+    defer allocator.free(second_path);
+    var first = try persistence.Store.open(allocator, std.testing.io, first_path);
+    var second = try persistence.Store.open(allocator, std.testing.io, second_path);
+
+    var first_context = ClosingContext{};
+    var second_context = ClosingContext{};
+    const first_mutation = try std.Thread.spawn(.{}, mutationThread, .{ &first, &first_context });
+    try waitForAtomic(&first_context.entered);
+    const second_mutation = try std.Thread.spawn(.{}, mutationThread, .{ &second, &second_context });
+    try waitForAtomic(&second_context.entered);
+    first_context.release.store(true, .release);
+    first_mutation.join();
+    second_context.release.store(true, .release);
+    second_mutation.join();
+    try std.testing.expectEqual(@as(?anyerror, null), first_context.result);
+    try std.testing.expectEqual(@as(?anyerror, null), second_context.result);
+
+    try first.shutdown();
+    try second.shutdown();
 }
 
 test "opaque nonce capabilities reject forged tags and retain terminal diagnostics" {
@@ -614,7 +658,7 @@ test "callback-scoped executor drains admitted calls and rejects retained values
     try waitForExecutorClosing(&barrier);
     try std.testing.expectError(
         error.CapabilityDenied,
-        context.executor.?.execute("CREATE TABLE coverage_expired (body TEXT);"),
+        context.executor.?.execute("CREATE TABLE coverage_admitted (body TEXT);"),
     );
     barrier.allow();
     context.helper.?.join();
@@ -629,7 +673,7 @@ test "callback-scoped executor drains admitted calls and rejects retained values
     );
     try std.testing.expectError(
         error.CapabilityDenied,
-        context.executor.?.execute("CREATE TABLE coverage_expired_after_receipt (body TEXT);"),
+        context.executor.?.execute("CREATE TABLE coverage_admitted (body TEXT);"),
     );
 }
 
