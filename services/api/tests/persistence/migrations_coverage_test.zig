@@ -937,7 +937,8 @@ fn exerciseRemainingBoundarySweep(allocator: std.mem.Allocator, io: std.Io) !voi
         try std.testing.expect(!repeated.isReady());
         migrations.testing.setFaults(&store, .{});
         const completed = try migrations.completeDurability(&store, repeated);
-        try std.testing.expect(completed.isReady());
+        try std.testing.expect(!completed.isReady());
+        try std.testing.expectEqual(migrations.ReadinessStatus.revalidation_required, completed.status);
     }
 
     const short_diagnostic_graph = [_]migrations.Descriptor{
