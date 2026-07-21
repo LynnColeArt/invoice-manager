@@ -26,7 +26,7 @@ subtasks:
 - T041
 phase: Phase 4 - Application Boundaries
 assignee: ''
-agent: "codex-wp08-shutdown-proof-fix"
+agent: "codex-wp08-cycle2-reviewer"
 history: []
 agent_profile: implementer-ivan
 authoritative_surface: services/api/src/http/
@@ -488,3 +488,5 @@ events or frontmatter state by hand.
 - 2026-07-21T14:08:03Z – codex-wp08-cycle1-reviewer – shell_pid=1807838 – Started review via action command
 - 2026-07-21T14:25:17Z – user – shell_pid=1807838 – Moved to planned
 - 2026-07-21T14:25:27Z – codex-wp08-shutdown-proof-fix – shell_pid=1807838 – Started implementation via action command
+- 2026-07-21T14:32:43Z – codex-wp08-shutdown-proof-fix – shell_pid=1807838 – Cycle 1 sole shutdown-proof correction a43e658 ready for review
+- 2026-07-21T14:33:06Z – codex-wp08-cycle2-reviewer – shell_pid=1807838 – Started review via action command
