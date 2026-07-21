@@ -349,14 +349,18 @@ mutation.
   `zig build migration-negative`, `zig build coverage-migration`,
   `zig build test-http`, and `zig build coverage`. The HTTP hook depends on
   `npm run contracts:generate` before Zig compilation. The aggregate coverage
-  hook includes shared, persistence, and migration logic, with migration at
-  90% or better and every enumerated critical branch covered. WP04 supplies the
+  hook includes shared, persistence, and migration logic. Each scope must
+  measure only its owned production PCs, reach 90% or better, and execute every
+  enumerated critical branch through a production-side probe. WP04 supplies the
   hooks even when a later category is initially empty; a required gate fails on
   an empty category once its producer WP is present rather than reporting
   vacuous success.
 - Later shared, durable-store, migration, and HTTP packages add tests only below
   their owned convention roots. They do not edit `build.zig`, add one-off build
   steps, or replace these command names.
+- Producer WPs use their focused test and coverage hooks while downstream
+  producers are absent. Full aggregate `test` and `coverage` become acceptance
+  gates only after every constituent producer exists.
 - The root command `npm run migration:negative` is mandatory and delegates to
   `zig build migration-negative --build-file services/api/build.zig`. Missing
   wiring, zero executed negative cases, or a swallowed nonzero status fails the
@@ -560,7 +564,7 @@ shutdown during an active operation, and close/reopen through this public seam.
 
 - **Purpose**: Discover and validate owner-scoped forward migrations without a
   shared number or registry.
-- **Relevant requirements**: FR-009, FR-010; NFR-003, NFR-009.
+- **Relevant requirements**: FR-009, FR-010; NFR-003, NFR-006, NFR-009.
 - **Affected surfaces**: `services/api/migrations/`,
   `services/api/src/platform/persistence/migrations.zig`.
 - **Sequencing/depends-on**: IC-02, IC-03, IC-05, and IC-06. IC-03 supplies the
@@ -575,7 +579,7 @@ shutdown during an active operation, and close/reopen through this public seam.
 
 - **Purpose**: Prove a public clean clone can build the pinned engine without a
   sibling path or floating revision.
-- **Relevant requirements**: FR-011, FR-012; NFR-012; C-004, C-005.
+- **Relevant requirements**: FR-011, FR-012, FR-015; NFR-006, NFR-012; C-004, C-005.
 - **Affected surfaces**: `deps/shovelerdb/`, `services/api/build.zig`,
   `services/api/build.zig.zon`, the storage dependency adapter, and its
   attribution. IC-05 is the sole owner of service build integration and the
