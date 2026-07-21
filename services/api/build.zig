@@ -376,6 +376,10 @@ fn createAdapterModule(
         .root_source_file = b.path("src/platform/persistence/shovelerdb.zig"),
         .target = target,
         .optimize = optimize,
+        // The adapter is an uninstrumented dependency of each domain coverage
+        // module. Leaving this unspecified inherits `.fuzz = true` from an
+        // instrumented importer and contaminates the domain PC denominator.
+        .fuzz = false,
     });
     adapter.addIncludePath(b.path("../../deps/shovelerdb/include"));
     adapter.linkLibrary(abi_library);
