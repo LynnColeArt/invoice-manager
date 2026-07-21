@@ -5,7 +5,7 @@ fn databasePath(allocator: std.mem.Allocator, tmp: *const std.testing.TmpDir, su
     return std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/{s}.shovel", .{ tmp.sub_path, suffix });
 }
 
-fn createProbe(_: *anyopaque, executor: *persistence.Executor) !void {
+fn createProbe(_: *anyopaque, executor: persistence.Executor) !void {
     _ = try executor.execute("CREATE TABLE wp06_probe (body TEXT);");
 }
 
@@ -14,7 +14,7 @@ const SerializedContext = struct {
     overlap: *std.atomic.Value(u32),
 };
 
-fn serializedCallback(raw_context: *anyopaque, executor: *persistence.Executor) !void {
+fn serializedCallback(raw_context: *anyopaque, executor: persistence.Executor) !void {
     _ = executor;
     const context: *SerializedContext = @ptrCast(@alignCast(raw_context));
     if (context.active.fetchAdd(1, .seq_cst) != 0) {
@@ -67,13 +67,23 @@ fn waitForState(store: *const persistence.Store, expected: persistence.State) !v
     }
 }
 
+fn waitForCount(counter: *const std.atomic.Value(u32), expected: u32) !void {
+    const deadline = std.Io.Clock.Timestamp.fromNow(std.testing.io, monotonic_second);
+    while (counter.load(.acquire) < expected) {
+        if (std.Io.Clock.Timestamp.now(std.testing.io, .awake).compare(.gte, deadline)) {
+            return error.TestTimeout;
+        }
+        try monotonic_millisecond.sleep(std.testing.io);
+    }
+}
+
 const ShutdownContext = struct {
     entered: std.atomic.Value(bool) = .init(false),
     release: std.atomic.Value(bool) = .init(false),
     late_callbacks: std.atomic.Value(u32) = .init(0),
 };
 
-fn blockingCallback(raw_context: *anyopaque, _: *persistence.Executor) !void {
+fn blockingCallback(raw_context: *anyopaque, _: persistence.Executor) !void {
     const context: *ShutdownContext = @ptrCast(@alignCast(raw_context));
     context.entered.store(true, .release);
     try waitForFlagFor(&context.release, .{
@@ -82,7 +92,7 @@ fn blockingCallback(raw_context: *anyopaque, _: *persistence.Executor) !void {
     });
 }
 
-fn lateCallback(raw_context: *anyopaque, _: *persistence.Executor) !void {
+fn lateCallback(raw_context: *anyopaque, _: persistence.Executor) !void {
     const context: *ShutdownContext = @ptrCast(@alignCast(raw_context));
     _ = context.late_callbacks.fetchAdd(1, .seq_cst);
 }
@@ -110,6 +120,48 @@ const OperationThread = struct {
     }
 };
 
+const HeldScopeContext = struct {
+    entered: *std.atomic.Value(u32),
+    release: *std.atomic.Value(bool),
+};
+
+fn holdExecutorScope(raw_context: *anyopaque, _: persistence.Executor) !void {
+    const context: *HeldScopeContext = @ptrCast(@alignCast(raw_context));
+    _ = context.entered.fetchAdd(1, .release);
+    try waitForFlagFor(context.release, .{
+        .raw = .fromSeconds(5),
+        .clock = .awake,
+    });
+}
+
+const HeldScopeThread = struct {
+    store: *persistence.Store,
+    context: *HeldScopeContext,
+    result: ?anyerror = null,
+
+    fn run(self: *HeldScopeThread) void {
+        _ = self.store.mutate(.{ .context = self.context, .run = holdExecutorScope }) catch |err| {
+            self.result = err;
+        };
+    }
+};
+
+const LocalDebugAllocator = std.heap.DebugAllocator(.{});
+
+const TeardownShutdownAttempt = struct {
+    store: *persistence.Store,
+    allocator: *LocalDebugAllocator,
+    result: ?anyerror = null,
+    allocator_result: ?std.heap.Check = null,
+
+    fn run(self: *TeardownShutdownAttempt) void {
+        self.store.shutdown() catch |err| {
+            self.result = err;
+        };
+        self.allocator_result = self.allocator.deinit();
+    }
+};
+
 test "canonical aliases share one exclusive lease and release it on shutdown" {
     const allocator = std.testing.allocator;
     var tmp = std.testing.tmpDir(.{});
@@ -125,6 +177,32 @@ test "canonical aliases share one exclusive lease and release it on shutdown" {
 
     try first.shutdown();
     var reopened = try persistence.Store.open(allocator, std.testing.io, alias);
+    defer reopened.shutdown() catch {};
+    try std.testing.expectEqual(persistence.State.ready, reopened.state());
+}
+
+test "renaming an open database cannot bypass its inode lease" {
+    const allocator = std.testing.allocator;
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const original = try databasePath(allocator, &tmp, "rename-original");
+    defer allocator.free(original);
+    const renamed = try databasePath(allocator, &tmp, "rename-target");
+    defer allocator.free(renamed);
+
+    var first = try persistence.Store.open(allocator, std.testing.io, original);
+    defer first.shutdown() catch {};
+    var unused: void = {};
+    _ = try first.mutate(.{ .context = &unused, .run = createProbe });
+    try std.Io.Dir.rename(.cwd(), original, .cwd(), renamed, std.testing.io);
+
+    try std.testing.expectError(
+        error.LeaseConflict,
+        persistence.Store.open(allocator, std.testing.io, renamed),
+    );
+
+    try first.shutdown();
+    var reopened = try persistence.Store.open(allocator, std.testing.io, renamed);
     defer reopened.shutdown() catch {};
     try std.testing.expectEqual(persistence.State.ready, reopened.state());
 }
@@ -332,6 +410,93 @@ test "public capabilities use non-sequential unguessable nonces and forged tags 
     try forged.shutdown();
 }
 
+test "store registry grows beyond 256 simultaneously live isolated stores" {
+    const allocator = std.testing.allocator;
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    var stores: [257]?persistence.Store = [_]?persistence.Store{null} ** 257;
+    defer for (&stores) |*slot| {
+        if (slot.*) |*store| store.shutdown() catch {};
+    };
+
+    for (&stores, 0..) |*slot, index| {
+        const path = try std.fmt.allocPrint(
+            allocator,
+            ".zig-cache/tmp/{s}/registry-{d}.shovel",
+            .{ tmp.sub_path, index },
+        );
+        defer allocator.free(path);
+        slot.* = try persistence.Store.open(allocator, std.testing.io, path);
+    }
+
+    for (&stores) |*slot| {
+        try std.testing.expectEqual(persistence.State.ready, slot.*.?.state());
+    }
+}
+
+test "executor registry grows beyond 256 simultaneously admitted callback scopes" {
+    const allocator = std.testing.allocator;
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    var stores: [257]?persistence.Store = [_]?persistence.Store{null} ** 257;
+    defer for (&stores) |*slot| {
+        if (slot.*) |*store| store.shutdown() catch {};
+    };
+    for (&stores, 0..) |*slot, index| {
+        const path = try std.fmt.allocPrint(
+            allocator,
+            ".zig-cache/tmp/{s}/executor-registry-{d}.shovel",
+            .{ tmp.sub_path, index },
+        );
+        defer allocator.free(path);
+        slot.* = try persistence.Store.open(allocator, std.testing.io, path);
+    }
+
+    var entered = std.atomic.Value(u32).init(0);
+    var release = std.atomic.Value(bool).init(false);
+    var context = HeldScopeContext{ .entered = &entered, .release = &release };
+    var operations: [257]HeldScopeThread = undefined;
+    var threads: [257]?std.Thread = [_]?std.Thread{null} ** 257;
+    defer {
+        release.store(true, .release);
+        for (&threads) |*thread| {
+            if (thread.*) |handle| handle.join();
+        }
+    }
+
+    for (&operations, &threads, &stores) |*operation, *thread, *store_slot| {
+        operation.* = .{ .store = &store_slot.*.?, .context = &context };
+        thread.* = try std.Thread.spawn(.{}, HeldScopeThread.run, .{operation});
+    }
+    try waitForCount(&entered, 257);
+    release.store(true, .release);
+    for (&threads) |*thread| {
+        thread.*.?.join();
+        thread.* = null;
+    }
+    for (&operations) |*operation| {
+        try std.testing.expectEqual(@as(?anyerror, null), operation.result);
+    }
+}
+
+test "open shutdown churn reclaims registry storage" {
+    const allocator = std.testing.allocator;
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+
+    for (0..512) |index| {
+        const path = try std.fmt.allocPrint(
+            allocator,
+            ".zig-cache/tmp/{s}/registry-churn-{d}.shovel",
+            .{ tmp.sub_path, index },
+        );
+        defer allocator.free(path);
+        var store = try persistence.Store.open(allocator, std.testing.io, path);
+        try store.shutdown();
+        try std.testing.expectEqual(persistence.State.closed, store.state());
+    }
+}
+
 test "one store serializes concurrent mutation callbacks and checkpoints" {
     const allocator = std.testing.allocator;
     var tmp = std.testing.tmpDir(.{});
@@ -421,6 +586,115 @@ test "shutdown closes admission before waiting for an active operation" {
     try std.testing.expectEqual(@as(?anyerror, null), active.result);
     try std.testing.expectEqual(@as(?anyerror, null), closing.result);
     try std.testing.expectEqual(persistence.State.closed, store.state());
+    try store.shutdown();
+}
+
+test "concurrent shutdown callers wait for teardown and share its terminal failure" {
+    const allocator = std.testing.allocator;
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const path = try databasePath(allocator, &tmp, "concurrent-shutdown-failure");
+    defer allocator.free(path);
+
+    var shutdown_barrier = persistence.testing.ShutdownCallBarrier{};
+    var store = try persistence.testing.openWithFaults(
+        allocator,
+        std.testing.io,
+        path,
+        .{ .shutdown = true, .shutdown_call_barrier = &shutdown_barrier },
+    );
+    var context = ShutdownContext{};
+    var active = OperationThread{
+        .store = &store,
+        .operation = .{ .context = &context, .run = blockingCallback },
+    };
+    const active_thread = try std.Thread.spawn(.{}, OperationThread.mutate, .{&active});
+    try waitForFlag(&context.entered);
+
+    var first = OperationThread{
+        .store = &store,
+        .operation = .{ .context = &context, .run = lateCallback },
+    };
+    const first_thread = try std.Thread.spawn(.{}, OperationThread.shutdown, .{&first});
+    try shutdown_barrier.waitForCallers(1, std.testing.io);
+
+    var second = OperationThread{
+        .store = &store,
+        .operation = .{ .context = &context, .run = lateCallback },
+    };
+    const second_thread = try std.Thread.spawn(.{}, OperationThread.shutdown, .{&second});
+    try shutdown_barrier.waitForCallers(2, std.testing.io);
+    try std.testing.expect(!first.done.load(.acquire));
+    try std.testing.expect(!second.done.load(.acquire));
+
+    context.release.store(true, .release);
+    active_thread.join();
+    first_thread.join();
+    second_thread.join();
+
+    try std.testing.expectEqual(@as(?anyerror, null), active.result);
+    try std.testing.expectEqual(@as(?anyerror, error.ShutdownFailed), first.result);
+    try std.testing.expectEqual(@as(?anyerror, error.ShutdownFailed), second.result);
+    try std.testing.expect(shutdown_barrier.hasReclaimed());
+    try std.testing.expectError(error.ShutdownFailed, store.shutdown());
+    try std.testing.expectEqual(
+        persistence.DiagnosticCategory.shutdown_failure,
+        store.lastDiagnostic().?.category,
+    );
+}
+
+test "shutdown waiter cannot tear down its allocator before registry reclamation" {
+    const path_allocator = std.testing.allocator;
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const path = try databasePath(path_allocator, &tmp, "shutdown-allocator-handoff");
+    defer path_allocator.free(path);
+
+    var local_allocator: LocalDebugAllocator = .init;
+    var allocator_deinitialized = false;
+    defer if (!allocator_deinitialized) {
+        _ = local_allocator.deinit();
+    };
+    var shutdown_barrier = persistence.testing.ShutdownCallBarrier{};
+    var store = try persistence.testing.openWithFaults(
+        local_allocator.allocator(),
+        std.testing.io,
+        path,
+        .{ .shutdown_call_barrier = &shutdown_barrier },
+    );
+    var context = ShutdownContext{};
+    var active = OperationThread{
+        .store = &store,
+        .operation = .{ .context = &context, .run = blockingCallback },
+    };
+    const active_thread = try std.Thread.spawn(.{}, OperationThread.mutate, .{&active});
+    try waitForFlag(&context.entered);
+
+    var leader = OperationThread{
+        .store = &store,
+        .operation = .{ .context = &context, .run = lateCallback },
+    };
+    const leader_thread = try std.Thread.spawn(.{}, OperationThread.shutdown, .{&leader});
+    try shutdown_barrier.waitForCallers(1, std.testing.io);
+
+    var teardown = TeardownShutdownAttempt{
+        .store = &store,
+        .allocator = &local_allocator,
+    };
+    const teardown_thread = try std.Thread.spawn(.{}, TeardownShutdownAttempt.run, .{&teardown});
+    try shutdown_barrier.waitForCallers(2, std.testing.io);
+    context.release.store(true, .release);
+
+    active_thread.join();
+    teardown_thread.join();
+    allocator_deinitialized = true;
+    leader_thread.join();
+
+    try std.testing.expectEqual(@as(?anyerror, null), active.result);
+    try std.testing.expectEqual(@as(?anyerror, null), leader.result);
+    try std.testing.expectEqual(@as(?anyerror, null), teardown.result);
+    try std.testing.expectEqual(@as(?std.heap.Check, .ok), teardown.allocator_result);
+    try std.testing.expect(shutdown_barrier.hasReclaimed());
     try store.shutdown();
 }
 

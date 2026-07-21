@@ -23,7 +23,7 @@ fn inspectHistory(raw_context: *anyopaque, row: *const persistence.RowView) !voi
     context.visited += 1;
 }
 
-fn bindAndQuery(raw_context: *anyopaque, executor: *persistence.Executor) !void {
+fn bindAndQuery(raw_context: *anyopaque, executor: persistence.Executor) !void {
     const context: *HistoryContext = @ptrCast(@alignCast(raw_context));
     _ = try executor.execute(
         "CREATE TABLE wp06_history (id TEXT, owner TEXT, descriptor_digest TEXT, script_digest TEXT, applied_at TEXT);",
@@ -95,7 +95,7 @@ fn inspectNeutralValues(raw_context: *anyopaque, row: *const persistence.RowView
     context.visited = true;
 }
 
-fn queryNeutralValues(raw_context: *anyopaque, executor: *persistence.Executor) !void {
+fn queryNeutralValues(raw_context: *anyopaque, executor: persistence.Executor) !void {
     const context: *ValueContext = @ptrCast(@alignCast(raw_context));
     _ = try executor.execute(
         "CREATE TABLE wp06_values (id INTEGER, score FLOAT, active BOOLEAN, body TEXT, embedding VECTOR(2));",
@@ -134,7 +134,7 @@ fn unexpectedRow(_: *anyopaque, _: *const persistence.RowView) !void {
     return error.UnexpectedRow;
 }
 
-fn classifyStatementFailures(raw_context: *anyopaque, executor: *persistence.Executor) !void {
+fn classifyStatementFailures(raw_context: *anyopaque, executor: persistence.Executor) !void {
     const context: *CategoryContext = @ptrCast(@alignCast(raw_context));
     _ = executor.execute("SELECT FROM sql-sentinel-DO-NOT-LEAK;") catch |err| switch (err) {
         error.StatementParseFailed => {
@@ -200,7 +200,7 @@ const ScriptContext = struct {
     script: []const u8,
 };
 
-fn runStartupScript(raw_context: *anyopaque, executor: *persistence.StartupExecutor) !void {
+fn runStartupScript(raw_context: *anyopaque, executor: persistence.StartupExecutor) !void {
     const context: *ScriptContext = @ptrCast(@alignCast(raw_context));
     context.calls += 1;
     _ = try executor.executeScript(context.script);
@@ -211,7 +211,7 @@ const MigrationStartupContext = struct {
     history: HistoryContext = .{},
 };
 
-fn runMigrationStartup(raw_context: *anyopaque, executor: *persistence.StartupExecutor) !void {
+fn runMigrationStartup(raw_context: *anyopaque, executor: persistence.StartupExecutor) !void {
     const context: *MigrationStartupContext = @ptrCast(@alignCast(raw_context));
     context.calls += 1;
     _ = try executor.executeScript(
@@ -255,7 +255,7 @@ const NulContext = struct {
     multiple_rejected: bool = false,
 };
 
-fn rejectNulScript(raw_context: *anyopaque, executor: *persistence.StartupExecutor) !void {
+fn rejectNulScript(raw_context: *anyopaque, executor: persistence.StartupExecutor) !void {
     const context: *NulContext = @ptrCast(@alignCast(raw_context));
     if (executor.executeScript("CREATE TABLE must_not_exist (body TEXT);\x00DROP TABLE must_not_exist;")) |_| {
         return error.ExpectedEmbeddedNulRejection;
@@ -406,9 +406,9 @@ test "refused writes cannot disable eligible persistence-only completion" {
     try std.testing.expectEqual(@as(?persistence.Diagnostic, null), store.lastDiagnostic());
 }
 
-fn noOpWrite(_: *anyopaque, _: *persistence.Executor) !void {}
+fn noOpWrite(_: *anyopaque, _: persistence.Executor) !void {}
 
-fn failWrite(_: *anyopaque, _: *persistence.Executor) !void {
+fn failWrite(_: *anyopaque, _: persistence.Executor) !void {
     return error.ExpectedCallbackFailure;
 }
 
@@ -470,8 +470,8 @@ test "only post-commit durability stages are eligible for completion" {
 }
 
 test "public facade exposes no adapter storage or unrestricted runtime SQL capability" {
-    try std.testing.expect(@typeInfo(persistence.Executor) == .@"opaque");
-    try std.testing.expect(@typeInfo(persistence.StartupExecutor) == .@"opaque");
+    try std.testing.expect(@typeInfo(persistence.Executor) == .@"enum");
+    try std.testing.expect(@typeInfo(persistence.StartupExecutor) == .@"enum");
     try std.testing.expect(@typeInfo(persistence.RowView) == .@"opaque");
     try std.testing.expect(!@hasDecl(persistence.Executor, "executeScript"));
     try std.testing.expect(@hasDecl(persistence.StartupExecutor, "executeScript"));
@@ -487,9 +487,9 @@ const EscalationContext = struct {
     denied: bool = false,
 };
 
-fn attemptStartupEscalation(raw_context: *anyopaque, executor: *persistence.Executor) !void {
+fn attemptStartupEscalation(raw_context: *anyopaque, executor: persistence.Executor) !void {
     const context: *EscalationContext = @ptrCast(@alignCast(raw_context));
-    const forged: *persistence.StartupExecutor = @ptrCast(executor);
+    const forged: persistence.StartupExecutor = @enumFromInt(@intFromEnum(executor));
     if (forged.executeScript("CREATE TABLE wp06_escalation_must_not_exist (body TEXT);")) |_| {
         return error.UnexpectedCapabilityEscalation;
     } else |err| switch (err) {
@@ -517,38 +517,22 @@ test "normal executor cannot be cast into the startup runtime-script capability"
 }
 
 const RetainedContext = struct {
-    executor: ?*persistence.Executor = null,
+    executor: ?persistence.Executor = null,
+    barrier: *persistence.testing.ExecutorCallBarrier,
+    helper: ?std.Thread = null,
+    helper_result: ?anyerror = null,
 };
 
-fn retainExecutor(raw_context: *anyopaque, executor: *persistence.Executor) !void {
-    const context: *RetainedContext = @ptrCast(@alignCast(raw_context));
-    context.executor = executor;
+fn exerciseAdmittedExecutor(context: *RetainedContext, executor: persistence.Executor) void {
+    _ = executor.execute("CREATE TABLE wp06_admitted_before_close (body TEXT);") catch |err| {
+        context.helper_result = err;
+    };
 }
 
-const RetainedMutation = struct {
-    store: *persistence.Store,
-    context: *RetainedContext,
-    result: ?anyerror = null,
-
-    fn run(self: *RetainedMutation) void {
-        _ = self.store.mutate(.{ .context = self.context, .run = retainExecutor }) catch |err| {
-            self.result = err;
-        };
-    }
-};
-
-const RetainedAttempt = struct {
-    executor: *persistence.Executor,
-    result: ?anyerror = null,
-
-    fn run(self: *RetainedAttempt) void {
-        _ = self.executor.execute("CREATE TABLE wp06_expired_must_not_exist (body TEXT);") catch |err| {
-            self.result = err;
-        };
-    }
-};
-
-fn waitForAtomic(flag: *std.atomic.Value(bool)) !void {
+fn retainAndAdmitExecutor(raw_context: *anyopaque, executor: persistence.Executor) !void {
+    const context: *RetainedContext = @ptrCast(@alignCast(raw_context));
+    context.executor = executor;
+    context.helper = try std.Thread.spawn(.{}, exerciseAdmittedExecutor, .{ context, executor });
     const deadline = std.Io.Clock.Timestamp.fromNow(std.testing.io, .{
         .raw = .fromSeconds(1),
         .clock = .awake,
@@ -557,7 +541,7 @@ fn waitForAtomic(flag: *std.atomic.Value(bool)) !void {
         .raw = .fromMilliseconds(1),
         .clock = .awake,
     };
-    while (!flag.load(.acquire)) {
+    while (!context.barrier.hasAdmitted()) {
         if (std.Io.Clock.Timestamp.now(std.testing.io, .awake).compare(.gte, deadline)) {
             return error.TestTimeout;
         }
@@ -565,42 +549,89 @@ fn waitForAtomic(flag: *std.atomic.Value(bool)) !void {
     }
 }
 
-test "retained executor expires before commit checkpoint and directory sync" {
+const RetainedMutation = struct {
+    store: *persistence.Store,
+    context: *RetainedContext,
+    result: ?anyerror = null,
+
+    fn run(self: *RetainedMutation) void {
+        _ = self.store.mutate(.{ .context = self.context, .run = retainAndAdmitExecutor }) catch |err| {
+            self.result = err;
+        };
+    }
+};
+
+fn waitForExecutorClosing(barrier: *persistence.testing.ExecutorCallBarrier) !void {
+    const deadline = std.Io.Clock.Timestamp.fromNow(std.testing.io, .{
+        .raw = .fromSeconds(1),
+        .clock = .awake,
+    });
+    const pause = std.Io.Clock.Duration{
+        .raw = .fromMilliseconds(1),
+        .clock = .awake,
+    };
+    while (!barrier.hasClosing()) {
+        if (std.Io.Clock.Timestamp.now(std.testing.io, .awake).compare(.gte, deadline)) {
+            return error.TestTimeout;
+        }
+        try pause.sleep(std.testing.io);
+    }
+}
+
+test "executor expiry closes admission drains admitted calls and survives retained use" {
     const allocator = std.testing.allocator;
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
     const path = try databasePath(allocator, &tmp, "capability-expiry");
     defer allocator.free(path);
-    var barrier = persistence.testing.PostCallbackBarrier{};
+    var barrier = persistence.testing.ExecutorCallBarrier{};
     var store = try persistence.testing.openWithFaults(
         allocator,
         std.testing.io,
         path,
-        .{ .post_callback_barrier = &barrier },
+        .{ .executor_call_barrier = &barrier },
     );
     defer store.shutdown() catch {};
 
-    var context = RetainedContext{};
+    var context = RetainedContext{ .barrier = &barrier };
     var mutation = RetainedMutation{ .store = &store, .context = &context };
     const mutation_thread = try std.Thread.spawn(.{}, RetainedMutation.run, .{&mutation});
     var mutation_joined = false;
+    var helper_joined = false;
     defer {
-        barrier.release.store(true, .release);
+        barrier.allow();
         if (!mutation_joined) mutation_thread.join();
+        if (!helper_joined) {
+            if (context.helper) |helper| helper.join();
+        }
     }
-    try waitForAtomic(&barrier.entered);
+    try waitForExecutorClosing(&barrier);
+    try std.testing.expectError(
+        error.CapabilityDenied,
+        context.executor.?.execute("CREATE TABLE wp06_expired_must_not_exist (body TEXT);"),
+    );
 
-    var attempt = RetainedAttempt{ .executor = context.executor.? };
-    const attempt_thread = try std.Thread.spawn(.{}, RetainedAttempt.run, .{&attempt});
-    attempt_thread.join();
-    try std.testing.expectEqual(@as(?anyerror, error.CapabilityDenied), attempt.result);
-
-    barrier.release.store(true, .release);
+    barrier.allow();
+    context.helper.?.join();
+    helper_joined = true;
     mutation_thread.join();
     mutation_joined = true;
+    try std.testing.expectEqual(@as(?anyerror, null), context.helper_result);
     try std.testing.expectEqual(@as(?anyerror, null), mutation.result);
+    try std.testing.expectEqual(
+        @as(usize, 0),
+        try persistence.testing.rowCount(&store, "SELECT body FROM wp06_admitted_before_close;"),
+    );
+    try std.testing.expectError(
+        error.CapabilityDenied,
+        context.executor.?.execute("CREATE TABLE wp06_expired_after_receipt (body TEXT);"),
+    );
     try std.testing.expectError(
         error.QueryFailed,
         persistence.testing.rowCount(&store, "SELECT body FROM wp06_expired_must_not_exist;"),
+    );
+    try std.testing.expectError(
+        error.QueryFailed,
+        persistence.testing.rowCount(&store, "SELECT body FROM wp06_expired_after_receipt;"),
     );
 }

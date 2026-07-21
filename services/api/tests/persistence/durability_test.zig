@@ -10,21 +10,21 @@ const CallbackContext = struct {
     fail: bool = false,
 };
 
-fn callback(raw_context: *anyopaque, executor: *persistence.Executor) !void {
+fn callback(raw_context: *anyopaque, executor: persistence.Executor) !void {
     const context: *CallbackContext = @ptrCast(@alignCast(raw_context));
     context.calls += 1;
     _ = try executor.execute("CREATE TABLE wp06_durability (body TEXT);");
     if (context.fail) return error.ExpectedCallbackFailure;
 }
 
-fn startupCallback(raw_context: *anyopaque, executor: *persistence.StartupExecutor) !void {
+fn startupCallback(raw_context: *anyopaque, executor: persistence.StartupExecutor) !void {
     const context: *CallbackContext = @ptrCast(@alignCast(raw_context));
     context.calls += 1;
     _ = try executor.execute("CREATE TABLE wp06_durability (body TEXT);");
     if (context.fail) return error.ExpectedCallbackFailure;
 }
 
-fn insertAndFail(raw_context: *anyopaque, executor: *persistence.Executor) !void {
+fn insertAndFail(raw_context: *anyopaque, executor: persistence.Executor) !void {
     const context: *CallbackContext = @ptrCast(@alignCast(raw_context));
     context.calls += 1;
     _ = try executor.executeText("INSERT INTO wp06_durability VALUES (", "rolled-back", ");");
@@ -182,4 +182,68 @@ test "failed startup reopen quarantines and preserves a typed diagnostic" {
     const diagnostic = store.lastDiagnostic().?;
     try std.testing.expectEqual(persistence.DiagnosticCategory.reopen_failure, diagnostic.category);
     try std.testing.expectEqual(@as(?[]const u8, null), diagnostic.sensitive_detail);
+}
+
+test "executor registration failure after begin rolls back before restoring ready state" {
+    const allocator = std.testing.allocator;
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const path = try databasePath(allocator, &tmp, "executor-registration-rollback");
+    defer allocator.free(path);
+    var store = try persistence.testing.openWithFaults(
+        allocator,
+        std.testing.io,
+        path,
+        .{ .executor_registration = true },
+    );
+    defer store.shutdown() catch {};
+
+    var context = CallbackContext{};
+    try std.testing.expectError(
+        error.OutOfMemory,
+        store.mutate(.{ .context = &context, .run = callback }),
+    );
+    try std.testing.expectEqual(@as(usize, 0), context.calls);
+    try std.testing.expectEqual(persistence.State.ready, store.state());
+    try std.testing.expectEqual(
+        persistence.DiagnosticCategory.callback_failure,
+        store.lastDiagnostic().?.category,
+    );
+
+    persistence.testing.setFaults(&store, .{});
+    _ = try store.mutate(.{ .context = &context, .run = callback });
+    try std.testing.expectEqual(@as(usize, 1), context.calls);
+}
+
+test "startup executor registration failure after begin discards and reopens" {
+    const allocator = std.testing.allocator;
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const path = try databasePath(allocator, &tmp, "startup-executor-registration-recovery");
+    defer allocator.free(path);
+    var store = try persistence.testing.openWithFaults(
+        allocator,
+        std.testing.io,
+        path,
+        .{ .executor_registration = true },
+    );
+    defer store.shutdown() catch {};
+
+    var context = CallbackContext{};
+    try std.testing.expectError(
+        error.StartupWriteFailed,
+        store.startupWrite(.{ .context = &context, .run = startupCallback }),
+    );
+    try std.testing.expectEqual(@as(usize, 0), context.calls);
+    try std.testing.expectEqual(@as(usize, 1), persistence.testing.discardCount(&store));
+    try std.testing.expectEqual(@as(usize, 1), persistence.testing.reopenCount(&store));
+    try std.testing.expectEqual(persistence.State.ready, store.state());
+    try std.testing.expectEqual(
+        persistence.DiagnosticCategory.callback_failure,
+        store.lastDiagnostic().?.category,
+    );
+
+    persistence.testing.setFaults(&store, .{});
+    _ = try store.startupWrite(.{ .context = &context, .run = startupCallback });
+    try std.testing.expectEqual(@as(usize, 1), context.calls);
 }

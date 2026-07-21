@@ -7,11 +7,11 @@ fn databasePath(allocator: std.mem.Allocator, tmp: *const std.testing.TmpDir) ![
 
 const InsertContext = struct { value: []const u8 };
 
-fn initialize(_: *anyopaque, executor: *persistence.Executor) !void {
+fn initialize(_: *anyopaque, executor: persistence.Executor) !void {
     _ = try executor.execute("CREATE TABLE wp06_cycles (body TEXT);");
 }
 
-fn insert(raw_context: *anyopaque, executor: *persistence.Executor) !void {
+fn insert(raw_context: *anyopaque, executor: persistence.Executor) !void {
     const context: *InsertContext = @ptrCast(@alignCast(raw_context));
     _ = try executor.executeText("INSERT INTO wp06_cycles VALUES (", context.value, ");");
 }

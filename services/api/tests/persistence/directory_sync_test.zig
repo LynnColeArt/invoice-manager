@@ -5,7 +5,7 @@ fn databasePath(allocator: std.mem.Allocator, tmp: *const std.testing.TmpDir, su
     return std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/{s}.shovel", .{ tmp.sub_path, suffix });
 }
 
-fn createProbe(_: *anyopaque, executor: *persistence.Executor) !void {
+fn createProbe(_: *anyopaque, executor: persistence.Executor) !void {
     _ = try executor.execute("CREATE TABLE wp06_directory_sync (body TEXT);");
 }
 

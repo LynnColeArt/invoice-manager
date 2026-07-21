@@ -5,16 +5,16 @@ fn databasePath(allocator: std.mem.Allocator, tmp: *const std.testing.TmpDir, su
     return std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/{s}.shovel", .{ tmp.sub_path, suffix });
 }
 
-fn createProbe(_: *anyopaque, executor: *persistence.Executor) !void {
+fn createProbe(_: *anyopaque, executor: persistence.Executor) !void {
     _ = try executor.execute("CREATE TABLE wp06_crash (body TEXT);");
     _ = try executor.executeText("INSERT INTO wp06_crash VALUES (", "baseline", ");");
 }
 
-fn insertCrashValue(_: *anyopaque, executor: *persistence.Executor) !void {
+fn insertCrashValue(_: *anyopaque, executor: persistence.Executor) !void {
     _ = try executor.executeText("INSERT INTO wp06_crash VALUES (", "crash-value", ");");
 }
 
-fn exitBeforeCommit(_: *anyopaque, executor: *persistence.Executor) !void {
+fn exitBeforeCommit(_: *anyopaque, executor: persistence.Executor) !void {
     _ = try executor.executeText("INSERT INTO wp06_crash VALUES (", "uncommitted", ");");
     std.process.exit(77);
 }
@@ -102,7 +102,7 @@ test "real engine crash-boundary fixture asserts only proven durability guarante
 
 test "crash fixture public seam remains adapter-opaque" {
     try std.testing.expect(@typeInfo(persistence.Store) == .@"enum");
-    try std.testing.expect(@typeInfo(persistence.Executor) == .@"opaque");
+    try std.testing.expect(@typeInfo(persistence.Executor) == .@"enum");
     try std.testing.expect(!@hasField(persistence.Store, "_implementation"));
     try std.testing.expect(!@hasDecl(persistence.Store, "rawHandle"));
     try std.testing.expect(!@hasDecl(persistence.Executor, "adapter"));
