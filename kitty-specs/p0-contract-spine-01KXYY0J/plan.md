@@ -91,9 +91,9 @@ No charter exception is required.
 
 The concrete structure and contracts preserve every pre-design rule. Build-time
 Node tooling validates schemas but does not become a second business backend.
-The ShovelerDB source shim, if needed, remains pinned and hidden behind the Zig
-adapter. P2 and P3 own TeX and deployment respectively, so P0 does not create
-empty or misleading future gates. Result: Pass.
+The committed ShovelerDB source export remains pinned, provenance-verified, and
+hidden behind the Zig adapter. P2 and P3 own TeX and deployment respectively,
+so P0 does not create empty or misleading future gates. Result: Pass.
 
 ## Project Structure
 
@@ -156,7 +156,7 @@ kitty-specs/p0-contract-spine-01KXYY0J/
 │   ├── manifests/p0.json           # WP12 canonical closure record
 │   └── migrations/v1/manifest.schema.json
 ├── deps/
-│   └── shovelerdb/                 # exact-commit submodule/source shim
+│   └── shovelerdb/                 # provenance-verified git archive source export
 ├── services/
 │   └── api/
 │       ├── build.zig
@@ -333,9 +333,10 @@ mutation.
 ### ShovelerDB boundary
 
 - Pin `021e3b3d9247a181252329d6ba7ec8d2ed943a97`.
-- Prefer a small upstream package-metadata release. Until available, use an
-  exact-commit submodule/source module under `deps/shovelerdb/`; never use a
-  sibling checkout or floating branch.
+- Consume the pin as the committed `git archive` source export under
+  `deps/shovelerdb/`. Verify `PROVENANCE` records the source commit and
+  `source_tree_sha256=6bb2b4215aa50a8ffbbff3278aea4f32c4fc0f906da817037c44095cfd19480b`;
+  never use a submodule, sibling checkout, or floating branch.
 - Import through one module boundary and call only the documented embedding ABI
   behavior from the invoice adapter.
 - Copy borrowed result data before releasing a result.
@@ -600,7 +601,7 @@ shutdown during an active operation, and close/reopen through this public seam.
   convention-scanned stable Zig test/coverage hooks.
 - **Sequencing/depends-on**: IC-01.
 - **Risks**: Upstream lacks consumer package metadata and a linkable library;
-  source shim must remain narrow and replaceable.
+  the committed source export must remain narrow and replaceable.
 
 ### IC-06 — Durable storage seam
 
@@ -857,7 +858,7 @@ merely to close their own package.
 
 | Risk | Mitigation | Routed owner |
 | --- | --- | --- |
-| ShovelerDB packaging blocks clean clone | Exact-commit source/submodule shim; pursue a small upstream package release separately | P0 / upstream dependency |
+| ShovelerDB source export drifts from the approved pin | Verify the committed source against the `PROVENANCE` commit and source-tree digest; any future upstream package adoption preserves the same pin and reproducibility | P0 / upstream dependency |
 | Commit succeeds but checkpoint or parent-directory sync fails | Durable state machine, Linux directory sync, and persistence-boundary-only recovery | P0 |
 | DDL failure leaves dirty in-memory schema | Migration application uses the durable store seam to discard uncheckpointed state and reopen; HTTP remains unready | P0 |
 | Durable storage imports migration policy and creates a dependency cycle | Keep durable storage migration-agnostic; migration depends on its public seam, never the inverse | P0 |
@@ -902,7 +903,7 @@ merely to close their own package.
   proxy security require chronological red-first public-boundary evidence.
 - The reference first-run, validation-duration, and health-p99 protocols define
   runner, dataset, cache state, timing boundaries, sample handling, and evidence.
-- Quickstart describes planned commands without claiming implementation exists.
+- Quickstart identifies accepted WP03-WP10 commands and surfaces while reserving license, aggregate-closure, and canonical-manifest evidence for WP12.
 - The pre-acceptance governed-doc sync is a formal `planning_artifact` WP with a
   closed resolver, schema, exact safe-commit call, and dependency before closure;
   program closure explicitly owns
