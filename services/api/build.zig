@@ -326,11 +326,16 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+    const discovery_test_config = b.addOptions();
+    discovery_test_config.addOptionPath("service_root", b.path("."));
     const discovery_module = b.createModule(.{
         .root_source_file = b.path("tests/persistence/shovelerdb_build_discovery.zig"),
         .target = target,
         .optimize = optimize,
-        .imports = &.{.{ .name = "build_registry", .module = registry_module }},
+        .imports = &.{
+            .{ .name = "build_registry", .module = registry_module },
+            .{ .name = "discovery_test_config", .module = discovery_test_config.createModule() },
+        },
     });
     const discovery_tests = b.addTest(.{
         .name = "shovelerdb-build-discovery-tests",
