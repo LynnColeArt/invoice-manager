@@ -1,5 +1,5 @@
 {
-  "schema": "invoice-manager.runtime-license-policy/v1",
+  "schema": "invoice-manager.runtime-license-policy/v2",
   "project_license": "GPL-2.0-only",
   "target": {
     "os": "linux",
@@ -105,6 +105,7 @@
       "notice_path": "THIRD_PARTY_NOTICES.md",
       "notice_sha256": "759b231a154dbc903e40d7a81661fa20d9e3b9d0269233b3bf21c825a73e509a",
       "provenance_path": "deps/shovelerdb/PROVENANCE",
+      "provenance_sha256": "379cbc9cb498cf0dc0ef6bb3687be413577d9f763d487d3b5d982b3d5715e28d",
       "source_tree_sha256": "6bb2b4215aa50a8ffbbff3278aea4f32c4fc0f906da817037c44095cfd19480b"
     },
     "zig_stdlib": {
@@ -116,36 +117,38 @@
       "committed_license_path": null
     }
   },
-  "next_vendored_runtime": [
-    {
-      "identity": "native-url",
-      "manifest_path": "node_modules/next/dist/compiled/native-url/package.json",
-      "notice_path": "node_modules/next/dist/compiled/native-url/LICENSE",
-      "notice_sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+  "artifact_inventory": {
+    "manifest_count": 66,
+    "identity_count": 66,
+    "projection_sha256": "844f7808354f691e9367f46e1c205eca7ad76238524e36f2d5911bc13906540e"
+  },
+  "root_distribution_files": {
+    "LICENSE": {
+      "sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643",
+      "distributed_path": "LICENSE"
     },
-    {
-      "identity": "web-vitals",
-      "manifest_path": "node_modules/next/dist/compiled/web-vitals/package.json",
-      "notice_path": "node_modules/next/dist/compiled/web-vitals/LICENSE",
-      "notice_sha256": "bfdeded4040e05da31ca9b6239dc83bd23fa26ac8db87342a7ca4363f68916ff"
+    "THIRD_PARTY_NOTICES.md": {
+      "sha256": "759b231a154dbc903e40d7a81661fa20d9e3b9d0269233b3bf21c825a73e509a",
+      "distributed_path": "THIRD_PARTY_NOTICES.md"
     },
-    {
-      "identity": "web-vitals-attribution",
-      "manifest_path": "node_modules/next/dist/compiled/web-vitals-attribution/package.json",
-      "notice_path": "node_modules/next/dist/compiled/web-vitals-attribution/LICENSE",
-      "notice_sha256": "bfdeded4040e05da31ca9b6239dc83bd23fa26ac8db87342a7ca4363f68916ff"
+    "deps/shovelerdb/LICENSE": {
+      "sha256": "240a15a1d0f34d3abca462cdb7e5fb89470967563f16b0e71169e51c1e74cf2b",
+      "distributed_path": "licenses/source-shovelerdb.LICENSE"
     },
-    {
-      "identity": "@opentelemetry/api",
-      "manifest_path": "node_modules/next/dist/compiled/@opentelemetry/api/package.json",
-      "notice_path": "node_modules/next/dist/compiled/@opentelemetry/api/LICENSE",
-      "notice_sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
-    },
-    {
-      "identity": "@vercel/routing-utils",
-      "manifest_path": "node_modules/next/dist/compiled/@vercel/routing-utils/package.json",
-      "notice_path": "node_modules/next/dist/compiled/@vercel/routing-utils/LICENSE",
-      "notice_sha256": "b070d77bfb2c52a1dd6996de0ce5f64c49a0ca55c889b163a963ddf5cb001ee2"
+    "deps/shovelerdb/PROVENANCE": {
+      "sha256": "379cbc9cb498cf0dc0ef6bb3687be413577d9f763d487d3b5d982b3d5715e28d",
+      "distributed_path": "licenses/source-shovelerdb.PROVENANCE"
     }
-  ]
+  },
+  "zig_artifact": {
+    "root": "tools/licenses/.runtime/zig",
+    "required_paths": [
+      "bin/invoice-manager-api",
+      "lib/libinvoice_manager_shovelerdb_abi.a",
+      "LICENSE",
+      "THIRD_PARTY_NOTICES.md",
+      "licenses/source-shovelerdb.LICENSE",
+      "licenses/source-shovelerdb.PROVENANCE"
+    ]
+  }
 }

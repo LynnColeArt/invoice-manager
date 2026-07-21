@@ -26,6 +26,7 @@ jobs:
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           submodules: recursive
+          fetch-depth: 0
       - name: Install exact Node.js
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
@@ -56,6 +57,7 @@ jobs:
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           submodules: recursive
+          fetch-depth: 0
       - name: Install exact Node.js
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
@@ -86,6 +88,7 @@ jobs:
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           submodules: recursive
+          fetch-depth: 0
       - name: Install exact Node.js
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
@@ -116,6 +119,7 @@ jobs:
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           submodules: recursive
+          fetch-depth: 0
       - name: Install exact Node.js
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
@@ -146,6 +150,7 @@ jobs:
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           submodules: recursive
+          fetch-depth: 0
       - name: Install exact Node.js
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
@@ -178,6 +183,7 @@ jobs:
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           submodules: recursive
+          fetch-depth: 0
       - name: Install exact Node.js
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
@@ -202,12 +208,13 @@ jobs:
   runtime_license:
     name: foundation / runtime-license
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - name: Check out exact source and recursive submodules
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           submodules: recursive
+          fetch-depth: 0
       - name: Install exact Node.js
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
@@ -226,8 +233,21 @@ jobs:
           test -f deps/shovelerdb/PROVENANCE
       - name: Install locked dependencies
         run: npm ci
-      - name: Test license policy mutations
-        run: npm exec --workspace @invoice-manager/contracts -- vitest run --root .. licenses/tests/license-audit.test.ts
+      - name: Build exact Next standalone artifact
+        run: |
+          npm run contracts:generate
+          npm run build --workspace @invoice-manager/web
+      - name: Build exact Zig release install
+        run: |
+          rm -rf tools/licenses/.runtime/zig
+          mkdir -p tools/licenses/.runtime/zig
+          zig build --build-file services/api/build.zig -Doptimize=ReleaseSafe --prefix tools/licenses/.runtime/zig
+      - name: Static typecheck license tooling
+        run: npm exec --workspace @invoice-manager/contracts -- tsc --noEmit --strict --skipLibCheck --module NodeNext --moduleResolution NodeNext --target ES2022 --types node,vitest ../licenses/src/audit.ts ../licenses/src/main.ts ../licenses/tests/artifact-closure.test.ts ../licenses/tests/cli.test.ts ../licenses/tests/license-audit.test.ts
+      - name: Test license policy, artifact, and CLI mutations
+        run: npm exec --workspace @invoice-manager/contracts -- vitest run --root .. licenses/tests
+      - name: Verify exact ShovelerDB source evidence
+        run: npm exec --workspace @invoice-manager/contracts -- tsx ../licenses/src/main.ts source-check
       - name: Validate runtime licenses
         run: npm run licenses:check
 
@@ -242,6 +262,7 @@ jobs:
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           submodules: recursive
+          fetch-depth: 0
       - name: Install exact Node.js
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
@@ -266,7 +287,7 @@ jobs:
   bootstrap_foundation:
     name: foundation / bootstrap-clean
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 15
     env:
       FOUNDATION_HOME: ${{ runner.temp }}/foundation-bootstrap-home
       FOUNDATION_NPM_CACHE: ${{ runner.temp }}/foundation-bootstrap-npm
@@ -276,20 +297,19 @@ jobs:
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           submodules: recursive
+          fetch-depth: 0
       - name: Install exact Node.js
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version: 24.18.0
           check-latest: false
-      - name: Install exact npm and Zig without project caches
+      - name: Install exact Zig and establish empty project caches
         shell: bash
         run: |
-          npm install --global "npm@${NPM_VERSION}"
           curl --fail --silent --show-error --location "${ZIG_URL}" --output "${RUNNER_TEMP}/zig.tar.xz"
           echo "${ZIG_SHA256}  ${RUNNER_TEMP}/zig.tar.xz" | sha256sum --check --strict
           tar --extract --file "${RUNNER_TEMP}/zig.tar.xz" --directory "${RUNNER_TEMP}"
           echo "${RUNNER_TEMP}/zig-x86_64-linux-${ZIG_VERSION}" >> "${GITHUB_PATH}"
-          test "$(npm --version)" = "${NPM_VERSION}"
           test "$("${RUNNER_TEMP}/zig-x86_64-linux-${ZIG_VERSION}/zig" version)" = "${ZIG_VERSION}"
           test -f deps/shovelerdb/PROVENANCE
           test ! -e node_modules
@@ -297,16 +317,32 @@ jobs:
           mkdir -p "${FOUNDATION_HOME}" "${FOUNDATION_NPM_CACHE}" "${FOUNDATION_PLAYWRIGHT_CACHE}"
           test -z "$(find "${FOUNDATION_HOME}" "${FOUNDATION_NPM_CACHE}" "${FOUNDATION_PLAYWRIGHT_CACHE}" -mindepth 1 -print -quit)"
       - name: Run literal clean bootstrap wrapper
+        shell: bash
         env:
           HOME: ${{ env.FOUNDATION_HOME }}
           npm_config_cache: ${{ env.FOUNDATION_NPM_CACHE }}
           PLAYWRIGHT_BROWSERS_PATH: ${{ env.FOUNDATION_PLAYWRIGHT_CACHE }}
-        run: npm run bootstrap:foundation
+        run: |
+          set +e
+          started="$(node -e 'process.stdout.write(process.hrtime.bigint().toString())')"
+          npm install --global "npm@${NPM_VERSION}"
+          status=$?
+          if [[ "${status}" -eq 0 ]]; then test "$(npm --version)" = "${NPM_VERSION}"; status=$?; fi
+          if [[ "${status}" -eq 0 ]]; then
+            npm run bootstrap:foundation
+            status=$?
+          fi
+          elapsed="$(STARTED="${started}" node -e 'process.stdout.write((Number(process.hrtime.bigint()-BigInt(process.env.STARTED))/1e9).toFixed(3))')"
+          echo "[foundation:bootstrap] outer_elapsed_seconds=${elapsed} status=${status}"
+          node -e 'if (Number(process.argv[1]) > 900) process.exit(1)' "${elapsed}"
+          duration_status=$?
+          if [[ "${status}" -ne 0 ]]; then exit "${status}"; fi
+          exit "${duration_status}"
 
   verify_foundation_clean:
     name: foundation / verify-clean
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 15
     env:
       FOUNDATION_HOME: ${{ runner.temp }}/foundation-verify-home
       FOUNDATION_NPM_CACHE: ${{ runner.temp }}/foundation-verify-npm
@@ -316,20 +352,19 @@ jobs:
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           submodules: recursive
+          fetch-depth: 0
       - name: Install exact Node.js
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version: 24.18.0
           check-latest: false
-      - name: Install exact npm and Zig without project caches
+      - name: Install exact Zig and establish empty project caches
         shell: bash
         run: |
-          npm install --global "npm@${NPM_VERSION}"
           curl --fail --silent --show-error --location "${ZIG_URL}" --output "${RUNNER_TEMP}/zig.tar.xz"
           echo "${ZIG_SHA256}  ${RUNNER_TEMP}/zig.tar.xz" | sha256sum --check --strict
           tar --extract --file "${RUNNER_TEMP}/zig.tar.xz" --directory "${RUNNER_TEMP}"
           echo "${RUNNER_TEMP}/zig-x86_64-linux-${ZIG_VERSION}" >> "${GITHUB_PATH}"
-          test "$(npm --version)" = "${NPM_VERSION}"
           test "$("${RUNNER_TEMP}/zig-x86_64-linux-${ZIG_VERSION}/zig" version)" = "${ZIG_VERSION}"
           test -f deps/shovelerdb/PROVENANCE
           test ! -e node_modules
@@ -337,11 +372,27 @@ jobs:
           mkdir -p "${FOUNDATION_HOME}" "${FOUNDATION_NPM_CACHE}" "${FOUNDATION_PLAYWRIGHT_CACHE}"
           test -z "$(find "${FOUNDATION_HOME}" "${FOUNDATION_NPM_CACHE}" "${FOUNDATION_PLAYWRIGHT_CACHE}" -mindepth 1 -print -quit)"
       - name: Run literal clean verification wrapper
+        shell: bash
         env:
           HOME: ${{ env.FOUNDATION_HOME }}
           npm_config_cache: ${{ env.FOUNDATION_NPM_CACHE }}
           PLAYWRIGHT_BROWSERS_PATH: ${{ env.FOUNDATION_PLAYWRIGHT_CACHE }}
-        run: npm run verify:foundation:clean
+        run: |
+          set +e
+          started="$(node -e 'process.stdout.write(process.hrtime.bigint().toString())')"
+          npm install --global "npm@${NPM_VERSION}"
+          status=$?
+          if [[ "${status}" -eq 0 ]]; then test "$(npm --version)" = "${NPM_VERSION}"; status=$?; fi
+          if [[ "${status}" -eq 0 ]]; then
+            npm run verify:foundation:clean
+            status=$?
+          fi
+          elapsed="$(STARTED="${started}" node -e 'process.stdout.write((Number(process.hrtime.bigint()-BigInt(process.env.STARTED))/1e9).toFixed(3))')"
+          echo "[foundation:clean] outer_elapsed_seconds=${elapsed} status=${status}"
+          node -e 'if (Number(process.argv[1]) > 900) process.exit(1)' "${elapsed}"
+          duration_status=$?
+          if [[ "${status}" -ne 0 ]]; then exit "${status}"; fi
+          exit "${duration_status}"
 
   foundation:
     name: foundation / required

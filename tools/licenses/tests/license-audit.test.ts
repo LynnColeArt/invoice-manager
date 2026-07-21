@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { parse } from "yaml";
 import {
   auditComponents,
   discoverRuntimeComponents,
@@ -175,7 +176,18 @@ describe("deterministic runtime license policy", () => {
       "toolchain:zig-stdlib",
     );
     expect(components.map((entry) => entry.identity)).toContain(
-      "vendored:next/native-url",
+      "vendored:next/@opentelemetry/api",
+    );
+  });
+
+  it("fails duplicate identity/version evidence conflicts closed", () => {
+    const report = auditComponents(
+      [component(), component({ evidence_digest: `sha256:${"b".repeat(64)}` })],
+      policy,
+    );
+    expect(report.status).toBe("blocked");
+    expect(report.violations).toContainEqual(
+      expect.objectContaining({ reason: "component_evidence_conflict" }),
     );
   });
 });
@@ -194,6 +206,7 @@ describe("foundation workflow contract", () => {
       "persistence",
       "http_proxy",
       "runtime_license",
+      "verify_foundation",
       "bootstrap_foundation",
       "verify_foundation_clean",
       "foundation",
@@ -201,8 +214,8 @@ describe("foundation workflow contract", () => {
     for (const job of requiredJobs)
       expect(workflow).toMatch(new RegExp(`^  ${job}:`, "m"));
     expect(workflow).toContain("run: npm run migration:negative");
-    expect(workflow).toContain("run: npm run bootstrap:foundation");
-    expect(workflow).toContain("run: npm run verify:foundation:clean");
+    expect(workflow).toContain("npm run bootstrap:foundation");
+    expect(workflow).toContain("npm run verify:foundation:clean");
     expect(workflow).toContain("node-version: 24.18.0");
     expect(workflow).toContain("NPM_VERSION: 11.16.0");
     expect(workflow).toContain("ZIG_VERSION: 0.16.0");
@@ -229,5 +242,94 @@ describe("foundation workflow contract", () => {
     );
     expect(bootstrap).not.toContain("run: npm ci");
     expect(clean).not.toContain("run: npm ci");
+
+    const parsed = parse(workflow) as {
+      permissions: Record<string, string>;
+      jobs: Record<
+        string,
+        {
+          "timeout-minutes": number;
+          needs?: string[];
+          steps: Array<{
+            name?: string;
+            run?: string;
+            uses?: string;
+            with?: Record<string, unknown>;
+          }>;
+        }
+      >;
+    };
+    expect(parsed.permissions).toEqual({ contents: "read" });
+    expect(parsed.jobs.bootstrap_foundation["timeout-minutes"]).toBe(15);
+    expect(parsed.jobs.verify_foundation_clean["timeout-minutes"]).toBe(15);
+    expect(parsed.jobs.foundation.needs?.sort()).toEqual(
+      requiredJobs.filter((entry) => entry !== "foundation").sort(),
+    );
+    for (const [jobName, job] of Object.entries(parsed.jobs)) {
+      if (jobName === "foundation") continue;
+      const checkout = job.steps.find((step) =>
+        step.uses?.startsWith("actions/checkout@"),
+      );
+      expect(checkout?.with).toMatchObject({
+        submodules: "recursive",
+        "fetch-depth": 0,
+      });
+      const setupNode = job.steps.find((step) =>
+        step.uses?.startsWith("actions/setup-node@"),
+      );
+      expect(setupNode?.with).toMatchObject({
+        "node-version": "24.18.0",
+        "check-latest": false,
+      });
+    }
+    for (const jobName of [
+      "contracts",
+      "web",
+      "api",
+      "migration_negative",
+      "persistence",
+      "http_proxy",
+      "runtime_license",
+      "verify_foundation",
+    ]) {
+      expect(
+        parsed.jobs[jobName].steps.filter((step) => step.run === "npm ci"),
+      ).toHaveLength(1);
+    }
+    const licenseRuns = parsed.jobs.runtime_license.steps.flatMap(
+      (step) => step.run ?? [],
+    );
+    expect(
+      licenseRuns.some(
+        (run) =>
+          run.includes("npm run contracts:generate") &&
+          run.includes("npm run build --workspace @invoice-manager/web"),
+      ),
+    ).toBe(true);
+    expect(
+      licenseRuns.some(
+        (run) =>
+          run.includes("zig build --build-file services/api/build.zig") &&
+          run.includes("-Doptimize=ReleaseSafe"),
+      ),
+    ).toBe(true);
+    expect(
+      licenseRuns.some(
+        (run) => run.includes("tsc --noEmit") && run.includes("licenses/src"),
+      ),
+    ).toBe(true);
+    expect(licenseRuns.some((run) => run.includes("source-check"))).toBe(true);
+    expect(licenseRuns).toContain("npm run licenses:check");
+    for (const jobName of ["bootstrap_foundation", "verify_foundation_clean"]) {
+      const run = parsed.jobs[jobName].steps.at(-1)?.run ?? "";
+      expect(run).toContain("process.hrtime.bigint()");
+      expect(run).toContain('npm install --global "npm@${NPM_VERSION}"');
+      expect(run).toContain("900");
+      expect(run).toContain(
+        jobName === "bootstrap_foundation"
+          ? "npm run bootstrap:foundation"
+          : "npm run verify:foundation:clean",
+      );
+    }
   });
 });
