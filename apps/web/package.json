@@ -2,7 +2,7 @@
   "name": "@invoice-manager/web",
   "version": "0.0.0",
   "private": true,
-  "license": "GPL-2.0-only",
+  "license": "GPL-3.0-only",
   "engines": {
     "node": "24.18.0",
     "npm": "11.16.0"
