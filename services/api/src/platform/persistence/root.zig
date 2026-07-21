@@ -9,13 +9,21 @@ pub const DiagnosticCategory = diagnostics.DiagnosticCategory;
 pub const StoreError = diagnostics.StoreError;
 pub const DurableReceipt = durability.DurableReceipt;
 pub const DurabilityEvent = durability.DurabilityEvent;
+pub const EventSnapshot = durability.EventSnapshot;
 pub const StatementResult = durability.StatementResult;
+pub const RowValue = durability.RowValue;
+pub const RowView = durability.RowView;
+pub const RowVisitor = durability.RowVisitor;
 pub const Executor = durability.Executor;
+pub const StartupExecutor = durability.StartupExecutor;
 pub const WriteOperation = durability.WriteOperation;
+pub const StartupWriteOperation = durability.StartupWriteOperation;
 pub const Store = store.Store;
 
 pub const testing = if (builtin.is_test) struct {
     pub const Faults = durability.Faults;
+    pub const ExecutorCallBarrier = durability.ExecutorCallBarrier;
+    pub const ShutdownCallBarrier = durability.ShutdownCallBarrier;
 
     pub fn openWithFaults(
         allocator: @import("std").mem.Allocator,
@@ -50,7 +58,7 @@ pub const testing = if (builtin.is_test) struct {
         return store.receiptIssued(durable_store);
     }
 
-    pub fn events(durable_store: *const Store) []const DurabilityEvent {
+    pub fn events(durable_store: *const Store) EventSnapshot {
         return store.events(durable_store);
     }
 

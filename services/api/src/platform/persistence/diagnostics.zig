@@ -55,6 +55,7 @@ pub const Diagnostic = struct {
 
 pub const StoreError = error{
     OutOfMemory,
+    CapabilityGenerationFailed,
     CanonicalizationFailed,
     LeaseAcquireFailed,
     LeaseConflict,
@@ -75,6 +76,21 @@ pub const StoreError = error{
     ReopenFailed,
     ShutdownFailed,
     QueryFailed,
+    StatementInvalid,
+    StatementParseFailed,
+    StatementObjectFailed,
+    StatementTransactionFailed,
+    StatementTypeMismatch,
+    StatementPersistenceFailed,
+    StatementIoFailed,
+    StatementUnsupported,
+    StatementEmbeddedNul,
+    StatementBindingArityMismatch,
+    StatementInternal,
+    StatementRowsRequired,
+    RowIndexOutOfBounds,
+    DurabilityCompletionUnavailable,
+    CapabilityDenied,
 };
 
 pub fn stableStoreId(canonical_path: []const u8) u64 {
