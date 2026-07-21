@@ -146,6 +146,8 @@ test "dirty discard is recovery quarantine rather than reopen failure" {
         "[\"018f6f10-7b7a-7c2d-8e65-0f7b1c2d3e4f\"]",
         "CREATE TABLE broken (\n",
     );
+    const discard_before = migrations.testing.discardCount(&store);
+    const reopen_before = migrations.testing.reopenCount(&store);
     migrations.testing.setFaults(&store, .{ .dirty_discard = true });
     var diagnostic = migrations.RunDiagnostic{};
     try std.testing.expectError(
@@ -163,8 +165,8 @@ test "dirty discard is recovery quarantine rather than reopen failure" {
     try std.testing.expectEqual(migrations.CriticalCategory.recovery_quarantine, diagnostic.primary.?);
     try std.testing.expectEqual(@as(?migrations.CriticalCategory, null), diagnostic.consequence);
     try std.testing.expectEqual(.quarantined, store.state());
-    try std.testing.expectEqual(@as(usize, 1), migrations.testing.discardCount(&store));
-    try std.testing.expectEqual(@as(usize, 0), migrations.testing.reopenCount(&store));
+    try std.testing.expectEqual(discard_before + 1, migrations.testing.discardCount(&store));
+    try std.testing.expectEqual(reopen_before, migrations.testing.reopenCount(&store));
 }
 
 test "durability completion retries persistence and never replays migration DDL" {
