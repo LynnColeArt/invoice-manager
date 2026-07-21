@@ -1,15 +1,4 @@
 ---
-affected_files: []
-cycle_number: 3
-mission_slug: p0-contract-spine-01KXYY0J
-reproduction_command:
-reviewed_at: '2026-07-21T08:31:15Z'
-reviewer_agent: codex
-verdict: rejected
-wp_id: WP06
----
-
----
 affected_files:
   - services/api/src/platform/persistence/store.zig
   - services/api/src/platform/persistence/diagnostics.zig
