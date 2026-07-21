@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["DOM", "DOM.Iterable", "ES2023"],
+    "lib": ["DOM", "DOM.Iterable", "ES2024"],
     "allowJs": false,
     "skipLibCheck": false,
     "strict": true,
@@ -11,8 +11,12 @@
     "moduleResolution": "Bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve",
-    "plugins": [{ "name": "next" }],
+    "jsx": "react-jsx",
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
     "verbatimModuleSyntax": true,
     "moduleDetection": "force",
     "forceConsistentCasingInFileNames": true,
@@ -24,7 +28,8 @@
     "noPropertyAccessFromIndexSignature": true,
     "allowUnreachableCode": false,
     "allowUnusedLabels": false,
-    "types": ["node"]
+    "types": ["node"],
+    "incremental": true
   },
   "include": [
     "next-env.d.ts",
@@ -33,7 +38,8 @@
     "src/**/*.ts",
     "src/**/*.tsx",
     "tests/**/*.ts",
-    "tests/**/*.tsx"
+    "tests/**/*.tsx",
+    ".next/dev/types/**/*.ts"
   ],
   "exclude": ["node_modules"]
 }
