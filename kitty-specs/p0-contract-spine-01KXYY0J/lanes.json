@@ -189,7 +189,8 @@
         "WP09"
       ],
       "write_scope": [
-        "apps/web/*config*"
+        "apps/web/*config*",
+        "apps/web/next-env.d.ts"
       ],
       "predicted_surfaces": [
         "api",

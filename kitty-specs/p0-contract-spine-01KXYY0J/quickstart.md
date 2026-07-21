@@ -72,12 +72,16 @@ Run the two commands in separate terminals after creating the local database
 parent directory. These runtime variables are server-only and must not use a
 `NEXT_PUBLIC_*` name.
 
-The web shell owns an App Router handler for `/api/v1/*`. The handler reads one
+The web shell owns sibling base and catch-all App Router handlers for `/api/v1`
+and `/api/v1/*`. The handlers read one
 validated server-only Zig origin at request time, never from browser-controlled
 input or `NEXT_PUBLIC_*`, and the normal lint/typecheck/build gates do not require
-that runtime variable. The Playwright smoke starts production Next.js with the
+that runtime variable. A clean production build must also leave the accepted
+Next.js/TypeScript configuration and `next-env.d.ts` byte-identical. The Playwright smoke starts production Next.js with the
 fixed origin, starts and later stops a real Ready Zig process, and rejects
-redirects, unbounded responses, and noncanonical upstream failures. A successful
+redirects, unbounded responses, noncanonical upstream failures, and handler-visible
+noncanonical paths. Locked Next.js pre-routing 308/404 cases are tested with redirect
+following disabled and must perform no handler/upstream I/O or origin disclosure. A successful
 smoke path returns structured health data from:
 
 ```text

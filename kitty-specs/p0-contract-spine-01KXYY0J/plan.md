@@ -25,8 +25,8 @@ Draft state.
 
 ## Engineering Alignment
 
-- The web shell uses the Next.js App Router and communicates only through a
-  same-origin `/api/v1` Route Handler whose fixed Zig origin is server-owned and
+- The web shell uses the Next.js App Router and communicates only through
+  same-origin `/api/v1` base/catch-all Route Handlers whose fixed Zig origin is server-owned and
   validated at request time, never in framework configuration or browser input.
 - The Zig service owns all future authoritative behavior and is the only
   process allowed to access ShovelerDB.
@@ -131,7 +131,9 @@ kitty-specs/p0-contract-spine-01KXYY0J/
 ├── apps/
 │   └── web/
 │       ├── src/app/
-│       │   └── api/v1/[...path]/route.ts
+│       │   └── api/v1/
+│       │       ├── route.ts
+│       │       └── [...path]/route.ts
 │       ├── src/features/
 │       └── src/lib/
 │           ├── api/
@@ -635,11 +637,13 @@ shutdown during an active operation, and close/reopen through this public seam.
   package metadata and lock already owned by IC-01, without claiming or
   implementing the real application integration boundary.
 - **Relevant requirements**: FR-001, FR-015; NFR-001, NFR-004, NFR-012; C-002.
-- **Affected surfaces**: App-local configuration files required for formatting,
-  lint, strict types,
-  accessibility tests, production build, and Playwright. `next.config.ts` has no
-  external rewrite and does not require the Zig origin during lint, typecheck, or
-  build. Playwright configuration starts production Next.js with a fixed
+- **Affected surfaces**: App-local configuration files plus locked Next.js's deterministic
+  `next-env.d.ts`, required for formatting, lint, strict types, accessibility tests,
+  production build, and Playwright. `next.config.ts` has no external rewrite, does not require
+  the Zig origin during lint, typecheck, or build, and disables framework trailing-slash
+  redirects so the owned Route Handler can reject noncanonical trailing-slash requests.
+  `tsconfig.json` carries the exact locked Next.js 16.2.10 build-stable defaults while retaining
+  strictness. Playwright configuration starts production Next.js with a fixed
   server-only origin supplied for the WP10-owned Route Handler; the WP10 test
   harness owns real Zig process startup, readiness, and cleanup.
 - **Sequencing/depends-on**: IC-01, IC-02, and IC-03. It may proceed in parallel
@@ -648,7 +652,9 @@ shutdown during an active operation, and close/reopen through this public seam.
 - **Risks**: Configuration may request an undeclared tool. Static validation
   rejects any package/version expectation not already present in IC-01's lock.
   Configuration must not regain an external rewrite or hide process lifecycle in
-  an operator's shell environment.
+  an operator's shell environment. Locked Next.js may otherwise rewrite TypeScript config or
+  generate an unowned type declaration, so IC-08 commits the probe-derived stable forms and
+  IC-09 proves a clean production build leaves them byte-identical.
 
 ### IC-09 — Shell, proxy, and E2E integration
 
@@ -657,7 +663,7 @@ shutdown during an active operation, and close/reopen through this public seam.
 - **Relevant requirements**: FR-001, FR-002, FR-004, FR-015; NFR-001, NFR-004,
   NFR-007, NFR-012; C-002.
 - **Affected surfaces**: Real `apps/web/src/app/` shell/style files,
-  the catch-all App Router boundary under `apps/web/src/app/api/v1/`,
+  sibling base and catch-all App Router boundaries under `apps/web/src/app/api/v1/`,
   `apps/web/src/lib/api/`, handwritten generated-contract adapters, foundation
   component/accessibility tests, and Playwright E2E/process-lifecycle harnesses.
 - **Sequencing/depends-on**: IC-07 and IC-08, plus IC-03's generated workspace
@@ -669,7 +675,10 @@ shutdown during an active operation, and close/reopen through this public seam.
   configuration, or the root lock. The handler accepts one validated server-only
   origin, uses manual redirect handling, bounded request/body limits, an explicit
   cache policy, an allowlisted forwarding surface, and canonical origin-safe
-  failures; browser path/query/header/cookie input can never select a destination.
+  failures; browser path/query/header/cookie input can never select a destination. Tests
+  distinguish canonical envelopes for handler-visible requests from locked Next.js 308/404
+  pre-routing handling of raw repeated slash, raw backslash, and single-encoded dot traversal,
+  while proving both classes perform zero unauthorized upstream I/O and disclose no origin.
 
 ### IC-10 — Governed documentation sync attestation
 
@@ -740,8 +749,8 @@ two narrow work packages claiming the same file:
 | ShovelerDB consumption | Dependency source, service build files, dependency adapter, dependency notice, and convention-scanned stable Zig test/coverage hooks |
 | Durable storage | Migration-agnostic persistence state machine, serialized store, directory sync, diagnostics, and store tests; excludes every `migrations*` file |
 | Zig HTTP boundary | `services/api/src/main.zig`, HTTP modules, and black-box service tests |
-| Web configuration substrate | App-local configuration only; no package metadata, root lock, shell, external rewrite, Route Handler, or E2E source; build stays origin-independent and Playwright supplies the server-only origin to production Next.js |
-| Application integration | Narrow app-owned shell/style, fixed-origin App Router handler, proxy/client adapters, accessibility tests, and Playwright E2E/Zig lifecycle after Zig HTTP; package metadata, configuration, and lock remain read-only |
+| Web configuration substrate | App-local configuration plus deterministic `next-env.d.ts`; no package metadata, root lock, shell, external rewrite, Route Handler, or E2E source; locked build inputs stay origin-independent/stable and Playwright supplies the server-only origin to production Next.js |
+| Application integration | Narrow app-owned shell/style, fixed-origin base/catch-all App Router handlers, proxy/client adapters, accessibility tests, and Playwright E2E/Zig lifecycle after Zig HTTP; package metadata, configuration, and lock remain read-only |
 | Pre-acceptance planning sync | One `planning_artifact` WP owns only `docs/governance/p0-governed-doc-sync.json`: it checks the exact mission spec/plan/data model/quickstart/research/contracts inventory read-only, blocks for an authorized exact sync commit when corrections are needed, records absent glossary/architecture categories, and commits a formal attestation |
 | Program closure | One `scope: codebase-wide` package owning foundation CI, full-gate execution, license tooling, `README.md`, `docs/program-ledger.md`, and sole creation/promotion of canonical `contracts/manifests/p0.json` from WP03's disjoint Draft input after all producers and planning sync |
 

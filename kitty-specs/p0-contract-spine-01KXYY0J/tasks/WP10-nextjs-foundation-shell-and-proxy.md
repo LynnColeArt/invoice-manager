@@ -39,6 +39,7 @@ create_intent:
 - apps/web/src/app/layout.tsx
 - apps/web/src/app/page.tsx
 - apps/web/src/app/globals.css
+- apps/web/src/app/api/v1/route.ts
 - "apps/web/src/app/api/v1/[...path]/route.ts"
 - apps/web/src/lib/api/client.ts
 - apps/web/src/lib/api/errors.ts
@@ -233,46 +234,62 @@ failure policy is executable production behavior in this package.
 
 1. Add named public same-origin E2E cases while the external rewrite and Route Handler are absent;
    record genuine `RED:` results through `http://localhost:3000/api/v1/*` before production code.
-2. Implement quoted create-intent path `apps/web/src/app/api/v1/[...path]/route.ts`, delegating
-   transport policy to server-only code under `apps/web/src/lib/api/`.
+2. Implement sibling create-intent paths `apps/web/src/app/api/v1/route.ts` and quoted
+   `apps/web/src/app/api/v1/[...path]/route.ts`, delegating shared route/transport policy to
+   server-only code under `apps/web/src/lib/api/`. The sibling route owns `/api/v1` and
+   `/api/v1/`; the catch-all owns health and all other segment-bearing variants that reach
+   application routing.
 3. Read and validate `INVOICE_MANAGER_API_ORIGIN` only during request handling. Accept one bare
    absolute HTTP(S) origin; never derive or override it from request headers, path, query, cookies,
    form data, browser environment, `NEXT_PUBLIC_*`, or network discovery.
-4. P0 accepts only canonical `GET /api/v1/health` with no query parameters. Reject every other
-   path, encoded separator/traversal variant, query, or unsupported method locally with the
-   canonical route/method error envelope before upstream I/O.
-5. Construct the upstream target only as the validated fixed origin plus constant
+4. P0 sends upstream I/O only for canonical `GET /api/v1/health` with no query parameters.
+   Reject every other request that reaches either owned Route Handler locally with the canonical
+   route/method error envelope before upstream I/O, including `/api/v1[/]`, health with a
+   trailing slash, segment-bearing paths, query variants, encoded separators, and
+   double-encoded traversal.
+5. Test locked Next.js pre-routing behavior separately with redirect following disabled. Raw
+   repeated slash and raw backslash receive framework 308 normalization, while single-encoded
+   dot traversal receives framework 404 before either owned Route Handler. For each case prove
+   the handler and upstream were not reached, no internal origin or cross-origin `Location` is
+   disclosed, and no browser-visible request follows the normalized target. Do not claim a
+   canonical application envelope for a request the framework intercepts.
+6. Construct the upstream target only as the validated fixed origin plus constant
    `/api/v1/health`, then re-check origin identity before fetch.
-6. Forward only an explicit safe request-header allowlist. Never forward `Host`, `Forwarded`,
+7. Forward only an explicit safe request-header allowlist. Never forward `Host`, `Forwarded`,
    `X-Forwarded-*`, connection headers, cookies, authorization, destination/rewrite headers, or
    browser-provided origin-selection values.
-7. Use `redirect: "manual"`, reject every 3xx without returning `Location`, and enforce a hard
+8. Use `redirect: "manual"`, reject every 3xx without returning `Location`, and enforce a hard
    750 ms abort deadline with no retry.
-8. Reject declared or streamed response bodies above 16 KiB and abort the read as soon as the cap
+9. Reject declared or streamed response bodies above 16 KiB and abort the read as soon as the cap
    is crossed; never buffer an unbounded body.
-9. Use `cache: "no-store"`, `dynamic = "force-dynamic"`, and non-cacheable browser response
+10. Use `cache: "no-store"`, `dynamic = "force-dynamic"`, and non-cacheable browser response
    headers so readiness cannot become stale.
-10. Forward only bounded JSON that validates as the canonical generated health success/error
+11. Forward only bounded JSON that validates as the canonical generated health success/error
     envelope and expected status; preserve a valid upstream status and `meta.request_id`.
-11. Map missing/invalid configuration, connection failure, timeout, redirect, oversized body,
+12. Map missing/invalid configuration, connection failure, timeout, redirect, oversized body,
     non-JSON, malformed envelope, and unexpected status to canonical `503 service_not_ready` with
     a fresh valid UUIDv7 request ID and no internal detail.
-12. Reconstruct response headers from a safe allowlist. Never propagate `Set-Cookie`, `Location`,
+13. Reconstruct response headers from a safe allowlist. Never propagate `Set-Cookie`, `Location`,
     internal hosts, raw upstream bodies, paths, stack traces, or diagnostics.
-13. Export explicit unsupported-method handlers so callers receive canonical 405 rather than
-    framework HTML. Do not add CORS as a substitute for the same-origin architecture.
-14. Cover destination/query/header/cookie/path manipulation, encoded traversal, redirect chains,
-    SSRF sinks, origin leakage, timeout, oversize, malformed/non-JSON body, stopped Zig, and
-    canonical safe failure through the public Next.js origin.
-15. Use real local socket processes—not mocked fetch—for redirect, slow, oversized, malformed,
+14. Export explicit unsupported-method handlers from both owned routes so callers receive
+    canonical 405 rather than framework HTML. Do not add CORS as a substitute for the
+    same-origin architecture.
+15. Cover destination/query/header/cookie/path manipulation, encoded traversal, the explicit
+    framework-intercept matrix, redirect chains, SSRF sinks, origin leakage, timeout, oversize,
+    malformed/non-JSON body, stopped Zig, and canonical safe failure through the public Next.js
+    origin.
+16. Use real local socket processes—not mocked fetch—for redirect, slow, oversized, malformed,
     and SSRF-sink cases, then separately prove the happy path with the real Ready WP08 service.
-16. Append matching chronological `GREEN:` command/results without rewriting or reordering the
+17. Append matching chronological `GREEN:` command/results without rewriting or reordering the
     prior evidence, and inspect browser requests/assets for no direct or disclosed Zig origin.
 
 **Validation**
 
 - Exercise the complete charter-mandated attacker-input, redirect, SSRF, origin-leak, deadline,
   body-limit, and safe-failure matrix with chronological red-before-production-before-green evidence.
+- Use raw HTTP targets with redirect following disabled for the pre-routing matrix; distinguish
+  owned canonical envelopes from locked framework 308/404 responses and prove zero upstream I/O
+  in both cases.
 - Verify every browser-visible request remains same-origin.
 - Search production assets for the internal API origin and require no match.
 
@@ -301,7 +318,10 @@ WP08+WP10 production E2E, a reusable proxy/performance harness, and diagnostic N
    temporary database directory, and prove all bound ports are released. Never reuse an existing
    Next.js or Zig process.
 8. Request `http://localhost:3000/api/v1/health`; never substitute a mocked or direct-Zig path.
-9. Assert canonical data/request metadata, safe failure envelopes, and no browser request to the
+   Also exercise the sibling base route, trailing slash, encoded, and locked pre-routing raw-path
+   matrix without following redirects.
+9. Assert canonical data/request metadata, safe failure envelopes for handler-owned cases,
+   documented framework rejection for pre-routing cases, and no browser request to the
    Zig/fixture origin.
 10. Test narrow/mobile, desktop, 200% zoom, dark preference, and 320px overflow.
 11. Ensure bare `web:check` runs format, lint, strict types, component tests, and production build
@@ -322,6 +342,8 @@ WP08+WP10 production E2E, a reusable proxy/performance harness, and diagnostic N
 
 - Run component tests without Zig, then real E2E against production Next.js plus WP08 Zig.
 - Repeat the same-origin smoke after the production build and inspect browser traffic.
+- Confirm a clean locked production build leaves WP09's accepted `next.config.ts`,
+  `tsconfig.json`, and `next-env.d.ts` byte-identical to their T060 hashes.
 - Reject undersized, concurrent, mocked, direct-Zig, non-monotonic, or cherry-picked diagnostic evidence.
 - Prove the NFR-007 harness exposes the diagnostic controls and measurements WP12 needs for final NFR-001/NFR-008 acceptance.
 - Require screenshots/logs to contain only synthetic foundation data.
@@ -370,8 +392,9 @@ build, or aggregate check; a stale prior output does not satisfy this ordering.
 - [ ] T045 imports generated types only through the stable `tools/contracts` export.
 - [ ] All app contract files are handwritten adapters; WP03 remains sole generated writer.
 - [ ] Signed 64-bit values never pass through JavaScript `number`.
-- [ ] T046 proves the owned fixed-origin App Router handler, canonical safe failures, bounded
-  redirect/deadline/body/header/cache policy, and no leaked/direct Zig origin.
+- [ ] T046 proves both owned fixed-origin App Router routes, canonical safe failures for every
+  handler-visible invalid request, locked framework-safe rejection for pre-routing raw paths,
+  bounded redirect/deadline/body/header/cache policy, and no leaked/direct Zig origin.
 - [ ] Charter security cases record chronological public-boundary red before production changes and matching green.
 - [ ] T047 passes component, accessibility, contract, production E2E/adversarial socket phases,
   exact browser provisioning, bounded cleanup, and focused bare gates.
@@ -387,6 +410,8 @@ build, or aggregate check; a stale prior output does not satisfy this ordering.
 - **Exact values become JS numbers**: preserve canonical strings and test int64 boundaries.
 - **Next.js starts owning business rules**: keep adapters presentation/transport-only.
 - **Browser bypasses handler or leaks origin**: inspect network and production assets.
+- **Locked Next intercepts a raw path before the handler**: test exact 308/404 behavior without
+  redirect following and prove zero handler/upstream I/O or internal-origin disclosure.
 - **Handler becomes SSRF/open redirect or buffers forever**: accept one server-only fixed origin,
   use constant health routing, allowlist headers, reject manual redirects, and enforce hard
   deadline/body caps through real socket tests.
@@ -400,13 +425,16 @@ build, or aggregate check; a stale prior output does not satisfy this ordering.
 - Treat committed `tasks.md`, committed prompt frontmatter, and committed finalized lane metadata as reviewer authority; `wps.yaml` is not the acceptance authority.
 - Confirm T043 used pinned npm and left the root manifest, both workspace manifests, and lock byte-identical.
 - Verify every changed path matches the app-owned patterns and no WP09 config was edited.
-- Confirm the catch-all Route Handler exact path is present under its declared directory glob and
-  the root/config/package/lock/Zig surfaces are unchanged.
+- Confirm both the sibling base and catch-all Route Handler paths are present under their declared
+  directory glob and the root/config/package/lock/Zig surfaces are unchanged.
 - Confirm imports use the `tools/contracts` package export, not `.generated` or copied types.
 - Search handwritten adapters for duplicated schemas, regex validation, business rules, `Number`,
   `parseInt`, unsafe money/revision coercion, and raw upstream rendering.
 - Use browser tools to confirm same-origin traffic and no internal origin disclosure; replay the
   real redirect, slow, oversized, malformed, SSRF-sink, and stopped-service sockets.
+- Replay raw repeated-slash, raw-backslash, and single-encoded-dot targets with redirects
+  disabled; require documented locked framework response plus zero handler/upstream activity,
+  not a fabricated canonical envelope.
 - Verify charter security cases are chronological public-boundary red-before-production-before-green.
 - Exercise exact WCAG 2.2 AA/responsive/error states and the real WP08+WP10 production E2E.
 - Recalculate diagnostic sample 99 and confirm WP10 supplies only NFR-007 harness/diagnostic evidence and does not claim WP12's final NFR-001/NFR-008 acceptance.
