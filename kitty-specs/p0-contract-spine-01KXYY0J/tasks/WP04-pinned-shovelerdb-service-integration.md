@@ -27,7 +27,7 @@ subtasks:
 - T019
 phase: Phase 2 - Service Dependency Integration
 assignee: ''
-agent: "codex-wp04-inventory-embed-fix"
+agent: "codex-wp04-cycle20-reviewer"
 history: []
 agent_profile: reviewer-renata
 authoritative_surface: deps/shovelerdb/
@@ -604,3 +604,8 @@ Review `THIRD_PARTY_NOTICES.md` and the complete upstream license as acceptance-
 - 2026-07-21T11:21:53Z – user – shell_pid=1807838 – Review passed: cycle 18 independently verifies exact 19/20 RED at 1e9027d, two-deletion least-authority correction da7e7e3, current 20/20 discovery, non-vacuous forbidden-import negative, preserved composition/executable graph, and fail-closed regressions.
 - 2026-07-21T11:30:06Z – codex-wp04-cycle18-reviewer – shell_pid=2663007 – Cycle 19 rejects the canonical route-inventory embed seam: exact locked path cannot resolve from the isolated HTTP module without a read-only mapping.
 - 2026-07-21T11:30:17Z – codex-wp04-inventory-embed-fix – shell_pid=1807838 – Started implementation via action command
+- 2026-07-21T11:30:53Z – codex-wp04-inventory-embed-fix – shell_pid=2665362 – CORRECTION: cycle-19 implementation is governed by canonical review-cycle-19.md at primary commit 0c58578; the preceding move response reported a stale cycle-18 review URI from coordination lag. Cycle 19 exact embed-mapping blocker is authoritative.
+- 2026-07-21T11:34:54Z – codex-wp04-inventory-embed-fix – shell_pid=1807838 – Cycle 19 RED committed as cc03cc3. Exact command: cd services/api && zig build test-build-discovery --summary all. Observed exit 1: 20/21 tests passed; permanent exact-literal fixture failed compiling src/http/route_inventory.zig with 'embed of file outside package path' for '../../../../tools/contracts/.generated/runtime/v1/route-inventory.json'. No production changes were present.
+- 2026-07-21T11:38:41Z – codex-wp04-inventory-embed-fix – shell_pid=1807838 – Cycle 19 GREEN product commit fd3f829 (separate RED test commit cc03cc3). Exact-key read-only HTTP module dependency maps '../../../../tools/contracts/.generated/runtime/v1/route-inventory.json' directly to tools/contracts/.generated/runtime/v1/route-inventory.json; HTTP still exposes only shared as executable Zig capability and composition/test/config graphs are unchanged. Validation: discovery 21/21; two cold-cache replays 21/21; default 3/3; adapter Debug and ReleaseSafe 4/4; integration Debug twice and ReleaseSafe 5/5; format/diff clean; stable help steps present; absent WP08 test-http and run fail closed with owner diagnostics. Permanent discovery coverage proves exact embedded bytes after delayed materialization, emitted API composition, direct prerequisites, and forbidden persistence rejection.
+- 2026-07-21T11:38:51Z – codex-wp04-inventory-embed-fix – shell_pid=2686213 – Cycle 19 exact inventory embed mapping complete: cc03cc3 RED, fd3f829 GREEN; full cold-cache and ABI matrix recorded.
+- 2026-07-21T11:39:07Z – codex-wp04-cycle20-reviewer – shell_pid=1807838 – Started review via action command
