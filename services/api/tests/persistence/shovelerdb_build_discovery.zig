@@ -256,6 +256,47 @@ fn prepareHttpFixture(
     return fixture;
 }
 
+fn prepareAggregateFixture(allocator: std.mem.Allocator) !HttpFixture {
+    var fixture = try prepareHttpFixture(
+        allocator,
+        0,
+        "const std = @import(\"std\");\n" ++
+            "const http_test_config = @import(\"http_test_config\");\n" ++
+            "test \"aggregate reaches emitted API migration sentinel\" {\n" ++
+            "    const result = try std.process.run(std.testing.allocator, std.testing.io, .{ .argv = &.{http_test_config.api_executable_path} });\n" ++
+            "    defer std.testing.allocator.free(result.stdout);\n" ++
+            "    defer std.testing.allocator.free(result.stderr);\n" ++
+            "    switch (result.term) {\n" ++
+            "        .exited => |code| try std.testing.expectEqual(@as(u8, 0), code),\n" ++
+            "        else => return error.UnexpectedApiTermination,\n" ++
+            "    }\n" ++
+            "}\n",
+    );
+    errdefer fixture.deinit(allocator);
+
+    const root_paths = [_][]const u8{
+        "services/api/tests/persistence/shovelerdb_build_discovery.zig",
+        "services/api/tests/persistence/shovelerdb_integration.zig",
+        "services/api/tests/shared/shared_fixture_test.zig",
+        "services/api/tests/persistence/store_fixture_test.zig",
+        "services/api/tests/persistence/store_integration_fixture.zig",
+        "services/api/tests/persistence/store_crash_fixture.zig",
+        "services/api/tests/persistence/migrations_test.zig",
+        "services/api/tests/persistence/migrations_integration_test.zig",
+        "services/api/tests/persistence/migrations_negative_test.zig",
+        "services/api/tests/persistence/migrations_coverage_test.zig",
+    };
+    for (root_paths) |path| {
+        try writeFixtureFile(
+            fixture.tmp.dir,
+            path,
+            "const std = @import(\"std\");\n" ++
+                "test \"synthetic aggregate root\" { try std.testing.expect(true); }\n",
+        );
+    }
+    return fixture;
+}
+
 fn expectPaths(expected: []const []const u8, actual: []const registry.Classified) !void {
     try std.testing.expectEqual(expected.len, actual.len);
     for (expected, actual) |expected_path, entry| {
@@ -459,6 +500,53 @@ test "canonical build-file invocation pins emitted API and configured run cwd" {
     );
     defer allocator.free(run_result.stdout);
     defer allocator.free(run_result.stderr);
+}
+
+test "aggregate test reaches the emitted API canonical migration sentinel" {
+    const allocator = std.testing.allocator;
+    var fixture = try prepareAggregateFixture(allocator);
+    defer fixture.deinit(allocator);
+
+    try writeFixtureFile(
+        fixture.tmp.dir,
+        "services/api/migrations/p0/001-canonical-migration.sql",
+        "-- canonical repository-root migration sentinel\n",
+    );
+    try writeFixtureFile(
+        fixture.tmp.dir,
+        "services/api/src/main.zig",
+        "const std = @import(\"std\");\n" ++
+            "const shared = @import(\"shared\");\n" ++
+            "const persistence = @import(\"persistence\");\n" ++
+            "const migrations = @import(\"migrations\");\n" ++
+            "const http = @import(\"http\");\n" ++
+            "pub fn main(init: std.process.Init) !void {\n" ++
+            "    shared.touch(); persistence.touch(); migrations.touch(); http.touch();\n" ++
+            "    try std.Io.Dir.cwd().access(init.io, \"services/api/migrations/p0/001-canonical-migration.sql\", .{});\n" ++
+            "}\n",
+    );
+
+    const services_path = std.fs.path.dirname(fixture.api_path) orelse
+        return error.InvalidFixtureApiPath;
+    const repository_path = std.fs.path.dirname(services_path) orelse
+        return error.InvalidFixtureServicesPath;
+    const result = try expectCommandExit(
+        allocator,
+        repository_path,
+        &.{
+            "zig",
+            "build",
+            "test",
+            "-j16",
+            "--summary",
+            "all",
+            "--build-file",
+            "services/api/build.zig",
+        },
+        0,
+    );
+    defer allocator.free(result.stdout);
+    defer allocator.free(result.stderr);
 }
 
 test "production HTTP module cannot import persistence" {
