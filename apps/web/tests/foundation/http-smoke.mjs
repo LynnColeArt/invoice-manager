@@ -20,6 +20,10 @@ const fixtureScript = path.join(
   root,
   "apps/web/tests/foundation/proxy-fixture.mjs",
 );
+// WP08 exposes one build-and-run step, so cold ReleaseSafe compilation and
+// service readiness share this bounded allowance. Fixture readiness remains
+// on the shorter waitForReadyLine default.
+const releaseSafeColdStartTimeoutMs = 180_000;
 const children = new Set();
 const knownPorts = new Map();
 let shuttingDown = false;
@@ -142,7 +146,9 @@ function waitForReadyLine(child, pattern, label, timeoutMs = 30_000) {
     const timer = setTimeout(() => {
       cleanup();
       reject(
-        new Error(`${label} startup timed out; stderr=${stderr.slice(-1_000)}`),
+        new Error(
+          `${label} startup timed out after ${timeoutMs} ms; stderr=${stderr.slice(-1_000)}`,
+        ),
       );
     }, timeoutMs);
     const onData = (chunk) => {
@@ -476,7 +482,7 @@ async function innerMain() {
       zig,
       /\[api:ready\] listening port=([0-9]+)/,
       "WP08 ReleaseSafe Zig",
-      60_000,
+      releaseSafeColdStartTimeoutMs,
     );
     rememberPort("127.0.0.1", zigPort, "Zig cleanup");
     const zigOrigin = `http://127.0.0.1:${zigPort}`;
