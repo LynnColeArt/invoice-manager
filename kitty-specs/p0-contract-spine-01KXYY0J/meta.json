@@ -13,6 +13,7 @@
   "accepted_at": "2026-07-22T01:38:30.545249+00:00",
   "accepted_by": "codex",
   "accepted_from_commit": "6408f575dcf4126f06fe07ecbca51a2487a275f4",
+  "baseline_merge_commit": "25bb794142c1e30c8e9f97a61ad0cc82a38a9ed9",
   "change_mode": "bulk_edit",
   "coordination_branch": "kitty/mission-p0-contract-spine-01KXYY0J",
   "created_at": "2026-07-20T04:54:38.567235+00:00",
