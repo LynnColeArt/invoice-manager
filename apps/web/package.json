@@ -1,0 +1,44 @@
+{
+  "name": "@invoice-manager/web",
+  "version": "0.0.0",
+  "private": true,
+  "license": "GPL-3.0-only",
+  "engines": {
+    "node": "24.18.0",
+    "npm": "11.16.0"
+  },
+  "dependencies": {
+    "@invoice-manager/contracts": "0.0.0",
+    "next": "16.2.10",
+    "react": "19.2.7",
+    "react-dom": "19.2.7"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.12.1",
+    "@playwright/test": "1.61.1",
+    "@testing-library/dom": "10.4.1",
+    "@testing-library/jest-dom": "6.9.1",
+    "@testing-library/react": "16.3.2",
+    "@testing-library/user-event": "14.6.1",
+    "@types/node": "24.13.3",
+    "@types/react": "19.2.7",
+    "@types/react-dom": "19.2.3",
+    "axe-core": "4.12.1",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.2.10",
+    "jsdom": "29.1.1",
+    "prettier": "3.9.5",
+    "typescript": "6.0.3",
+    "vitest": "4.1.10"
+  },
+  "scripts": {
+    "dev": "node -e \"const fs=require('node:fs');for(const p of ['next.config.ts','src/app/page.tsx'])if(!fs.existsSync(p)){console.error('[producer:error] missing apps/web/'+p+'; WP09/WP10 must provide the web runtime');process.exit(1)}\" && next dev",
+    "build": "node -e \"const fs=require('node:fs');for(const p of ['next.config.ts','src/app/page.tsx'])if(!fs.existsSync(p)){console.error('[producer:error] missing apps/web/'+p+'; WP09/WP10 must provide the web build');process.exit(1)}\" && next build",
+    "start": "node -e \"const fs=require('node:fs');const p='.next/BUILD_ID';if(!fs.existsSync(p)){console.error('[producer:error] missing apps/web/'+p+'; run the production web build first');process.exit(1)}\" && next start",
+    "format:check": "node -e \"const fs=require('node:fs');const p='next.config.ts';if(!fs.existsSync(p)){console.error('[producer:error] missing apps/web/'+p+'; WP09 must provide web configuration');process.exit(1)}\" && prettier --check .",
+    "lint": "node -e \"const fs=require('node:fs');const p='eslint.config.mjs';if(!fs.existsSync(p)){console.error('[producer:error] missing apps/web/'+p+'; WP09 must provide lint configuration');process.exit(1)}\" && eslint .",
+    "typecheck": "node -e \"const fs=require('node:fs');const p='tsconfig.json';if(!fs.existsSync(p)){console.error('[producer:error] missing apps/web/'+p+'; WP09 must provide TypeScript configuration');process.exit(1)}\" && tsc --noEmit",
+    "test": "node -e \"const fs=require('node:fs');for(const p of ['vitest.config.ts','tests/foundation'])if(!fs.existsSync(p)){console.error('[producer:error] missing apps/web/'+p+'; WP09/WP10 must provide component validation');process.exit(1)}\" && vitest run",
+    "test:e2e": "node -e \"const fs=require('node:fs');for(const p of ['playwright.config.ts','tests/foundation/proxy.e2e.ts'])if(!fs.existsSync(p)){console.error('[producer:error] missing apps/web/'+p+'; WP09/WP10 must provide same-origin smoke validation');process.exit(1)}\" && playwright test"
+  }
+}

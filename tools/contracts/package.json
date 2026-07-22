@@ -1,0 +1,31 @@
+{
+  "name": "@invoice-manager/contracts",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "GPL-3.0-only",
+  "engines": {
+    "node": "24.18.0",
+    "npm": "11.16.0"
+  },
+  "exports": {
+    "./v1": "./.generated/typescript/v1/index.ts"
+  },
+  "scripts": {
+    "generate": "node -e \"const fs=require('node:fs');const p='src/main.ts';if(!fs.existsSync(p)){console.error('[producer:error] missing tools/contracts/'+p+'; WP03 must provide contract generation');process.exit(1)}\" && tsx src/main.ts generate",
+    "check": "node -e \"const fs=require('node:fs');const p='src/main.ts';if(!fs.existsSync(p)){console.error('[producer:error] missing tools/contracts/'+p+'; WP03 must provide contract validation');process.exit(1)}\" && tsx src/main.ts check",
+    "test": "node -e \"const fs=require('node:fs');const p='tests';if(!fs.existsSync(p)){console.error('[producer:error] missing tools/contracts/'+p+'; WP03 must provide contract tests');process.exit(1)}\" && vitest run"
+  },
+  "devDependencies": {
+    "@hey-api/openapi-ts": "0.99.0",
+    "@seriousme/openapi-schema-validator": "2.9.0",
+    "@types/node": "24.13.3",
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1",
+    "json-canonicalize": "2.0.0",
+    "tsx": "4.23.1",
+    "typescript": "6.0.3",
+    "vitest": "4.1.10",
+    "yaml": "2.9.0"
+  }
+}
