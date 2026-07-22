@@ -57,6 +57,14 @@ test "exactly 100 real ready requests satisfy the local P0 latency budget" {
         }
         valid_count += 1;
         if (durations_ns[index] <= one_second_ns) valid_within_budget += 1;
+        const remaining = measured_requests - index - 1;
+        if (valid_within_budget + remaining < 99) {
+            std.debug.print(
+                "[wp08:performance] budget became impossible after request={d} duration_us={d}\n",
+                .{ index + 1, durations_ns[index] / std.time.ns_per_us },
+            );
+            return error.PerformanceBudgetImpossible;
+        }
     }
 
     std.mem.sort(u64, &durations_ns, {}, std.sort.asc(u64));

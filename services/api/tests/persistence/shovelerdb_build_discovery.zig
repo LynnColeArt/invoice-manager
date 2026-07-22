@@ -23,6 +23,64 @@ fn writeFixtureFile(dir: std.Io.Dir, path: []const u8, contents: []const u8) !vo
     try file.writeStreamingAll(std.testing.io, contents);
 }
 
+fn removeProvenanceLine(
+    allocator: std.mem.Allocator,
+    provenance: []const u8,
+    omitted: []const u8,
+) ![]u8 {
+    var result: std.ArrayList(u8) = .empty;
+    errdefer result.deinit(allocator);
+    var found = false;
+    var lines = std.mem.splitScalar(u8, provenance, '\n');
+    while (lines.next()) |line| {
+        if (std.mem.eql(u8, line, omitted)) {
+            found = true;
+            continue;
+        }
+        if (line.len == 0) continue;
+        try result.appendSlice(allocator, line);
+        try result.append(allocator, '\n');
+    }
+    if (!found) return error.MissingFixtureLine;
+    return result.toOwnedSlice(allocator);
+}
+
+fn replaceProvenanceLine(
+    allocator: std.mem.Allocator,
+    provenance: []const u8,
+    original: []const u8,
+    replacement: []const u8,
+) ![]u8 {
+    var result: std.ArrayList(u8) = .empty;
+    errdefer result.deinit(allocator);
+    var found = false;
+    var lines = std.mem.splitScalar(u8, provenance, '\n');
+    while (lines.next()) |line| {
+        if (line.len == 0) continue;
+        if (std.mem.eql(u8, line, original)) {
+            found = true;
+            try result.appendSlice(allocator, replacement);
+        } else {
+            try result.appendSlice(allocator, line);
+        }
+        try result.append(allocator, '\n');
+    }
+    if (!found) return error.MissingFixtureLine;
+    return result.toOwnedSlice(allocator);
+}
+
+fn exactShovelerDbCandidate() [registry.shovelerdb_expected_files.len]registry.ShovelerDbCandidateEntry {
+    var entries: [registry.shovelerdb_expected_files.len]registry.ShovelerDbCandidateEntry = undefined;
+    for (&entries, registry.shovelerdb_expected_files) |*entry, path| {
+        entry.* = .{
+            .path = path,
+            .kind = .file,
+            .sha256 = "0000000000000000000000000000000000000000000000000000000000000000",
+        };
+    }
+    return entries;
+}
+
 fn expectCommandExit(
     allocator: std.mem.Allocator,
     cwd: ?[]const u8,
@@ -1074,19 +1132,116 @@ test "persistence production imports reject undeclared shared dependency" {
 
 test "notice validation fails when any acceptance-critical field is absent" {
     const valid =
-        \\ShovelerDB GPL-2.0-only
+        \\ShovelerDB GPL-3.0-only
         \\https://github.com/LynnColeArt/ShovelerDB.git
-        \\021e3b3d9247a181252329d6ba7ec8d2ed943a97
+        \\20dced69738bfce08f94368b8d017cfc283747fe
         \\deps/shovelerdb/LICENSE
+        \\deps/shovelerdb/NOTICE
+        \\deps/shovelerdb/PROVENANCE
+        \\references/mariadb/** excluded
+        \\tests/fixtures/mariadb-adapted/** excluded
     ;
     try std.testing.expect(registry.noticeValid(valid, true));
     try std.testing.expect(!registry.noticeValid(valid, false));
     try std.testing.expect(!registry.noticeValid(
-        "ShovelerDB GPL-2.0-only deps/shovelerdb/LICENSE",
+        "ShovelerDB GPL-3.0-only deps/shovelerdb/LICENSE deps/shovelerdb/NOTICE",
         true,
     ));
     try std.testing.expect(!registry.noticeValid(
-        "https://github.com/LynnColeArt/ShovelerDB.git GPL-2.0-only deps/shovelerdb/LICENSE",
+        "https://github.com/LynnColeArt/ShovelerDB.git GPL-3.0-only deps/shovelerdb/LICENSE deps/shovelerdb/NOTICE",
         true,
     ));
+    try std.testing.expect(!registry.noticeValid(
+        "https://github.com/LynnColeArt/ShovelerDB.git 20dced69738bfce08f94368b8d017cfc283747fe GPL-2.0-only deps/shovelerdb/LICENSE deps/shovelerdb/NOTICE deps/shovelerdb/PROVENANCE references/mariadb/** tests/fixtures/mariadb-adapted/**",
+        true,
+    ));
+    try std.testing.expect(!registry.noticeValid(
+        "https://github.com/LynnColeArt/ShovelerDB.git 021e3b3d9247a181252329d6ba7ec8d2ed943a97 GPL-3.0-only deps/shovelerdb/LICENSE deps/shovelerdb/NOTICE deps/shovelerdb/PROVENANCE references/mariadb/** tests/fixtures/mariadb-adapted/**",
+        true,
+    ));
+}
+
+test "GPLv3 engine provenance requires every exact evidence field" {
+    const exact = registry.shovelerdb_expected_provenance;
+    try std.testing.expect(registry.shovelerDbProvenanceValid(exact));
+
+    for (registry.shovelerdb_required_provenance_lines) |required_line| {
+        const missing = try removeProvenanceLine(std.testing.allocator, exact, required_line);
+        defer std.testing.allocator.free(missing);
+        try std.testing.expect(!registry.shovelerDbProvenanceValid(missing));
+    }
+
+    const old_pin = try replaceProvenanceLine(
+        std.testing.allocator,
+        exact,
+        "commit=20dced69738bfce08f94368b8d017cfc283747fe",
+        "commit=021e3b3d9247a181252329d6ba7ec8d2ed943a97",
+    );
+    defer std.testing.allocator.free(old_pin);
+    try std.testing.expect(!registry.shovelerDbProvenanceValid(old_pin));
+
+    const old_license = try replaceProvenanceLine(
+        std.testing.allocator,
+        exact,
+        "engine_license=GPL-3.0-only",
+        "engine_license=GPL-2.0-only",
+    );
+    defer std.testing.allocator.free(old_license);
+    try std.testing.expect(!registry.shovelerDbProvenanceValid(old_license));
+}
+
+test "GPLv3 engine candidate is exact deterministic and fails closed" {
+    const exact = exactShovelerDbCandidate();
+    try registry.validateShovelerDbCandidate(&exact);
+
+    var reversed = exact;
+    std.mem.reverse(registry.ShovelerDbCandidateEntry, &reversed);
+    try registry.validateShovelerDbCandidate(&reversed);
+    const forward_digest = try registry.shovelerDbManifestDigest(std.testing.allocator, &exact);
+    const reverse_digest = try registry.shovelerDbManifestDigest(std.testing.allocator, &reversed);
+    try std.testing.expectEqualSlices(u8, &forward_digest, &reverse_digest);
+
+    try std.testing.expectError(
+        error.MissingEngineFile,
+        registry.validateShovelerDbCandidate(exact[1..]),
+    );
+
+    var tampered = exact;
+    tampered[0].sha256 = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+    const tampered_digest = try registry.shovelerDbManifestDigest(std.testing.allocator, &tampered);
+    try std.testing.expect(!std.mem.eql(u8, &forward_digest, &tampered_digest));
+
+    var nonregular = exact;
+    nonregular[0].kind = .sym_link;
+    try std.testing.expectError(
+        error.NonRegularEnginePath,
+        registry.validateShovelerDbCandidate(&nonregular),
+    );
+
+    const injected_paths = [_][]const u8{
+        "references/mariadb/COPYING",
+        "tests/fixtures/mariadb-adapted/select-basic.md",
+        "README.md",
+    };
+    for (injected_paths) |injected_path| {
+        var injected: [registry.shovelerdb_expected_files.len + 1]registry.ShovelerDbCandidateEntry = undefined;
+        @memcpy(injected[0..exact.len], &exact);
+        injected[exact.len] = .{
+            .path = injected_path,
+            .kind = .file,
+            .sha256 = "0000000000000000000000000000000000000000000000000000000000000000",
+        };
+        try std.testing.expectError(
+            error.UnexpectedEnginePath,
+            registry.validateShovelerDbCandidate(&injected),
+        );
+    }
+
+    var duplicate: [registry.shovelerdb_expected_files.len + 1]registry.ShovelerDbCandidateEntry = undefined;
+    @memcpy(duplicate[0..exact.len], &exact);
+    duplicate[exact.len] = exact[0];
+    try std.testing.expectError(
+        error.DuplicateEnginePath,
+        registry.validateShovelerDbCandidate(&duplicate),
+    );
 }
