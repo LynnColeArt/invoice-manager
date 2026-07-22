@@ -71,7 +71,7 @@ npm run verify:foundation
 ```
 
 `licenses:check` emits a deterministic machine-readable GPL-3.0-only report.
-The committed LGPL evidence records libvips 8.17.3 source commit/archive
+The committed LGPL evidence records libvips 8.18.3 source commit/archive
 identity and the replaceable dynamic shared object used by the locked Linux x64
 runtime. The full LGPL text is preserved under `tools/licenses/evidence/`.
 

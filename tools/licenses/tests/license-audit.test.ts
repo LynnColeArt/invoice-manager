@@ -221,7 +221,7 @@ describe("GPL-3.0-only runtime license policy", () => {
     expect(identities).toContain("project:invoice-manager@0.0.0");
     expect(identities).toContain("npm:@swc/helpers@0.5.15");
     expect(identities).toContain(
-      "npm:@img/sharp-libvips-linux-x64@1.2.4",
+      "npm:@img/sharp-libvips-linux-x64@1.3.2",
     );
     expect(identities).toContain(
       "source:shovelerdb@20dced69738bfce08f94368b8d017cfc283747fe",

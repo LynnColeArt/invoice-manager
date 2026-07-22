@@ -37,7 +37,10 @@ describe("P0 source distribution closure", () => {
 
   it("records libvips LGPL source and replaceable dynamic-link evidence", async () => {
     const policy = await loadPolicy(root);
-    const key = "npm:@img/sharp-libvips-linux-x64@1.2.4";
+    const key = "npm:@img/sharp-libvips-linux-x64@1.3.2";
+    expect(policy.lgpl_obligations![key].versions_sha256).toBe(
+      "71e22ad5154a3891e09291e2f316b3d9b0d0f405459144a94897a203580df055",
+    );
     const result = await verifyLgplObligation(
       root,
       key,
@@ -46,19 +49,19 @@ describe("P0 source distribution closure", () => {
     expect(result).toMatchObject({
       verified: true,
       selected_license: "LGPL-3.0-or-later",
-      source_commit: "0c9151a4f416d2f8ae20a755db218f6637050eec",
+      source_commit: "3664cfc5dc2c5661288f5bf5a85ccc51c64c1626",
       source_archive_sha256:
-        "cfdff3dfaf1fdb74823a1e329b04eaefeb29fd779c25fbe21dde04bd46f6a7a1",
+        "8cea8ae2cdbac89e5750952e6d8b18061257de59716ff8458c0767c801bfd7a9",
       dynamic_library_sha256:
-        "9a2a2cf2b53ec123b3ee293bf66c234f8306681a5edfb058815b6bf66b9df8e9",
-      linked_version: "8.17.3",
+        "0c1a1560417bbcdac38ce83151e52e56711deb70c5373053822c3301a19a4496",
+      linked_version: "8.18.3",
       relinking_mode: "replaceable-dynamic-shared-object",
     });
   });
 
   it("fails a drifted libvips versions or shared-library digest closed", async () => {
     const policy = await loadPolicy(root);
-    const key = "npm:@img/sharp-libvips-linux-x64@1.2.4";
+    const key = "npm:@img/sharp-libvips-linux-x64@1.3.2";
     const obligation = structuredClone(policy.lgpl_obligations![key]);
     obligation.versions_sha256 = "0".repeat(64);
     expect((await verifyLgplObligation(root, key, obligation)).verified).toBe(
