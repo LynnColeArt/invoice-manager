@@ -1,11 +1,26 @@
 {
+  "accept_commit": "0763bdb8d15a6165a168c17060b0757a10b5d197",
+  "acceptance_history": [
+    {
+      "accept_commit": "0763bdb8d15a6165a168c17060b0757a10b5d197",
+      "acceptance_mode": "pr",
+      "accepted_at": "2026-07-22T01:38:30.545249+00:00",
+      "accepted_by": "codex",
+      "accepted_from_commit": "6408f575dcf4126f06fe07ecbca51a2487a275f4"
+    }
+  ],
+  "acceptance_mode": "pr",
+  "accepted_at": "2026-07-22T01:38:30.545249+00:00",
+  "accepted_by": "codex",
+  "accepted_from_commit": "6408f575dcf4126f06fe07ecbca51a2487a275f4",
+  "baseline_merge_commit": "25bb794142c1e30c8e9f97a61ad0cc82a38a9ed9",
   "change_mode": "bulk_edit",
   "coordination_branch": "kitty/mission-p0-contract-spine-01KXYY0J",
   "created_at": "2026-07-20T04:54:38.567235+00:00",
   "flattened": false,
   "friendly_name": "P0 Contract Spine",
   "mission_id": "01KXYY0J76QBNSWXX0SHMZNXC4",
-  "mission_number": null,
+  "mission_number": 1,
   "mission_slug": "p0-contract-spine-01KXYY0J",
   "mission_type": "software-dev",
   "pr_bound": true,
