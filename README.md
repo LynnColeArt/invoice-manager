@@ -33,14 +33,25 @@ The immutable contributor details are in the
 by the accepted WP11 receipt commit
 `97b4094de279a0b568760f2e9a202f98dc64021d`.
 
+The canonical P0 manifest is `Verified` at content digest
+`sha256:6ff2126ce659465dfdded2e33aab6fa61c1ded90bf3ef22f2d6daceb30864a15`.
+Its public evidence candidate is commit
+`57b3724f63b3600d1bd84fbb744561ace19b9e6d`, published as tag
+[`p0-implemented-57b3724f`](https://github.com/LynnColeArt/invoice-manager/tree/p0-implemented-57b3724f).
+The exact candidate passed every Foundation job and the required conclusion on
+both [`main`](https://github.com/LynnColeArt/invoice-manager/actions/runs/29881539727)
+and [`feat/p0-contract-spine`](https://github.com/LynnColeArt/invoice-manager/actions/runs/29881539752).
+Review, acceptance, and merge remain separate Spec Kitty gates.
+
 ## Clone and verify
 
-After the public repository exists:
+To reproduce the exact public evidence candidate:
 
 ```bash
-export INVOICE_MANAGER_REPOSITORY_URL=<public-repository-url>
+export INVOICE_MANAGER_REPOSITORY_URL=https://github.com/LynnColeArt/invoice-manager.git
 git clone --recurse-submodules "$INVOICE_MANAGER_REPOSITORY_URL" invoice-manager
 cd invoice-manager
+git checkout --detach p0-implemented-57b3724f
 npm run verify:foundation:clean
 ```
 
@@ -114,16 +125,16 @@ until P0 is merged and each consumer revalidates its baseline.
 
 ## Failure routing
 
-| Failing command | Responsible surface |
-| --- | --- |
-| `npm run contracts:check` | WP03; WP02 for common values |
-| `npm run web:check` | WP09 configuration or WP10 shell/proxy |
-| `npm run api:check` | WP05/WP08; WP04 build integration |
-| `npm run migration:negative` | WP07 |
-| `npm run persistence:integration` | WP06; WP04/WP07 at seams |
-| `npm run http:smoke` | WP08 Zig boundary or WP10 same-origin proxy |
-| `npm run licenses:check` | WP12 policy/report; producing dependency owner |
-| clean wrapper failure | WP01 wiring or the first focused failing owner |
+| Failing command                   | Responsible surface                            |
+| --------------------------------- | ---------------------------------------------- |
+| `npm run contracts:check`         | WP03; WP02 for common values                   |
+| `npm run web:check`               | WP09 configuration or WP10 shell/proxy         |
+| `npm run api:check`               | WP05/WP08; WP04 build integration              |
+| `npm run migration:negative`      | WP07                                           |
+| `npm run persistence:integration` | WP06; WP04/WP07 at seams                       |
+| `npm run http:smoke`              | WP08 Zig boundary or WP10 same-origin proxy    |
+| `npm run licenses:check`          | WP12 policy/report; producing dependency owner |
+| clean wrapper failure             | WP01 wiring or the first focused failing owner |
 
 Do not convert a required failure to a warning. Report the exact command,
 candidate commit, exit status, diagnostic, and owning path.
