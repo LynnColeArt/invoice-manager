@@ -243,3 +243,10 @@ terminus. After this review, run `spec-kitty retrospect summary` and
 `spec-kitty agent retrospect synthesize --mission p0-contract-spine-01KXYY0J`
 in dry-run mode. Keep product defects above separate from process-improvement
 proposals; do not apply doctrine changes automatically.
+
+The 2026-07-22 closeout run exposed a tooling mismatch: `retrospect summary`
+reported all eight discovered missions as `terminus_no_retro` / `missing` even
+though this mission's 512-line runtime-authored record exists at the path
+above. Dry-run synthesis reported `planned=0 applied=0 conflicts=0 rejected=0`.
+No proposal was applied and no duplicate retrospective was fabricated; the
+discovery mismatch should be corrected in Spec Kitty separately.
