@@ -1,0 +1,512 @@
+schema_version: 1
+mission_id: 01KXYY0J76QBNSWXX0SHMZNXC4
+mission_slug: p0-contract-spine-01KXYY0J
+mission_number: 1
+friendly_name: P0 Contract Spine
+mission_type: software-dev
+target_branch: feat/p0-contract-spine
+created_at: '2026-07-22T01:50:57.703459+00:00'
+created_by:
+  kind: runtime
+  id: spec-kitty-generator
+  display: Spec Kitty Generator
+provenance:
+  kind: runtime_post_completion
+  invoked_at: '2026-07-22T01:50:57.703459+00:00'
+  policy_resolved_from:
+    enabled: <default>
+    timing: <default>
+    failure_policy: <default>
+    write_record: <default>
+    generate_proposals: <default>
+    apply_proposals: <default>
+    permissions.write_record: <default>
+    permissions.inspect_mission_artifacts: <default>
+    permissions.propose_glossary_changes: <default>
+    permissions.propose_drg_changes: <default>
+    permissions.propose_doctrine_changes: <default>
+    permissions.apply_low_risk_changes: <default>
+    permissions.apply_structural_changes: <default>
+    precedence: <default>
+    generator: <default>
+policy_source:
+  enabled: <default>
+  timing: <default>
+  failure_policy: <default>
+  write_record: <default>
+  generate_proposals: <default>
+  apply_proposals: <default>
+  permissions.write_record: <default>
+  permissions.inspect_mission_artifacts: <default>
+  permissions.propose_glossary_changes: <default>
+  permissions.propose_drg_changes: <default>
+  permissions.propose_doctrine_changes: <default>
+  permissions.apply_low_risk_changes: <default>
+  permissions.apply_structural_changes: <default>
+  precedence: <default>
+  generator: <default>
+findings_status: has_findings
+helped:
+- id: h-001
+  category: implementation
+  summary: WP02 completed without rejection cycles
+  evidence_refs:
+  - e-017
+- id: h-002
+  category: implementation
+  summary: WP11 completed without rejection cycles
+  evidence_refs:
+  - e-017
+not_helpful:
+- id: n-033
+  category: doc
+  summary: analysis-report.md present with findings
+  evidence_refs:
+  - e-054
+  details: An analysis-report.md artifact is present for this mission. Review its findings to understand documented 
+    issues and decisions.
+- id: n-022
+  category: implementation
+  summary: WP01 needed 7 implementation cycles
+  evidence_refs:
+  - e-043
+  details: WP WP01 entered in_progress 7 times. Multiple implementation cycles suggest rework not captured as a 
+    documented review rejection; the WP scope or contract may need refinement.
+- id: n-023
+  category: implementation
+  summary: WP03 needed 4 implementation cycles
+  evidence_refs:
+  - e-044
+  details: WP WP03 entered in_progress 4 times. Multiple implementation cycles suggest rework not captured as a 
+    documented review rejection; the WP scope or contract may need refinement.
+- id: n-024
+  category: implementation
+  summary: WP04 needed 15 implementation cycles
+  evidence_refs:
+  - e-045
+  details: WP WP04 entered in_progress 15 times. Multiple implementation cycles suggest rework not captured as a 
+    documented review rejection; the WP scope or contract may need refinement.
+- id: n-025
+  category: implementation
+  summary: WP05 needed 3 implementation cycles
+  evidence_refs:
+  - e-046
+  details: WP WP05 entered in_progress 3 times. Multiple implementation cycles suggest rework not captured as a 
+    documented review rejection; the WP scope or contract may need refinement.
+- id: n-026
+  category: implementation
+  summary: WP06 needed 3 implementation cycles
+  evidence_refs:
+  - e-047
+  details: WP WP06 entered in_progress 3 times. Multiple implementation cycles suggest rework not captured as a 
+    documented review rejection; the WP scope or contract may need refinement.
+- id: n-027
+  category: implementation
+  summary: WP07 needed 4 implementation cycles
+  evidence_refs:
+  - e-048
+  details: WP WP07 entered in_progress 4 times. Multiple implementation cycles suggest rework not captured as a 
+    documented review rejection; the WP scope or contract may need refinement.
+- id: n-028
+  category: implementation
+  summary: WP08 needed 2 implementation cycles
+  evidence_refs:
+  - e-049
+  details: WP WP08 entered in_progress 2 times. Multiple implementation cycles suggest rework not captured as a 
+    documented review rejection; the WP scope or contract may need refinement.
+- id: n-029
+  category: implementation
+  summary: WP09 needed 5 implementation cycles
+  evidence_refs:
+  - e-050
+  details: WP WP09 entered in_progress 5 times. Multiple implementation cycles suggest rework not captured as a 
+    documented review rejection; the WP scope or contract may need refinement.
+- id: n-030
+  category: implementation
+  summary: WP10 needed 2 implementation cycles
+  evidence_refs:
+  - e-051
+  details: WP WP10 entered in_progress 2 times. Multiple implementation cycles suggest rework not captured as a 
+    documented review rejection; the WP scope or contract may need refinement.
+- id: n-031
+  category: implementation
+  summary: WP11 needed 2 implementation cycles
+  evidence_refs:
+  - e-052
+  details: WP WP11 entered in_progress 2 times. Multiple implementation cycles suggest rework not captured as a 
+    documented review rejection; the WP scope or contract may need refinement.
+- id: n-032
+  category: implementation
+  summary: WP12 needed 2 implementation cycles
+  evidence_refs:
+  - e-053
+  details: WP WP12 entered in_progress 2 times. Multiple implementation cycles suggest rework not captured as a 
+    documented review rejection; the WP scope or contract may need refinement.
+- id: n-011
+  category: process
+  summary: WP01 required 6 --force override(s) during workflow
+  evidence_refs:
+  - e-028
+  details: WP WP01 required 6 operator-driven --force lane transition(s). Force overrides typically indicate the runtime
+    guard failed or the operator routed around it; investigate the underlying cause.
+- id: n-012
+  category: process
+  summary: WP03 required 3 --force override(s) during workflow
+  evidence_refs:
+  - e-029
+  details: WP WP03 required 3 operator-driven --force lane transition(s). Force overrides typically indicate the runtime
+    guard failed or the operator routed around it; investigate the underlying cause.
+- id: n-013
+  category: process
+  summary: WP04 required 14 --force override(s) during workflow
+  evidence_refs:
+  - e-030
+  details: WP WP04 required 14 operator-driven --force lane transition(s). Force overrides typically indicate the 
+    runtime guard failed or the operator routed around it; investigate the underlying cause.
+- id: n-014
+  category: process
+  summary: WP05 required 3 --force override(s) during workflow
+  evidence_refs:
+  - e-031
+  details: WP WP05 required 3 operator-driven --force lane transition(s). Force overrides typically indicate the runtime
+    guard failed or the operator routed around it; investigate the underlying cause.
+- id: n-015
+  category: process
+  summary: WP06 required 2 --force override(s) during workflow
+  evidence_refs:
+  - e-032
+  details: WP WP06 required 2 operator-driven --force lane transition(s). Force overrides typically indicate the runtime
+    guard failed or the operator routed around it; investigate the underlying cause.
+- id: n-016
+  category: process
+  summary: WP07 required 4 --force override(s) during workflow
+  evidence_refs:
+  - e-033
+  details: WP WP07 required 4 operator-driven --force lane transition(s). Force overrides typically indicate the runtime
+    guard failed or the operator routed around it; investigate the underlying cause.
+- id: n-017
+  category: process
+  summary: WP08 required 1 --force override(s) during workflow
+  evidence_refs:
+  - e-034
+  details: WP WP08 required 1 operator-driven --force lane transition(s). Force overrides typically indicate the runtime
+    guard failed or the operator routed around it; investigate the underlying cause.
+- id: n-018
+  category: process
+  summary: WP09 required 4 --force override(s) during workflow
+  evidence_refs:
+  - e-035
+  details: WP WP09 required 4 operator-driven --force lane transition(s). Force overrides typically indicate the runtime
+    guard failed or the operator routed around it; investigate the underlying cause.
+- id: n-019
+  category: process
+  summary: WP10 required 1 --force override(s) during workflow
+  evidence_refs:
+  - e-036
+  details: WP WP10 required 1 operator-driven --force lane transition(s). Force overrides typically indicate the runtime
+    guard failed or the operator routed around it; investigate the underlying cause.
+- id: n-020
+  category: process
+  summary: WP11 required 1 --force override(s) during workflow
+  evidence_refs:
+  - e-037
+  details: WP WP11 required 1 operator-driven --force lane transition(s). Force overrides typically indicate the runtime
+    guard failed or the operator routed around it; investigate the underlying cause.
+- id: n-010
+  category: process
+  summary: WP12 had 1 lane bounce(s) before approval
+  evidence_refs:
+  - e-027
+  details: WP WP12 moved backward across workflow lanes 1 time(s) outside the documented reviewer-feedback flow.
+- id: n-021
+  category: process
+  summary: WP12 required 3 --force override(s) during workflow
+  evidence_refs:
+  - e-038
+  details: WP WP12 required 3 operator-driven --force lane transition(s). Force overrides typically indicate the runtime
+    guard failed or the operator routed around it; investigate the underlying cause.
+- id: n-001
+  category: review_loop
+  summary: WP01 required 3 rejection cycle(s) before approval
+  evidence_refs:
+  - e-018
+  details: WP WP01 was sent back from review to planning 3 time(s).
+- id: n-002
+  category: review_loop
+  summary: WP03 required 2 rejection cycle(s) before approval
+  evidence_refs:
+  - e-019
+  details: WP WP03 was sent back from review to planning 2 time(s).
+- id: n-003
+  category: review_loop
+  summary: WP04 required 6 rejection cycle(s) before approval
+  evidence_refs:
+  - e-020
+  details: WP WP04 was sent back from review to planning 6 time(s).
+- id: n-004
+  category: review_loop
+  summary: WP05 required 2 rejection cycle(s) before approval
+  evidence_refs:
+  - e-021
+  details: WP WP05 was sent back from review to planning 2 time(s).
+- id: n-005
+  category: review_loop
+  summary: WP06 required 1 rejection cycle(s) before approval
+  evidence_refs:
+  - e-022
+  details: WP WP06 was sent back from review to planning 1 time(s).
+- id: n-006
+  category: review_loop
+  summary: WP07 required 3 rejection cycle(s) before approval
+  evidence_refs:
+  - e-023
+  details: WP WP07 was sent back from review to planning 3 time(s).
+- id: n-007
+  category: review_loop
+  summary: WP08 required 1 rejection cycle(s) before approval
+  evidence_refs:
+  - e-024
+  details: WP WP08 was sent back from review to planning 1 time(s).
+- id: n-008
+  category: review_loop
+  summary: WP09 required 1 rejection cycle(s) before approval
+  evidence_refs:
+  - e-025
+  details: WP WP09 was sent back from review to planning 1 time(s).
+- id: n-009
+  category: review_loop
+  summary: WP10 required 1 rejection cycle(s) before approval
+  evidence_refs:
+  - e-026
+  details: WP WP10 was sent back from review to planning 1 time(s).
+gaps:
+- id: g-001
+  category: process
+  summary: Arbiter override needed for WP01 (1x)
+  evidence_refs:
+  - e-039
+  details: WP WP01 required 1 arbiter override(s). Arbiter overrides are an escape hatch; recurring use suggests the 
+    normal review path is blocked and the underlying policy/guard may need adjustment.
+- id: g-002
+  category: process
+  summary: Arbiter override needed for WP04 (5x)
+  evidence_refs:
+  - e-040
+  details: WP WP04 required 5 arbiter override(s). Arbiter overrides are an escape hatch; recurring use suggests the 
+    normal review path is blocked and the underlying policy/guard may need adjustment.
+- id: g-003
+  category: process
+  summary: Arbiter override needed for WP05 (1x)
+  evidence_refs:
+  - e-041
+  details: WP WP05 required 1 arbiter override(s). Arbiter overrides are an escape hatch; recurring use suggests the 
+    normal review path is blocked and the underlying policy/guard may need adjustment.
+- id: g-004
+  category: process
+  summary: Arbiter override needed for WP09 (1x)
+  evidence_refs:
+  - e-042
+  details: WP WP09 required 1 arbiter override(s). Arbiter overrides are an escape hatch; recurring use suggests the 
+    normal review path is blocked and the underlying policy/guard may need adjustment.
+proposals: []
+evidence_refs:
+- id: e-001
+  kind: file
+  path: kitty-specs/p0-contract-spine-01KXYY0J/meta.json
+- id: e-002
+  kind: file
+  path: kitty-specs/p0-contract-spine-01KXYY0J/spec.md
+- id: e-003
+  kind: file
+  path: kitty-specs/p0-contract-spine-01KXYY0J/plan.md
+- id: e-004
+  kind: file
+  path: kitty-specs/p0-contract-spine-01KXYY0J/tasks.md
+- id: e-005
+  kind: file
+  path: kitty-specs/p0-contract-spine-01KXYY0J/tasks/WP01-reproducible-repository-substrate.md
+- id: e-006
+  kind: file
+  path: kitty-specs/p0-contract-spine-01KXYY0J/tasks/WP02-canonical-wire-values-and-boundary-fixtures.md
+- id: e-007
+  kind: file
+  path: kitty-specs/p0-contract-spine-01KXYY0J/tasks/WP03-composable-contract-and-lifecycle-tooling.md
+- id: e-008
+  kind: file
+  path: kitty-specs/p0-contract-spine-01KXYY0J/tasks/WP04-pinned-shovelerdb-service-integration.md
+- id: e-009
+  kind: file
+  path: kitty-specs/p0-contract-spine-01KXYY0J/tasks/WP05-zig-shared-value-implementations.md
+- id: e-010
+  kind: file
+  path: kitty-specs/p0-contract-spine-01KXYY0J/tasks/WP06-durable-serialized-storage-boundary.md
+- id: e-011
+  kind: file
+  path: kitty-specs/p0-contract-spine-01KXYY0J/tasks/WP07-parallel-safe-migration-runner.md
+- id: e-012
+  kind: file
+  path: kitty-specs/p0-contract-spine-01KXYY0J/tasks/WP08-zig-health-and-route-policy-boundary.md
+- id: e-013
+  kind: file
+  path: kitty-specs/p0-contract-spine-01KXYY0J/tasks/WP09-nextjs-configuration-substrate.md
+- id: e-014
+  kind: file
+  path: kitty-specs/p0-contract-spine-01KXYY0J/tasks/WP10-nextjs-foundation-shell-and-proxy.md
+- id: e-015
+  kind: file
+  path: kitty-specs/p0-contract-spine-01KXYY0J/tasks/WP11-governed-documentation-sync-receipt.md
+- id: e-016
+  kind: file
+  path: kitty-specs/p0-contract-spine-01KXYY0J/tasks/WP12-foundation-acceptance-and-program-handoff.md
+- id: e-017
+  kind: file
+  path: kitty-specs/p0-contract-spine-01KXYY0J/status.events.jsonl
+- id: e-018
+  kind: event_range
+  path: kitty-specs/p0-contract-spine-01KXYY0J/status.events.jsonl
+  range: 01KY0E1GVVN033JT1DQJSGPS4A..01KY37QH02TMN6RBE6RPADKAX7
+- id: e-019
+  kind: event_range
+  path: kitty-specs/p0-contract-spine-01KXYY0J/status.events.jsonl
+  range: 01KY0MC2E47A8GQR445FJ0A83F..01KY0Q77E7GHZK67NVABN9TCF2
+- id: e-020
+  kind: event_range
+  path: kitty-specs/p0-contract-spine-01KXYY0J/status.events.jsonl
+  range: 01KY0Z6A9MWGTTQ4DQS9GEQRWK..01KY2CKZT7KY60XNW9NFBWSBEF
+- id: e-021
+  kind: event_range
+  path: kitty-specs/p0-contract-spine-01KXYY0J/status.events.jsonl
+  range: 01KY1A6RF1ES152HA1FQT9TW4H..01KY2E9MP9AQTC9RQ4ZR89CH8M
+- id: e-022
+  kind: event_range
+  path: kitty-specs/p0-contract-spine-01KXYY0J/status.events.jsonl
+  range: 01KY1B3N475BQ20BCPSZD4KX9G
+- id: e-023
+  kind: event_range
+  path: kitty-specs/p0-contract-spine-01KXYY0J/status.events.jsonl
+  range: 01KY1WJFTRB4E78XMTYVSYW7E9..01KY2E9TQ2FHKWP5N1ZV1EX7JY
+- id: e-024
+  kind: event_range
+  path: kitty-specs/p0-contract-spine-01KXYY0J/status.events.jsonl
+  range: 01KY2H24W2HYZ03VRPB0FJJG6Y
+- id: e-025
+  kind: event_range
+  path: kitty-specs/p0-contract-spine-01KXYY0J/status.events.jsonl
+  range: 01KY2NZ1Q2GNRRDRBABZ13NY14
+- id: e-026
+  kind: event_range
+  path: kitty-specs/p0-contract-spine-01KXYY0J/status.events.jsonl
+  range: 01KY2W3NWWJTENFMGYSDN9XZVR
+- id: e-027
+  kind: event_range
+  path: kitty-specs/p0-contract-spine-01KXYY0J/status.events.jsonl
+  range: 01KY35T742X08XPFV5C7AQBNJ3
+- id: e-028
+  kind: event_range
+  path: kitty-specs/p0-contract-spine-01KXYY0J/status.events.jsonl
+  range: 01KY0E1GVVN033JT1DQJSGPS4A..01KY37QH02TMN6RBE6RPADKAX7
+- id: e-029
+  kind: event_range
+  path: kitty-specs/p0-contract-spine-01KXYY0J/status.events.jsonl
+  range: 01KY0MC2E47A8GQR445FJ0A83F..01KY0XVY74V8VS5KAKX21QRGVF
+- id: e-030
+  kind: event_range
+  path: kitty-specs/p0-contract-spine-01KXYY0J/status.events.jsonl
+  range: 01KY0Z6A9MWGTTQ4DQS9GEQRWK..01KY35TBD4175P45N963QXXH9Y
+- id: e-031
+  kind: event_range
+  path: kitty-specs/p0-contract-spine-01KXYY0J/status.events.jsonl
+  range: 01KY1A6RF1ES152HA1FQT9TW4H..01KY2E9MP9AQTC9RQ4ZR89CH8M
+- id: e-032
+  kind: event_range
+  path: kitty-specs/p0-contract-spine-01KXYY0J/status.events.jsonl
+  range: 01KY1B3N475BQ20BCPSZD4KX9G..01KY1WSXQR16ZWQ19HHMKN285E
+- id: e-033
+  kind: event_range
+  path: kitty-specs/p0-contract-spine-01KXYY0J/status.events.jsonl
+  range: 01KY1WJFTRB4E78XMTYVSYW7E9..01KY2E9TQ2FHKWP5N1ZV1EX7JY
+- id: e-034
+  kind: event_range
+  path: kitty-specs/p0-contract-spine-01KXYY0J/status.events.jsonl
+  range: 01KY2H24W2HYZ03VRPB0FJJG6Y
+- id: e-035
+  kind: event_range
+  path: kitty-specs/p0-contract-spine-01KXYY0J/status.events.jsonl
+  range: 01KY0Y8HJ0E41YFH45SK16FT2S..01KY2SNR91RTGJJ5TEVAHDZMSQ
+- id: e-036
+  kind: event_range
+  path: kitty-specs/p0-contract-spine-01KXYY0J/status.events.jsonl
+  range: 01KY2W3NWWJTENFMGYSDN9XZVR
+- id: e-037
+  kind: event_range
+  path: kitty-specs/p0-contract-spine-01KXYY0J/status.events.jsonl
+  range: 01KY35T9AVN9H0V22CMQXN6E6P
+- id: e-038
+  kind: event_range
+  path: kitty-specs/p0-contract-spine-01KXYY0J/status.events.jsonl
+  range: 01KY35T742X08XPFV5C7AQBNJ3..01KY3Q8WJFZ2K809277E2GRV37
+- id: e-039
+  kind: event_range
+  path: kitty-specs/p0-contract-spine-01KXYY0J/status.events.jsonl
+  range: 01KY2MGD45R2PK059AMAWT94WQ
+- id: e-040
+  kind: event_range
+  path: kitty-specs/p0-contract-spine-01KXYY0J/status.events.jsonl
+  range: 01KY16S1FV5D1X8RTDEXC9PA82..01KY1TFAQYK0DHMAKSTV8XS5RS
+- id: e-041
+  kind: event_range
+  path: kitty-specs/p0-contract-spine-01KXYY0J/status.events.jsonl
+  range: 01KY1CA597HBMDCR6AT4JJ1NJJ
+- id: e-042
+  kind: event_range
+  path: kitty-specs/p0-contract-spine-01KXYY0J/status.events.jsonl
+  range: 01KY2QEMV9MRTG2G3D84GXP4KJ
+- id: e-043
+  kind: event_range
+  path: kitty-specs/p0-contract-spine-01KXYY0J/status.events.jsonl
+  range: implementation_cycles
+- id: e-044
+  kind: event_range
+  path: kitty-specs/p0-contract-spine-01KXYY0J/status.events.jsonl
+  range: implementation_cycles
+- id: e-045
+  kind: event_range
+  path: kitty-specs/p0-contract-spine-01KXYY0J/status.events.jsonl
+  range: implementation_cycles
+- id: e-046
+  kind: event_range
+  path: kitty-specs/p0-contract-spine-01KXYY0J/status.events.jsonl
+  range: implementation_cycles
+- id: e-047
+  kind: event_range
+  path: kitty-specs/p0-contract-spine-01KXYY0J/status.events.jsonl
+  range: implementation_cycles
+- id: e-048
+  kind: event_range
+  path: kitty-specs/p0-contract-spine-01KXYY0J/status.events.jsonl
+  range: implementation_cycles
+- id: e-049
+  kind: event_range
+  path: kitty-specs/p0-contract-spine-01KXYY0J/status.events.jsonl
+  range: implementation_cycles
+- id: e-050
+  kind: event_range
+  path: kitty-specs/p0-contract-spine-01KXYY0J/status.events.jsonl
+  range: implementation_cycles
+- id: e-051
+  kind: event_range
+  path: kitty-specs/p0-contract-spine-01KXYY0J/status.events.jsonl
+  range: implementation_cycles
+- id: e-052
+  kind: event_range
+  path: kitty-specs/p0-contract-spine-01KXYY0J/status.events.jsonl
+  range: implementation_cycles
+- id: e-053
+  kind: event_range
+  path: kitty-specs/p0-contract-spine-01KXYY0J/status.events.jsonl
+  range: implementation_cycles
+- id: e-054
+  kind: file
+  path: kitty-specs/p0-contract-spine-01KXYY0J/analysis-report.md
+generator_version: '1.0'
+provenance_history: []
