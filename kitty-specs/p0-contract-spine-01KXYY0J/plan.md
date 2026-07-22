@@ -25,8 +25,9 @@ Draft state.
 
 ## Engineering Alignment
 
-- The web shell uses the Next.js App Router and communicates only through the
-  same-origin `/api/v1` contract.
+- The web shell uses the Next.js App Router and communicates only through
+  same-origin `/api/v1` base/catch-all Route Handlers whose fixed Zig origin is server-owned and
+  validated at request time, never in framework configuration or browser input.
 - The Zig service owns all future authoritative behavior and is the only
   process allowed to access ShovelerDB.
 - Shared wire values favor canonical strings where JSON numbers would lose
@@ -52,7 +53,7 @@ artifacts remain outside the database
 **Testing**: Zig unit/coverage tests, contract-schema and fixture validation,
 deterministic composition tests, migration negative tests, real ShovelerDB
 checkpoint-directory-sync-close-reopen integration, process-crash boundary
-tests, black-box HTTP and same-origin proxy smoke, web
+tests, black-box HTTP and same-origin Route Handler smoke, web
 format/lint/type/component/accessibility/build, Playwright foundation workflow,
 mandatory `migration:negative`, and runtime-license audit
 **Target Platform**: Linux x86_64 development and CI baseline
@@ -80,7 +81,7 @@ consumer missions, one local database file, and only foundation entities in P0
 | 90% Zig domain coverage | Coverage gate applies to P0 shared value/migration/durability logic | Pass |
 | GPL-2.0-only and dependency notices | Dedicated runtime compatibility/notice gate | Pass |
 | Living behavior documentation | Versioned schemas/fixtures plus orchestrator pre-acceptance sync for governed mission docs/quickstart/glossary; closure updates README and ledger | Pass |
-| Frontend accessibility and Playwright workflow | The real shell/proxy integration owns component accessibility checks and a same-origin Playwright health workflow | Pass |
+| Frontend accessibility and Playwright workflow | The real shell/Route-Handler integration owns component accessibility checks and a same-origin Playwright health workflow | Pass |
 | Persistence concurrency and idempotency | Durable-store tests exercise serialization/competing handles; migration tests prove repeatable no-op application | Pass |
 | Concurrent mission ownership | Convention discovery, owner directories, no shared registries, integration steward | Pass |
 
@@ -90,9 +91,9 @@ No charter exception is required.
 
 The concrete structure and contracts preserve every pre-design rule. Build-time
 Node tooling validates schemas but does not become a second business backend.
-The ShovelerDB source shim, if needed, remains pinned and hidden behind the Zig
-adapter. P2 and P3 own TeX and deployment respectively, so P0 does not create
-empty or misleading future gates. Result: Pass.
+The committed ShovelerDB source export remains pinned, provenance-verified, and
+hidden behind the Zig adapter. P2 and P3 own TeX and deployment respectively,
+so P0 does not create empty or misleading future gates. Result: Pass.
 
 ## Project Structure
 
@@ -130,6 +131,9 @@ kitty-specs/p0-contract-spine-01KXYY0J/
 ├── apps/
 │   └── web/
 │       ├── src/app/
+│       │   └── api/v1/
+│       │       ├── route.ts
+│       │       └── [...path]/route.ts
 │       ├── src/features/
 │       └── src/lib/
 │           ├── api/
@@ -152,7 +156,7 @@ kitty-specs/p0-contract-spine-01KXYY0J/
 │   ├── manifests/p0.json           # WP12 canonical closure record
 │   └── migrations/v1/manifest.schema.json
 ├── deps/
-│   └── shovelerdb/                 # exact-commit submodule/source shim
+│   └── shovelerdb/                 # provenance-verified git archive source export
 ├── services/
 │   └── api/
 │       ├── build.zig
@@ -199,6 +203,10 @@ copy generated bindings into `apps/web/` or create another generated output.
 Browser or Next.js rendering
           |
           | same-origin JSON /api/v1/*
+          v
+  Next.js App Router handler
+          |
+          | fixed server-owned origin; bounded JSON
           v
       Zig HTTP boundary
           |
@@ -325,9 +333,10 @@ mutation.
 ### ShovelerDB boundary
 
 - Pin `021e3b3d9247a181252329d6ba7ec8d2ed943a97`.
-- Prefer a small upstream package-metadata release. Until available, use an
-  exact-commit submodule/source module under `deps/shovelerdb/`; never use a
-  sibling checkout or floating branch.
+- Consume the pin as the committed `git archive` source export under
+  `deps/shovelerdb/`. Verify `PROVENANCE` records the source commit and
+  `source_tree_sha256=6bb2b4215aa50a8ffbbff3278aea4f32c4fc0f906da817037c44095cfd19480b`;
+  never use a submodule, sibling checkout, or floating branch.
 - Import through one module boundary and call only the documented embedding ABI
   behavior from the invoice adapter.
 - Copy borrowed result data before releasing a result.
@@ -440,10 +449,10 @@ shutdown during an active operation, and close/reopen through this public seam.
    rollback, corrupt file, checkpoint failure, injected directory-sync failure,
    and process termination after each durability boundary.
 5. **Black-box HTTP tests** call the service's public health/error boundary; a
-   web smoke test calls it through the same-origin proxy.
+   web smoke test calls it through the same-origin App Router handler.
 6. **Web gates** run formatting, ESLint Flat Config, strict types, component
    accessibility tests, and the production build independently of Zig. The
-   application-integration package adds the real shell/proxy and a Playwright
+  application-integration package adds the real shell/Route Handler and a Playwright
    same-origin health workflow only after the Zig HTTP boundary is ready.
    Accessibility targets WCAG 2.2 AA: zero configured automated serious or
    critical violations, normal-text contrast at least 4.5:1, large-text contrast
@@ -494,15 +503,18 @@ shutdown during an active operation, and close/reopen through this public seam.
 - The first-run 15-minute clock uses a monotonic wall clock, starts immediately
   before `npm run bootstrap:foundation` in a clean checkout with dependency/build
   caches disabled, and that wrapper runs `npm ci` before build, all required
-  foundation validation, service/web startup, and one valid same-origin health
-  response, and stops only after all complete successfully. Installation of the
-  documented prerequisite toolchains is outside the clock.
+  foundation validation, the exact Playwright-managed Chromium installation,
+  service/web startup, and one valid same-origin health response, and stops only
+  after all complete successfully. Installation of the documented prerequisite
+  Node, npm, and Zig toolchains is outside the clock; the pinned browser artifact
+  is a repository dependency and remains inside it.
 - The validation-duration 15-minute clock uses a monotonic wall clock and starts
   immediately before `npm run verify:foundation:clean` from a clean checkout
   with empty dependency and build caches. That wrapper runs `npm ci` and then
-  `npm run verify:foundation`; dependency resolution, builds, tests, audits, and
-  every independently required gate are inside the boundary, which stops only
-  after the final gate reports a result on the same reference runner.
+  `npm run verify:foundation`; dependency resolution, the exact
+  Playwright-managed Chromium installation, builds, tests, audits, and every
+  independently required gate are inside the boundary, which stops only after
+  the final gate reports a result on the same reference runner.
 - Health responsiveness is measured through the real same-origin proxy with a
   ready ReleaseSafe Zig service and production Next.js build. After ten
   unmeasured warm-up requests, issue exactly 100 sequential requests. Measure
@@ -526,6 +538,9 @@ shutdown during an active operation, and close/reopen through this public seam.
   `apps/web/package.json`, tool-version files, and root bootstrap commands.
   WP01 declares the complete npm graph before locking it; later concerns own
   implementation/configuration but never mutate package metadata or the lock.
+  The root and web command surfaces install the browser revision selected by the
+  exact locked Playwright package before invoking E2E; they never fall back to a
+  system browser.
 - **Sequencing/depends-on**: none.
 - **Risks**: Package metadata is high-contention; predeclaring both workspaces
   and exact tool versions once prevents later phased lock ownership and cyclic
@@ -586,7 +601,7 @@ shutdown during an active operation, and close/reopen through this public seam.
   convention-scanned stable Zig test/coverage hooks.
 - **Sequencing/depends-on**: IC-01.
 - **Risks**: Upstream lacks consumer package metadata and a linkable library;
-  source shim must remain narrow and replaceable.
+  the committed source export must remain narrow and replaceable.
 
 ### IC-06 — Durable storage seam
 
@@ -620,17 +635,27 @@ shutdown during an active operation, and close/reopen through this public seam.
 ### IC-08 — Web configuration substrate
 
 - **Purpose**: Publish static Next.js/tool configuration against the exact app
-  package metadata and lock already owned by IC-01, without claiming the real
-  application integration is ready.
+  package metadata and lock already owned by IC-01, without claiming or
+  implementing the real application integration boundary.
 - **Relevant requirements**: FR-001, FR-015; NFR-001, NFR-004, NFR-012; C-002.
-- **Affected surfaces**: App-local configuration files required for formatting,
-  lint, strict types,
-  accessibility tests, production build, and Playwright.
+- **Affected surfaces**: App-local configuration files plus locked Next.js's deterministic
+  `next-env.d.ts`, required for formatting, lint, strict types, accessibility tests,
+  production build, and Playwright. `next.config.ts` has no external rewrite, does not require
+  the Zig origin during lint, typecheck, or build, and disables framework trailing-slash
+  redirects so the owned Route Handler can reject noncanonical trailing-slash requests.
+  `tsconfig.json` carries the exact locked Next.js 16.2.10 build-stable defaults while retaining
+  strictness. Playwright configuration starts production Next.js with a fixed
+  server-only origin supplied for the WP10-owned Route Handler; the WP10 test
+  harness owns real Zig process startup, readiness, and cleanup.
 - **Sequencing/depends-on**: IC-01, IC-02, and IC-03. It may proceed in parallel
   with service work and does not update package metadata/the root lock or create the real
   shell/proxy/E2E implementation.
 - **Risks**: Configuration may request an undeclared tool. Static validation
   rejects any package/version expectation not already present in IC-01's lock.
+  Configuration must not regain an external rewrite or hide process lifecycle in
+  an operator's shell environment. Locked Next.js may otherwise rewrite TypeScript config or
+  generate an unowned type declaration, so IC-08 commits the probe-derived stable forms and
+  IC-09 proves a clean production build leaves them byte-identical.
 
 ### IC-09 — Shell, proxy, and E2E integration
 
@@ -639,14 +664,22 @@ shutdown during an active operation, and close/reopen through this public seam.
 - **Relevant requirements**: FR-001, FR-002, FR-004, FR-015; NFR-001, NFR-004,
   NFR-007, NFR-012; C-002.
 - **Affected surfaces**: Real `apps/web/src/app/` shell/style files,
-  `apps/web/src/lib/api/`, handwritten generated-contract
-  adapters, foundation component/accessibility tests, and Playwright E2E.
+  sibling base and catch-all App Router boundaries under `apps/web/src/app/api/v1/`,
+  `apps/web/src/lib/api/`, handwritten generated-contract adapters, foundation
+  component/accessibility tests, and Playwright E2E/process-lifecycle harnesses.
 - **Sequencing/depends-on**: IC-07 and IC-08, plus IC-03's generated workspace
   export. It begins only after WP08's Zig HTTP/readiness package is accepted and
   materializes contracts before typecheck/build.
 - **Risks**: The real proxy/security boundary can be hidden by mocks. Red-first
-  attacker-input tests and production-process E2E must prove it without editing
-  package metadata or the root lock.
+  attacker-input tests and production-process E2E must prove the owned Route
+  Handler before and after implementation without editing package metadata,
+  configuration, or the root lock. The handler accepts one validated server-only
+  origin, uses manual redirect handling, bounded request/body limits, an explicit
+  cache policy, an allowlisted forwarding surface, and canonical origin-safe
+  failures; browser path/query/header/cookie input can never select a destination. Tests
+  distinguish canonical envelopes for handler-visible requests from locked Next.js 308/404
+  pre-routing handling of raw repeated slash, raw backslash, and single-encoded dot traversal,
+  while proving both classes perform zero unauthorized upstream I/O and disclose no origin.
 
 ### IC-10 — Governed documentation sync attestation
 
@@ -697,7 +730,8 @@ durable seam and canonical descriptor schema.
 
 IC-07 waits for IC-02, IC-03, IC-04, and IC-06 so HTTP readiness cannot outrun
 durable/migration readiness. IC-09 waits for IC-07 and IC-08, then performs the
-real shell/proxy/E2E integration without touching package metadata or the lock.
+real shell/owned-Route-Handler/E2E integration without touching package metadata,
+configuration, or the lock.
 IC-10's governed-doc planning package follows reviewed producer work. IC-11
 is the final codebase-wide closure after that sync and every producer. All code
 WP ownership is disjoint, so lane computation must remain acyclic.
@@ -709,15 +743,15 @@ two narrow work packages claiming the same file:
 
 | Concern package | Exclusive primary surfaces |
 | --- | --- |
-| Repository substrate | Root `package.json`, sole root lock, exact contract-tool/web workspace package manifests, npm policy, and tool-version files; declares the complete npm graph and focused commands once |
+| Repository substrate | Root `package.json`, sole root lock, exact contract-tool/web workspace package manifests, npm policy, and tool-version files; declares the complete npm graph, exact Playwright-browser installation, and focused commands once |
 | Shared values | `contracts/common/v1/`, Zig shared values, and their tests |
 | Contract composition | API/event/module/fixture trees, manifest schema plus Draft `contracts/manifests/drafts/p0.json`, conformance lock, contract-tool source/tests, and sole writer of ignored TypeScript/runtime generated outputs; package metadata remains read-only |
 | Migration runner | P0 descriptors, migration application/readiness, and migration tests through the public durable seam; excludes adapter/store/directory-sync implementation |
 | ShovelerDB consumption | Dependency source, service build files, dependency adapter, dependency notice, and convention-scanned stable Zig test/coverage hooks |
 | Durable storage | Migration-agnostic persistence state machine, serialized store, directory sync, diagnostics, and store tests; excludes every `migrations*` file |
 | Zig HTTP boundary | `services/api/src/main.zig`, HTTP modules, and black-box service tests |
-| Web configuration substrate | App-local configuration only; no package metadata, root lock, shell, proxy, or E2E source |
-| Application integration | Narrow app-owned shell/style, proxy/client adapters, accessibility tests, and Playwright E2E after Zig HTTP; package metadata and lock remain read-only |
+| Web configuration substrate | App-local configuration plus deterministic `next-env.d.ts`; no package metadata, root lock, shell, external rewrite, Route Handler, or E2E source; locked build inputs stay origin-independent/stable and Playwright supplies the server-only origin to production Next.js |
+| Application integration | Narrow app-owned shell/style, fixed-origin base/catch-all App Router handlers, proxy/client adapters, accessibility tests, and Playwright E2E/Zig lifecycle after Zig HTTP; package metadata, configuration, and lock remain read-only |
 | Pre-acceptance planning sync | One `planning_artifact` WP owns only `docs/governance/p0-governed-doc-sync.json`: it checks the exact mission spec/plan/data model/quickstart/research/contracts inventory read-only, blocks for an authorized exact sync commit when corrections are needed, records absent glossary/architecture categories, and commits a formal attestation |
 | Program closure | One `scope: codebase-wide` package owning foundation CI, full-gate execution, license tooling, `README.md`, `docs/program-ledger.md`, and sole creation/promotion of canonical `contracts/manifests/p0.json` from WP03's disjoint Draft input after all producers and planning sync |
 
@@ -824,7 +858,7 @@ merely to close their own package.
 
 | Risk | Mitigation | Routed owner |
 | --- | --- | --- |
-| ShovelerDB packaging blocks clean clone | Exact-commit source/submodule shim; pursue a small upstream package release separately | P0 / upstream dependency |
+| ShovelerDB source export drifts from the approved pin | Verify the committed source against the `PROVENANCE` commit and source-tree digest; any future upstream package adoption preserves the same pin and reproducibility | P0 / upstream dependency |
 | Commit succeeds but checkpoint or parent-directory sync fails | Durable state machine, Linux directory sync, and persistence-boundary-only recovery | P0 |
 | DDL failure leaves dirty in-memory schema | Migration application uses the durable store seam to discard uncheckpointed state and reopen; HTTP remains unready | P0 |
 | Durable storage imports migration policy and creates a dependency cycle | Keep durable storage migration-agnostic; migration depends on its public seam, never the inverse | P0 |
@@ -834,7 +868,8 @@ merely to close their own package.
 | Generated contracts gain multiple writers or are absent at compile time | `contracts:generate` is the sole writer of TypeScript and runtime route inventory; HTTP/web hooks depend on it | P0 |
 | Conformance silently follows a moving mission head | Commit and validate full commits plus manifest/content digests in `contracts/conformance/p0-p4-inputs.json` | P0 / program orchestrator |
 | Workspace metadata and root lock race with later work | WP01 predeclares both exact workspace manifests and is the only lock writer; all consumers verify read-only | P0 substrate |
-| Proxy accepts attacker-controlled destinations or leaks internal origin | Require charter-mandated red-first public-route security cases and production E2E | P0 web integration |
+| Proxy accepts attacker-controlled destinations, follows redirects, stalls, or leaks internal origin | Own the App Router handler in WP10; require charter-mandated red-first public-route cases for fixed destination, allowlisted forwarding, manual redirects, bounded time/body, canonical safe failures, and production E2E | P0 web integration |
+| Clean Playwright gate depends on an undeclared browser binary | WP01 installs the exact browser revision selected by locked Playwright inside bare/clean smoke commands and forbids system-browser fallback | P0 substrate |
 | Timing gates vary by machine or discard slow samples | Enforce the reference runner, cache, dataset, monotonic timing, sample, and evidence protocol above | P0 closure |
 | Governed docs drift or closure absorbs quickstart | Run planning-artifact WP11 before IC-11; WP12 closure owns only README, ledger, CI/license tooling, and P0 manifest | Program orchestrator |
 | P0 absorbs feature behavior | Explicit exclusions and requirement/path review | Program orchestrator |
@@ -868,7 +903,7 @@ merely to close their own package.
   proxy security require chronological red-first public-boundary evidence.
 - The reference first-run, validation-duration, and health-p99 protocols define
   runner, dataset, cache state, timing boundaries, sample handling, and evidence.
-- Quickstart describes planned commands without claiming implementation exists.
+- Quickstart identifies accepted WP03-WP10 commands and surfaces while reserving license, aggregate-closure, and canonical-manifest evidence for WP12.
 - The pre-acceptance governed-doc sync is a formal `planning_artifact` WP with a
   closed resolver, schema, exact safe-commit call, and dependency before closure;
   program closure explicitly owns

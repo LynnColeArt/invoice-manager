@@ -1,5 +1,6 @@
 const std = @import("std");
 const registry = @import("build_registry");
+const discovery_test_config = @import("discovery_test_config");
 const coverage = registry.migration_coverage_contract;
 
 const HttpFixture = struct {
@@ -20,6 +21,64 @@ fn writeFixtureFile(dir: std.Io.Dir, path: []const u8, contents: []const u8) !vo
     var file = try dir.createFile(std.testing.io, path, .{ .truncate = true });
     defer file.close(std.testing.io);
     try file.writeStreamingAll(std.testing.io, contents);
+}
+
+fn removeProvenanceLine(
+    allocator: std.mem.Allocator,
+    provenance: []const u8,
+    omitted: []const u8,
+) ![]u8 {
+    var result: std.ArrayList(u8) = .empty;
+    errdefer result.deinit(allocator);
+    var found = false;
+    var lines = std.mem.splitScalar(u8, provenance, '\n');
+    while (lines.next()) |line| {
+        if (std.mem.eql(u8, line, omitted)) {
+            found = true;
+            continue;
+        }
+        if (line.len == 0) continue;
+        try result.appendSlice(allocator, line);
+        try result.append(allocator, '\n');
+    }
+    if (!found) return error.MissingFixtureLine;
+    return result.toOwnedSlice(allocator);
+}
+
+fn replaceProvenanceLine(
+    allocator: std.mem.Allocator,
+    provenance: []const u8,
+    original: []const u8,
+    replacement: []const u8,
+) ![]u8 {
+    var result: std.ArrayList(u8) = .empty;
+    errdefer result.deinit(allocator);
+    var found = false;
+    var lines = std.mem.splitScalar(u8, provenance, '\n');
+    while (lines.next()) |line| {
+        if (line.len == 0) continue;
+        if (std.mem.eql(u8, line, original)) {
+            found = true;
+            try result.appendSlice(allocator, replacement);
+        } else {
+            try result.appendSlice(allocator, line);
+        }
+        try result.append(allocator, '\n');
+    }
+    if (!found) return error.MissingFixtureLine;
+    return result.toOwnedSlice(allocator);
+}
+
+fn exactShovelerDbCandidate() [registry.shovelerdb_expected_files.len]registry.ShovelerDbCandidateEntry {
+    var entries: [registry.shovelerdb_expected_files.len]registry.ShovelerDbCandidateEntry = undefined;
+    for (&entries, registry.shovelerdb_expected_files) |*entry, path| {
+        entry.* = .{
+            .path = path,
+            .kind = .file,
+            .sha256 = "0000000000000000000000000000000000000000000000000000000000000000",
+        };
+    }
+    return entries;
 }
 
 fn expectCommandExit(
@@ -57,6 +116,46 @@ fn expectCommandExit(
     return result;
 }
 
+fn expectCommandFailureContaining(
+    allocator: std.mem.Allocator,
+    cwd: ?[]const u8,
+    argv: []const []const u8,
+    expected_stderr: []const u8,
+) !void {
+    const result = try std.process.run(allocator, std.testing.io, .{
+        .argv = argv,
+        .cwd = if (cwd) |path| .{ .path = path } else .inherit,
+        .stdout_limit = .limited(4 * 1024 * 1024),
+        .stderr_limit = .limited(4 * 1024 * 1024),
+    });
+    defer allocator.free(result.stdout);
+    defer allocator.free(result.stderr);
+
+    switch (result.term) {
+        .exited => |code| if (code == 0) {
+            std.debug.print(
+                "command unexpectedly succeeded; expected stderr containing {s}\nstdout:\n{s}\nstderr:\n{s}\n",
+                .{ expected_stderr, result.stdout, result.stderr },
+            );
+            return error.UnexpectedCommandSuccess;
+        },
+        else => {
+            std.debug.print(
+                "command terminated unexpectedly\nstdout:\n{s}\nstderr:\n{s}\n",
+                .{ result.stdout, result.stderr },
+            );
+            return error.UnexpectedCommandTermination;
+        },
+    }
+    if (std.mem.indexOf(u8, result.stderr, expected_stderr) == null) {
+        std.debug.print(
+            "command failed without expected stderr {s}\nstdout:\n{s}\nstderr:\n{s}\n",
+            .{ expected_stderr, result.stdout, result.stderr },
+        );
+        return error.ExpectedCommandDiagnosticMissing;
+    }
+}
+
 fn prepareHttpFixture(
     allocator: std.mem.Allocator,
     delay_ms: u64,
@@ -74,15 +173,19 @@ fn prepareHttpFixture(
     fixture.api_path = try std.fs.path.join(allocator, &.{ root_path, "services/api" });
     errdefer allocator.free(fixture.api_path);
 
+    const source_api_path = discovery_test_config.service_root;
+
     var api_dir = try fixture.tmp.dir.createDirPathOpen(std.testing.io, "services/api", .{});
     api_dir.close(std.testing.io);
 
     const deps_path = try std.fs.path.join(allocator, &.{ root_path, "deps" });
     defer allocator.free(deps_path);
+    const source_deps_path = try std.fs.path.join(allocator, &.{ source_api_path, "../../deps" });
+    defer allocator.free(source_deps_path);
     const copy_deps = try expectCommandExit(
         allocator,
         null,
-        &.{ "cp", "-a", "../../deps", deps_path },
+        &.{ "cp", "-a", source_deps_path, deps_path },
         0,
     );
     defer allocator.free(copy_deps.stdout);
@@ -90,10 +193,12 @@ fn prepareHttpFixture(
 
     const fixture_src = try std.fs.path.join(allocator, &.{ fixture.api_path, "src" });
     defer allocator.free(fixture_src);
+    const source_src = try std.fs.path.join(allocator, &.{ source_api_path, "src" });
+    defer allocator.free(source_src);
     const copy_src = try expectCommandExit(
         allocator,
         null,
-        &.{ "cp", "-a", "src", fixture_src },
+        &.{ "cp", "-a", source_src, fixture_src },
         0,
     );
     defer allocator.free(copy_src.stdout);
@@ -101,10 +206,12 @@ fn prepareHttpFixture(
 
     const fixture_build = try std.fs.path.join(allocator, &.{ fixture.api_path, "build.zig" });
     defer allocator.free(fixture_build);
+    const source_build = try std.fs.path.join(allocator, &.{ source_api_path, "build.zig" });
+    defer allocator.free(source_build);
     const copy_build = try expectCommandExit(
         allocator,
         null,
-        &.{ "cp", "build.zig", fixture_build },
+        &.{ "cp", source_build, fixture_build },
         0,
     );
     defer allocator.free(copy_build.stdout);
@@ -112,10 +219,12 @@ fn prepareHttpFixture(
 
     const fixture_zon = try std.fs.path.join(allocator, &.{ fixture.api_path, "build.zig.zon" });
     defer allocator.free(fixture_zon);
+    const source_zon = try std.fs.path.join(allocator, &.{ source_api_path, "build.zig.zon" });
+    defer allocator.free(source_zon);
     const copy_zon = try expectCommandExit(
         allocator,
         null,
-        &.{ "cp", "build.zig.zon", fixture_zon },
+        &.{ "cp", source_zon, fixture_zon },
         0,
     );
     defer allocator.free(copy_zon.stdout);
@@ -123,10 +232,12 @@ fn prepareHttpFixture(
 
     const fixture_notice = try std.fs.path.join(allocator, &.{ root_path, "THIRD_PARTY_NOTICES.md" });
     defer allocator.free(fixture_notice);
+    const source_notice = try std.fs.path.join(allocator, &.{ source_api_path, "../../THIRD_PARTY_NOTICES.md" });
+    defer allocator.free(source_notice);
     const copy_notice = try expectCommandExit(
         allocator,
         null,
-        &.{ "cp", "../../THIRD_PARTY_NOTICES.md", fixture_notice },
+        &.{ "cp", source_notice, fixture_notice },
         0,
     );
     defer allocator.free(copy_notice.stdout);
@@ -182,18 +293,65 @@ fn prepareHttpFixture(
     try writeFixtureFile(
         fixture.tmp.dir,
         "services/api/src/http/root.zig",
-        "pub const marker: u8 = 1;\n",
+        "const shared = @import(\"shared\");\n" ++
+            "pub const marker = shared.marker;\n" ++
+            "pub fn touch() void { shared.touch(); }\n",
     );
     try writeFixtureFile(
         fixture.tmp.dir,
         "services/api/src/main.zig",
-        "pub fn main() !void {}\n",
+        "const shared = @import(\"shared\");\n" ++
+            "const persistence = @import(\"persistence\");\n" ++
+            "const migrations = @import(\"migrations\");\n" ++
+            "const http = @import(\"http\");\n" ++
+            "pub fn main() !void { shared.touch(); persistence.touch(); migrations.touch(); http.touch(); }\n",
     );
     try writeFixtureFile(
         fixture.tmp.dir,
         "services/api/tests/http/http_fixture_test.zig",
         http_test_source,
     );
+    return fixture;
+}
+
+fn prepareAggregateFixture(allocator: std.mem.Allocator) !HttpFixture {
+    var fixture = try prepareHttpFixture(
+        allocator,
+        0,
+        "const std = @import(\"std\");\n" ++
+            "const http_test_config = @import(\"http_test_config\");\n" ++
+            "test \"aggregate reaches emitted API migration sentinel\" {\n" ++
+            "    const result = try std.process.run(std.testing.allocator, std.testing.io, .{ .argv = &.{http_test_config.api_executable_path} });\n" ++
+            "    defer std.testing.allocator.free(result.stdout);\n" ++
+            "    defer std.testing.allocator.free(result.stderr);\n" ++
+            "    switch (result.term) {\n" ++
+            "        .exited => |code| try std.testing.expectEqual(@as(u8, 0), code),\n" ++
+            "        else => return error.UnexpectedApiTermination,\n" ++
+            "    }\n" ++
+            "}\n",
+    );
+    errdefer fixture.deinit(allocator);
+
+    const root_paths = [_][]const u8{
+        "services/api/tests/persistence/shovelerdb_build_discovery.zig",
+        "services/api/tests/persistence/shovelerdb_integration.zig",
+        "services/api/tests/shared/shared_fixture_test.zig",
+        "services/api/tests/persistence/store_fixture_test.zig",
+        "services/api/tests/persistence/store_integration_fixture.zig",
+        "services/api/tests/persistence/store_crash_fixture.zig",
+        "services/api/tests/persistence/migrations_test.zig",
+        "services/api/tests/persistence/migrations_integration_test.zig",
+        "services/api/tests/persistence/migrations_negative_test.zig",
+        "services/api/tests/persistence/migrations_coverage_test.zig",
+    };
+    for (root_paths) |path| {
+        try writeFixtureFile(
+            fixture.tmp.dir,
+            path,
+            "const std = @import(\"std\");\n" ++
+                "test \"synthetic aggregate root\" { try std.testing.expect(true); }\n",
+        );
+    }
     return fixture;
 }
 
@@ -276,7 +434,23 @@ test "stable step names and aggregate order are exact" {
     );
 }
 
-test "isolated HTTP roots compile against the public service module graph" {
+test "aggregate invocations are rooted at the canonical repository build file" {
+    const invocation = registry.aggregateInvocation("test-http", "-Doptimize=Debug");
+    try std.testing.expectEqualStrings("../..", invocation.cwd_from_service_root);
+    try std.testing.expectEqualDeep(
+        [_][]const u8{
+            "zig",
+            "build",
+            "test-http",
+            "-Doptimize=Debug",
+            "--build-file",
+            "services/api/build.zig",
+        },
+        invocation.argv,
+    );
+}
+
+test "isolated HTTP roots compile against the complete service graph and emitted API" {
     const allocator = std.testing.allocator;
     var fixture = try prepareHttpFixture(
         allocator,
@@ -285,13 +459,208 @@ test "isolated HTTP roots compile against the public service module graph" {
             "const shared = @import(\"shared\");\n" ++
             "const persistence = @import(\"persistence\");\n" ++
             "const migrations = @import(\"migrations\");\n" ++
+            "const http = @import(\"http\");\n" ++
+            "const composition = @import(\"composition\");\n" ++
+            "const http_test_config = @import(\"http_test_config\");\n" ++
             "test \"public HTTP dependencies compile\" {\n" ++
             "    std.testing.refAllDecls(shared);\n" ++
             "    std.testing.refAllDecls(persistence);\n" ++
             "    std.testing.refAllDecls(migrations);\n" ++
+            "    std.testing.refAllDecls(http);\n" ++
+            "    std.testing.refAllDecls(composition);\n" ++
+            "    try std.testing.expectEqualStrings(\"invoice-manager-api\", std.fs.path.basename(http_test_config.api_executable_path));\n" ++
+            "    const result = try std.process.run(std.testing.allocator, std.testing.io, .{ .argv = &.{http_test_config.api_executable_path} });\n" ++
+            "    defer std.testing.allocator.free(result.stdout);\n" ++
+            "    defer std.testing.allocator.free(result.stderr);\n" ++
+            "    switch (result.term) {\n" ++
+            "        .exited => |code| try std.testing.expectEqual(@as(u8, 0), code),\n" ++
+            "        else => return error.UnexpectedApiTermination,\n" ++
+            "    }\n" ++
             "}\n",
     );
     defer fixture.deinit(allocator);
+
+    const result = try expectCommandExit(
+        allocator,
+        fixture.api_path,
+        &.{ "zig", "build", "test-http", "-j16", "--summary", "all" },
+        0,
+    );
+    defer allocator.free(result.stdout);
+    defer allocator.free(result.stderr);
+}
+
+test "canonical build-file invocation pins emitted API and configured run cwd" {
+    const allocator = std.testing.allocator;
+    var fixture = try prepareHttpFixture(
+        allocator,
+        0,
+        "const std = @import(\"std\");\n" ++
+            "const http_test_config = @import(\"http_test_config\");\n" ++
+            "test \"emitted API resolves the canonical migration root\" {\n" ++
+            "    const result = try std.process.run(std.testing.allocator, std.testing.io, .{ .argv = &.{http_test_config.api_executable_path} });\n" ++
+            "    defer std.testing.allocator.free(result.stdout);\n" ++
+            "    defer std.testing.allocator.free(result.stderr);\n" ++
+            "    switch (result.term) {\n" ++
+            "        .exited => |code| try std.testing.expectEqual(@as(u8, 0), code),\n" ++
+            "        else => return error.UnexpectedApiTermination,\n" ++
+            "    }\n" ++
+            "}\n",
+    );
+    defer fixture.deinit(allocator);
+
+    try writeFixtureFile(
+        fixture.tmp.dir,
+        "services/api/migrations/p0/001-canonical-migration.sql",
+        "-- canonical repository-root migration sentinel\n",
+    );
+    try writeFixtureFile(
+        fixture.tmp.dir,
+        "services/api/src/main.zig",
+        "const std = @import(\"std\");\n" ++
+            "const shared = @import(\"shared\");\n" ++
+            "const persistence = @import(\"persistence\");\n" ++
+            "const migrations = @import(\"migrations\");\n" ++
+            "const http = @import(\"http\");\n" ++
+            "pub fn main(init: std.process.Init) !void {\n" ++
+            "    shared.touch(); persistence.touch(); migrations.touch(); http.touch();\n" ++
+            "    try std.Io.Dir.cwd().access(init.io, \"services/api/migrations/p0/001-canonical-migration.sql\", .{});\n" ++
+            "}\n",
+    );
+
+    const services_path = std.fs.path.dirname(fixture.api_path) orelse
+        return error.InvalidFixtureApiPath;
+    const repository_path = std.fs.path.dirname(services_path) orelse
+        return error.InvalidFixtureServicesPath;
+    const test_result = try expectCommandExit(
+        allocator,
+        repository_path,
+        &.{
+            "zig",
+            "build",
+            "test-http",
+            "-j16",
+            "--summary",
+            "all",
+            "--build-file",
+            "services/api/build.zig",
+        },
+        0,
+    );
+    defer allocator.free(test_result.stdout);
+    defer allocator.free(test_result.stderr);
+
+    const run_result = try expectCommandExit(
+        allocator,
+        fixture.api_path,
+        &.{ "zig", "build", "run", "-j16", "--summary", "all" },
+        0,
+    );
+    defer allocator.free(run_result.stdout);
+    defer allocator.free(run_result.stderr);
+}
+
+test "aggregate test reaches the emitted API canonical migration sentinel" {
+    const allocator = std.testing.allocator;
+    var fixture = try prepareAggregateFixture(allocator);
+    defer fixture.deinit(allocator);
+
+    try writeFixtureFile(
+        fixture.tmp.dir,
+        "services/api/migrations/p0/001-canonical-migration.sql",
+        "-- canonical repository-root migration sentinel\n",
+    );
+    try writeFixtureFile(
+        fixture.tmp.dir,
+        "services/api/src/main.zig",
+        "const std = @import(\"std\");\n" ++
+            "const shared = @import(\"shared\");\n" ++
+            "const persistence = @import(\"persistence\");\n" ++
+            "const migrations = @import(\"migrations\");\n" ++
+            "const http = @import(\"http\");\n" ++
+            "pub fn main(init: std.process.Init) !void {\n" ++
+            "    shared.touch(); persistence.touch(); migrations.touch(); http.touch();\n" ++
+            "    try std.Io.Dir.cwd().access(init.io, \"services/api/migrations/p0/001-canonical-migration.sql\", .{});\n" ++
+            "}\n",
+    );
+
+    const services_path = std.fs.path.dirname(fixture.api_path) orelse
+        return error.InvalidFixtureApiPath;
+    const repository_path = std.fs.path.dirname(services_path) orelse
+        return error.InvalidFixtureServicesPath;
+    const result = try expectCommandExit(
+        allocator,
+        repository_path,
+        &.{
+            "zig",
+            "build",
+            "test",
+            "-j16",
+            "--summary",
+            "all",
+            "--build-file",
+            "services/api/build.zig",
+        },
+        0,
+    );
+    defer allocator.free(result.stdout);
+    defer allocator.free(result.stderr);
+}
+
+test "production HTTP module cannot import persistence" {
+    const allocator = std.testing.allocator;
+    var fixture = try prepareHttpFixture(
+        allocator,
+        0,
+        "const std = @import(\"std\");\n" ++
+            "const http = @import(\"http\");\n" ++
+            "test \"HTTP module declarations compile\" {\n" ++
+            "    std.testing.refAllDecls(http);\n" ++
+            "}\n",
+    );
+    defer fixture.deinit(allocator);
+
+    try writeFixtureFile(
+        fixture.tmp.dir,
+        "services/api/src/http/root.zig",
+        "const persistence = @import(\"persistence\");\n" ++
+            "pub fn touch() void { persistence.touch(); }\n",
+    );
+    try expectCommandFailureContaining(
+        allocator,
+        fixture.api_path,
+        &.{ "zig", "build", "test-http", "-j16", "--summary", "all" },
+        "no module named 'persistence'",
+    );
+}
+
+test "HTTP route inventory embeds exact materialized artifact" {
+    const allocator = std.testing.allocator;
+    var fixture = try prepareHttpFixture(
+        allocator,
+        1200,
+        "const std = @import(\"std\");\n" ++
+            "const http = @import(\"http\");\n" ++
+            "test \"canonical route inventory bytes are embedded\" {\n" ++
+            "    std.testing.refAllDecls(http);\n" ++
+            "    try std.testing.expectEqualStrings(\"{\\\"routes\\\":[]}\\n\", http.route_inventory.bytes);\n" ++
+            "}\n",
+    );
+    defer fixture.deinit(allocator);
+
+    try writeFixtureFile(
+        fixture.tmp.dir,
+        "services/api/src/http/route_inventory.zig",
+        "pub const bytes = @embedFile(\"../../../../tools/contracts/.generated/runtime/v1/route-inventory.json\");\n",
+    );
+    try writeFixtureFile(
+        fixture.tmp.dir,
+        "services/api/src/http/root.zig",
+        "const shared = @import(\"shared\");\n" ++
+            "pub const route_inventory = @import(\"route_inventory.zig\");\n" ++
+            "pub const marker = shared.marker;\n" ++
+            "pub fn touch() void { shared.touch(); _ = route_inventory.bytes; }\n",
+    );
 
     const result = try expectCommandExit(
         allocator,
@@ -763,19 +1132,116 @@ test "persistence production imports reject undeclared shared dependency" {
 
 test "notice validation fails when any acceptance-critical field is absent" {
     const valid =
-        \\ShovelerDB GPL-2.0-only
+        \\ShovelerDB GPL-3.0-only
         \\https://github.com/LynnColeArt/ShovelerDB.git
-        \\021e3b3d9247a181252329d6ba7ec8d2ed943a97
+        \\20dced69738bfce08f94368b8d017cfc283747fe
         \\deps/shovelerdb/LICENSE
+        \\deps/shovelerdb/NOTICE
+        \\deps/shovelerdb/PROVENANCE
+        \\references/mariadb/** excluded
+        \\tests/fixtures/mariadb-adapted/** excluded
     ;
     try std.testing.expect(registry.noticeValid(valid, true));
     try std.testing.expect(!registry.noticeValid(valid, false));
     try std.testing.expect(!registry.noticeValid(
-        "ShovelerDB GPL-2.0-only deps/shovelerdb/LICENSE",
+        "ShovelerDB GPL-3.0-only deps/shovelerdb/LICENSE deps/shovelerdb/NOTICE",
         true,
     ));
     try std.testing.expect(!registry.noticeValid(
-        "https://github.com/LynnColeArt/ShovelerDB.git GPL-2.0-only deps/shovelerdb/LICENSE",
+        "https://github.com/LynnColeArt/ShovelerDB.git GPL-3.0-only deps/shovelerdb/LICENSE deps/shovelerdb/NOTICE",
         true,
     ));
+    try std.testing.expect(!registry.noticeValid(
+        "https://github.com/LynnColeArt/ShovelerDB.git 20dced69738bfce08f94368b8d017cfc283747fe GPL-2.0-only deps/shovelerdb/LICENSE deps/shovelerdb/NOTICE deps/shovelerdb/PROVENANCE references/mariadb/** tests/fixtures/mariadb-adapted/**",
+        true,
+    ));
+    try std.testing.expect(!registry.noticeValid(
+        "https://github.com/LynnColeArt/ShovelerDB.git 021e3b3d9247a181252329d6ba7ec8d2ed943a97 GPL-3.0-only deps/shovelerdb/LICENSE deps/shovelerdb/NOTICE deps/shovelerdb/PROVENANCE references/mariadb/** tests/fixtures/mariadb-adapted/**",
+        true,
+    ));
+}
+
+test "GPLv3 engine provenance requires every exact evidence field" {
+    const exact = registry.shovelerdb_expected_provenance;
+    try std.testing.expect(registry.shovelerDbProvenanceValid(exact));
+
+    for (registry.shovelerdb_required_provenance_lines) |required_line| {
+        const missing = try removeProvenanceLine(std.testing.allocator, exact, required_line);
+        defer std.testing.allocator.free(missing);
+        try std.testing.expect(!registry.shovelerDbProvenanceValid(missing));
+    }
+
+    const old_pin = try replaceProvenanceLine(
+        std.testing.allocator,
+        exact,
+        "commit=20dced69738bfce08f94368b8d017cfc283747fe",
+        "commit=021e3b3d9247a181252329d6ba7ec8d2ed943a97",
+    );
+    defer std.testing.allocator.free(old_pin);
+    try std.testing.expect(!registry.shovelerDbProvenanceValid(old_pin));
+
+    const old_license = try replaceProvenanceLine(
+        std.testing.allocator,
+        exact,
+        "engine_license=GPL-3.0-only",
+        "engine_license=GPL-2.0-only",
+    );
+    defer std.testing.allocator.free(old_license);
+    try std.testing.expect(!registry.shovelerDbProvenanceValid(old_license));
+}
+
+test "GPLv3 engine candidate is exact deterministic and fails closed" {
+    const exact = exactShovelerDbCandidate();
+    try registry.validateShovelerDbCandidate(&exact);
+
+    var reversed = exact;
+    std.mem.reverse(registry.ShovelerDbCandidateEntry, &reversed);
+    try registry.validateShovelerDbCandidate(&reversed);
+    const forward_digest = try registry.shovelerDbManifestDigest(std.testing.allocator, &exact);
+    const reverse_digest = try registry.shovelerDbManifestDigest(std.testing.allocator, &reversed);
+    try std.testing.expectEqualSlices(u8, &forward_digest, &reverse_digest);
+
+    try std.testing.expectError(
+        error.MissingEngineFile,
+        registry.validateShovelerDbCandidate(exact[1..]),
+    );
+
+    var tampered = exact;
+    tampered[0].sha256 = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+    const tampered_digest = try registry.shovelerDbManifestDigest(std.testing.allocator, &tampered);
+    try std.testing.expect(!std.mem.eql(u8, &forward_digest, &tampered_digest));
+
+    var nonregular = exact;
+    nonregular[0].kind = .sym_link;
+    try std.testing.expectError(
+        error.NonRegularEnginePath,
+        registry.validateShovelerDbCandidate(&nonregular),
+    );
+
+    const injected_paths = [_][]const u8{
+        "references/mariadb/COPYING",
+        "tests/fixtures/mariadb-adapted/select-basic.md",
+        "README.md",
+    };
+    for (injected_paths) |injected_path| {
+        var injected: [registry.shovelerdb_expected_files.len + 1]registry.ShovelerDbCandidateEntry = undefined;
+        @memcpy(injected[0..exact.len], &exact);
+        injected[exact.len] = .{
+            .path = injected_path,
+            .kind = .file,
+            .sha256 = "0000000000000000000000000000000000000000000000000000000000000000",
+        };
+        try std.testing.expectError(
+            error.UnexpectedEnginePath,
+            registry.validateShovelerDbCandidate(&injected),
+        );
+    }
+
+    var duplicate: [registry.shovelerdb_expected_files.len + 1]registry.ShovelerDbCandidateEntry = undefined;
+    @memcpy(duplicate[0..exact.len], &exact);
+    duplicate[exact.len] = exact[0];
+    try std.testing.expectError(
+        error.DuplicateEnginePath,
+        registry.validateShovelerDbCandidate(&duplicate),
+    );
 }
