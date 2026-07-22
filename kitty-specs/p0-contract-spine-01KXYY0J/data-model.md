@@ -148,21 +148,26 @@ Remittance Block, and Schedule belong to later missions.
 ### DatabaseHandleLease
 
 - `database_path`: canonical application-owned path.
-- `state`: Closed, Opening, Ready, TransactionActive, DurabilityUnconfirmed,
-  Checkpointed, DirectorySynchronized, or Closing.
+- `state`: Closed, Ready, Mutating, CommittedPendingCheckpoint,
+  CheckpointedPendingDirectorySync, DirectorySynchronized, Uncertain, or
+  Quarantined.
 - Invariant: at most one owned handle and one serialized operation per path.
 
-### DurableMutationReceipt
+### DurableReceipt
 
-- `operation_id`: idempotency/deduplication key.
-- `commit_state`: Committed or RolledBack.
-- `checkpoint_state`: Confirmed or Unconfirmed.
-- `directory_sync_state`: Confirmed, Unconfirmed, or NotAttempted.
-- `checkpoint_error_code`: nullable stable application category.
-- `directory_sync_error_code`: nullable stable application category.
-- Invariant: success is returned only for Committed + checkpoint Confirmed +
-  directory sync Confirmed on Linux. An Unconfirmed receipt is retried at the
-  persistence boundary, not by replaying domain writes.
+- `store_id`: stable opaque identifier for the opened store instance.
+- `operation_id`: stable identifier for the serialized operation.
+- `durability`: the resulting persistence `State`.
+- Invariant: success is returned only with DirectorySynchronized on Linux. An
+  Uncertain result is retried at the persistence boundary, not by replaying
+  domain writes.
+
+### Persistence failure evidence
+
+- Operations return the typed `StoreError` set.
+- The last `Diagnostic` records `category`, `store_id`, `state`, `cause`, and an
+  optional `sensitive_detail` retained for internal diagnostics rather than a
+  public response.
 
 ## Relationships
 
@@ -175,7 +180,7 @@ Remittance Block, and Schedule belong to later missions.
 - MigrationDescriptor may depend on other descriptors and yields at most one
   AppliedMigration record.
 - DatabaseHandleLease serializes migration and mutation operations.
-- DurableMutationReceipt describes the observable durability outcome of one
+- DurableReceipt describes the observable durability outcome of one
   consequential mutation.
 
 ## Ownership boundary
