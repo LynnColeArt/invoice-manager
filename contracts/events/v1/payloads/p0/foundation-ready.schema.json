@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://invoice-manager.invalid/contracts/events/v1/payloads/p0/foundation-ready.schema.json",
+  "title": "Synthetic P0 Foundation Ready Conformance Payload",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["status"],
+  "properties": {
+    "status": { "const": "ready" }
+  }
+}

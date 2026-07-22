@@ -183,12 +183,11 @@ explicit checkpoint persists it. Close does not checkpoint. The ABI requires
 shared-handle serialization, has no foreign keys or application-column
 uniqueness, and accepts SQL strings without bound parameters.
 
-**Packaging dependency:** The pinned repository has no `build.zig.zon`, public
-consumer module, installed header, or linkable ABI library. The preferred
-resolution is a small upstream packaging change and tagged release. Until that
-lands, P0 may use an exact-commit source/submodule shim, but never a sibling-path
-dependency or floating `main`. The invoice repository must remain reproducible
-from a clean clone.
+**Packaging resolution:** WP04 consumes the pin as an unmodified `git archive`
+source export committed under `deps/shovelerdb/`. `deps/shovelerdb/PROVENANCE`
+records the public source URL, exact commit, included paths, and deterministic
+source-tree digest. The build uses no submodule, sibling checkout, or floating
+branch and remains reproducible from a clean clone.
 
 **Safety requirements:** IDs, references, deletion guards, idempotency, and
 application uniqueness are enforced by Zig while holding the serialized write
@@ -227,8 +226,9 @@ dependency attribution.
 
 ## Open risks and routed follow-ups
 
-- ShovelerDB packaging is the only P0 external blocker. Track it explicitly;
-  do not replace the database silently.
+- The ShovelerDB packaging blocker is resolved for P0 by the committed
+  exact-commit source export. Any future upstream package adoption must preserve
+  the source pin, provenance, and clean-clone reproducibility.
 - ShovelerDB does not sync the containing directory after snapshot rename. P0's
   Linux adapter therefore syncs the database parent directory before
   acknowledgment; P3 later verifies the deployed filesystem and mount preserve

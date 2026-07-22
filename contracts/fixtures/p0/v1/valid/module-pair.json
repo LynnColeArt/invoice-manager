@@ -1,0 +1,24 @@
+{
+  "modules": [
+    {
+      "module_version": 1,
+      "module_id": "synthetic-alpha",
+      "owner_mission": "p7",
+      "mount_key": "synthetic_alpha",
+      "api_fragments": ["contracts/api/v1/fragments/p7/alpha.openapi.yaml"],
+      "event_catalogs": ["contracts/events/v1/catalogs/p7/alpha.json"],
+      "migration_root": "services/api/migrations/p7",
+      "route_policy": { "default_access": "protected", "public_operations": [] }
+    },
+    {
+      "module_version": 1,
+      "module_id": "synthetic-beta",
+      "owner_mission": "p8",
+      "mount_key": "synthetic_beta",
+      "api_fragments": ["contracts/api/v1/fragments/p8/beta.openapi.yaml"],
+      "event_catalogs": ["contracts/events/v1/catalogs/p8/beta.json"],
+      "migration_root": "services/api/migrations/p8",
+      "route_policy": { "default_access": "protected", "public_operations": [] }
+    }
+  ]
+}

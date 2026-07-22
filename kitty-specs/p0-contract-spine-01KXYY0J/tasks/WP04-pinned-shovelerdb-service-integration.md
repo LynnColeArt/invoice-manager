@@ -27,7 +27,7 @@ subtasks:
 - T019
 phase: Phase 2 - Service Dependency Integration
 assignee: ''
-agent: "codex-wp04-cycle23-reviewer"
+agent: "codex:gpt-5:reviewer-renata:reviewer"
 history: []
 agent_profile: reviewer-renata
 authoritative_surface: deps/shovelerdb/
@@ -76,10 +76,13 @@ Address every review item and keep remediation evidence chronological before dec
 
 ## Objectives & Success Criteria
 
-Consume the public ShovelerDB repository at exactly commit `021e3b3d9247a181252329d6ba7ec8d2ed943a97` from a clean clone.
+Consume the public ShovelerDB repository at exactly GPL-3.0-only engine commit
+`20dced69738bfce08f94368b8d017cfc283747fe` from a clean clone.
 Integrate its real C embedding ABI into the Zig `0.16.0` service build through one narrow, replaceable dependency adapter.
 Prove borrowed result values are copied before result release, SQL text literals are encoded centrally, and the real engine survives checkpoint, close, and reopen.
-Preserve complete GPL-2.0 dependency attribution and immutable source provenance.
+Preserve complete GPL-3.0-only engine attribution and immutable source provenance.
+Keep the separately GPL-2.0-only MariaDB reference corpus outside the exported
+engine archive and prove its exclusion from the Invoice Manager runtime.
 
 Success means no build depends on `/home/lynn/projects/shovelerdb`, another sibling checkout, a private registry, or a floating branch.
 Success also means no ShovelerDB handle, result, row, borrowed slice, SQL construction detail, or engine diagnostic leaks beyond the adapter.
@@ -93,7 +96,7 @@ As sole `services/api/build.zig` owner, WP04 also publishes every stable Zig
 test/coverage hook that later shared, durable-store, migration, and HTTP WPs
 consume without editing the build graph.
 The canonical upstream repository is `https://github.com/LynnColeArt/ShovelerDB.git`.
-The approved public commit is `021e3b3d9247a181252329d6ba7ec8d2ed943a97`.
+The approved public engine commit is `20dced69738bfce08f94368b8d017cfc283747fe`.
 The approved commit exposes embedding ABI version `0.1.0` in `include/shovelerdb.h`.
 
 At the approved commit, upstream has no `build.zig.zon`, installed consumer module, installed header, or ready-made linkable ABI library.
@@ -169,8 +172,9 @@ Land completed changes back on `feat/p0-contract-spine` unless the human explici
 - `NFR-009`: no silent fallback, destructive recovery, or substitute engine on failure.
 - `NFR-011`: notice and license evidence for every distributed ShovelerDB component.
 - `NFR-012`: commit-addressed, reproducible service dependency graph.
-- `C-001`: preserve GPL-2.0-only compatibility and notices.
-- `C-004`: use only ShovelerDB commit `021e3b3d9247a181252329d6ba7ec8d2ed943a97`.
+- `C-001`: preserve GPL-3.0-only compatibility, complete notices, and the
+  exclusion of separately GPL-2.0-only reference material.
+- `C-004`: use only ShovelerDB engine commit `20dced69738bfce08f94368b8d017cfc283747fe`.
 - `C-005`: one adapter instance owns one handle and serializes calls sharing it.
 - `C-009`: build from public repository inputs without sibling paths or private data.
 
@@ -180,7 +184,7 @@ Land completed changes back on `feat/p0-contract-spine` unless the human explici
 
 - **Purpose**: make the dependency immutable, inspectable, and available from a public clean clone.
 - **Source URL**: `https://github.com/LynnColeArt/ShovelerDB.git`.
-- **Commit**: `021e3b3d9247a181252329d6ba7ec8d2ed943a97`.
+- **Commit**: `20dced69738bfce08f94368b8d017cfc283747fe`.
 - **Authoritative destination**: `deps/shovelerdb/`.
 
 #### Steps
@@ -189,7 +193,9 @@ Land completed changes back on `feat/p0-contract-spine` unless the human explici
 2. Resolve the requested revision and assert the resulting `HEAD` equals the full 40-character commit.
 3. Reject a tag, branch name, abbreviated hash, or default-branch checkout as the recorded pin.
 4. Export a source snapshot from that detached commit into `deps/shovelerdb/` without nested `.git` state.
-5. Preserve the upstream `LICENSE`, `include/shovelerdb.h`, ABI implementation sources, and all build-required sources.
+5. Preserve the upstream `LICENSE`, `NOTICE`, `include/shovelerdb.h`, ABI
+   implementation sources, and all build-required sources. Do not export
+   `references/mariadb/**` or `tests/fixtures/mariadb-adapted/**`.
 6. Exclude caches, build outputs, local databases, editor files, private configuration, and unrelated checkout state.
 7. Add machine-readable or plainly parseable provenance under `deps/shovelerdb/` containing the source URL, exact commit, export method, and source-tree digest.
 8. Compute the digest deterministically over a sorted path list and file contents; document exclusions.
@@ -403,7 +409,7 @@ Add a concise ShovelerDB notice containing:
 
 - component name;
 - public source URL;
-- exact commit `021e3b3d9247a181252329d6ba7ec8d2ed943a97`;
+- exact engine commit `20dced69738bfce08f94368b8d017cfc283747fe`;
 - the license identity supported by the upstream `LICENSE` evidence;
 - the repository-relative path to the preserved full license text;
 - whether the source is unmodified or which packaging shim files are invoice-manager-authored;
@@ -464,7 +470,7 @@ Negative checks must prove:
 
 ## Definition of Done
 
-- [ ] `deps/shovelerdb/` is an auditable export of public commit `021e3b3d9247a181252329d6ba7ec8d2ed943a97`.
+- [ ] `deps/shovelerdb/` is an auditable export of public engine commit `20dced69738bfce08f94368b8d017cfc283747fe`.
 - [ ] No dependency path references a sibling checkout, floating branch, private registry, or unpublished source.
 - [ ] The service build uses Zig `0.16.0` and links the real ShovelerDB C ABI.
 - [ ] `build.zig` exposes every exact stable adapter/shared/persistence/migration/HTTP/coverage/service step named in T016.
@@ -618,3 +624,10 @@ Review `THIRD_PARTY_NOTICES.md` and the complete upstream license as acceptance-
 - 2026-07-21T13:07:49Z – codex-wp04-aggregate-fixture-fix – shell_pid=1807838 – Started implementation via action command
 - 2026-07-21T13:15:54Z – codex-wp04-aggregate-fixture-fix – shell_pid=1807838 – Cycle 22 correction cb1e6e0 adds deletion-sensitive aggregate consumer fixture
 - 2026-07-21T13:16:01Z – codex-wp04-cycle23-reviewer – shell_pid=1807838 – Started review via action command
+- 2026-07-21T13:23:47Z – user – shell_pid=1807838 – Moved to approved
+- 2026-07-21T20:28:01Z – codex-wp04-cycle23-reviewer – shell_pid=1807838 – Moved to planned
+- 2026-07-21T21:48:17Z – codex:gpt-5:implementer-ivan:implementer – shell_pid=1807838 – Started implementation via action command
+- 2026-07-21T22:08:05Z – codex:gpt-5:implementer-ivan:implementer – shell_pid=1807838 – RED GPL3 repin: before production changes, zig build test-build-discovery failed at compile because the new exact GPL3 provenance and 43-file candidate APIs were absent; the cases cover old GPL2/pin, every evidence field, missing/tampered/nonregular/duplicate paths, excluded-corpus injection, unexpected paths, and deterministic ordering.
+- 2026-07-21T22:08:06Z – codex:gpt-5:implementer-ivan:implementer – shell_pid=1807838 – GREEN GPL3 repin bfeaedf: public main resolves 20dced6; exact 43-file digest 681d76eb and unchanged code-only digest 1fbc377a. Zig 0.16 fmt/build Debug+ReleaseSafe, adapter 4/4 both, discovery 26/26 both, integration 5/5 Debug twice+ReleaseSafe, clean metadata-free archive, and 15 filesystem tamper/missing/exclusion/nonregular cases pass. Ruff diff-scoped: 0 Python files, exit 0.
+- 2026-07-21T22:08:09Z – codex:gpt-5:implementer-ivan:implementer – shell_pid=1807838 – Ready for review: GPL-3.0-only exact 43-file ShovelerDB engine repin at bfeaedf; public/clean/tamper/Debug/ReleaseSafe gates green.
+- 2026-07-21T22:09:50Z – codex:gpt-5:reviewer-renata:reviewer – shell_pid=1807838 – Started review via action command
