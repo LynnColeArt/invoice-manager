@@ -1,0 +1,17 @@
+component=ShovelerDB
+source_url=https://github.com/LynnColeArt/ShovelerDB.git
+commit=20dced69738bfce08f94368b8d017cfc283747fe
+engine_license=GPL-3.0-only
+abi_version=0.1.0
+export_method=git archive <commit> LICENSE NOTICE build.zig include src
+included_paths=LICENSE,NOTICE,build.zig,include/**,src/**
+excluded_paths=all paths outside LICENSE,NOTICE,build.zig,include/**,src/**; references/mariadb/**; tests/fixtures/mariadb-adapted/**; nested Git metadata; generated outputs; caches
+digest_algorithm=sha256 over sorted lines of "<file-sha256><two spaces><repository-relative-path>" for LICENSE,NOTICE,build.zig,include/**,src/**
+source_file_count=43
+source_tree_sha256=681d76ebe2ab6b05b3a94c7ab86749e5c3013520adb7c84f83dabfd15b2a544c
+code_tree_sha256=1fbc377ac6b54f105af3d09a627c2a7896c68626c8b03dfbdffbbe5c3204f782
+license_sha256=3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986
+notice_sha256=59936d400c1c13e6a7e35aa1711277e695a94c50c2472fcbc01368a11b171283
+build_zig_sha256=a69e8d470cf1db44d0469e00e7db089b6ad7ca2e62b7607c03ac964843b483cc
+abi_header_sha256=177535ee08de90ee3f68f708046f19815e283f1072102afb594f6697708f676a
+source_modifications=none

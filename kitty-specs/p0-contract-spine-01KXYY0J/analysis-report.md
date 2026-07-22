@@ -4,27 +4,27 @@ artifact_type: spec-kitty.analysis-report
 command: /spec-kitty.analyze
 mission_slug: p0-contract-spine-01KXYY0J
 mission_id: 01KXYY0J76QBNSWXX0SHMZNXC4
-generated_at: '2026-07-20T22:37:53.483677+00:00'
-analyzer_agent: codex:gpt-5:architect-aida:architect
+generated_at: '2026-07-21T21:52:23.776546+00:00'
+analyzer_agent: unknown
 input_artifacts:
   spec.md:
     path: /home/lynn/projects/invoice-manager/kitty-specs/p0-contract-spine-01KXYY0J/spec.md
-    sha256: cbf96c32d255558dd1464b73a21ad4d101c171f0e3af45823b85823dfbf87420
+    sha256: 9bf14b0791387aa4a96ae420d47294f17b29c6723b6583e98076b4653a934b93
   plan.md:
     path: /home/lynn/projects/invoice-manager/kitty-specs/p0-contract-spine-01KXYY0J/plan.md
-    sha256: 6657c06b221b6df52a8ef3eae0121069e15fbadc44b7df060630e1cfecb11e87
+    sha256: 140dc6553a978dd8b5d86f6ad2da44f12ae84824c0389eb00c7bf2db9cdd8549
   tasks.md:
     path: /home/lynn/projects/invoice-manager/kitty-specs/p0-contract-spine-01KXYY0J/tasks.md
-    sha256: 20bdde2326005f56a9001224e6657c6a8148f7364839066187babb33e18b71c8
+    sha256: 31ff9d6209eefb8977c6d2b16aa491b9b9847c2f38ecdbfb056b71af36542ae7
   charter:
     path: /home/lynn/projects/invoice-manager/.kittify/charter/charter.md
-    sha256: a1176517b273e322d3dc408e369ef836c40e3bb84c69ae140ad554cffbb53f0f
+    sha256: 23993e7fca5a61d02bf0f687cc8f89982aad660fb1f06648e165e228e1170aef
 verdict: ready
 issue_counts:
   high: 0
-  critical: 0
-  low: 0
   medium: 0
+  low: 0
+  critical: 0
   info: 0
 findings: []
 ---
@@ -33,35 +33,28 @@ findings: []
 
 | ID | Category | Severity | Location(s) | Summary | Recommendation |
 |----|----------|----------|-------------|---------|----------------|
-| — | — | — | — | No cross-artifact finding. The approved ShovelerDB pin is consistently `021e3b3d9247a181252329d6ba7ec8d2ed943a97` in C-004, the technical context, the persistence strategy, research Decision 8, and every normative WP04 instruction. The prior pin appears only in immutable activity-log evidence describing the resolved blocker. | Resume WP04 against the exact public commit and retain the old-pin entries as historical evidence. |
+| — | — | — | — | No actionable cross-artifact inconsistencies remain after the GPL-3.0-only amendment remediation. | Proceed through the governed implementation/review loop. |
 
 ## Coverage Summary
 
-| Requirement Set | Has Task? | Work Packages | Notes |
-|-----------------|-----------|---------------|-------|
-| FR-001–FR-016 | Yes | WP01–WP12 | All functional requirements remain explicitly mapped; the repin does not change scope. |
-| NFR-001–NFR-012 | Yes | WP01–WP12 | All quality requirements remain explicitly mapped. |
-| C-001–C-010 | Yes | WP01–WP12 | C-004 now names the reviewed public fix commit; C-009 reproducibility is unchanged. |
-
-## Dependency and Ownership Review
-
-- WP04 remains dependent only on WP01 and exclusively owns the vendored source, Zig build/adapter/integration surface, and notices.
-- WP05 and WP06 remain blocked on WP04 approval; no dependency edge changed.
-- WP09 remains independently reviewable; no repin file overlaps its configuration-only ownership.
-- The public remote resolves `refs/heads/main` to the exact new pin. The exported `LICENSE`, `include/**`, and `src/**` tree is reproducible with digest `6bb2b4215aa50a8ffbbff3278aea4f32c4fc0f906da817037c44095cfd19480b`.
+| Requirement Key | Has Task? | Task IDs | Notes |
+|-----------------|-----------|----------|-------|
+| FR-001–FR-016 | Yes | WP01–WP12 / T001–T060 | Every functional requirement has explicit work-package coverage. |
+| NFR-001–NFR-012 | Yes | WP01–WP12 / T001–T060 | NFR-011 now consistently requires GPL-3.0-only real-artifact compliance. |
+| C-001–C-010 | Yes | WP01–WP12 / T001–T060 | C-001 and C-004 consistently use the amended policy and exact ShovelerDB engine pin. |
 
 ## Charter Alignment Issues
 
-None. The repin preserves exact dependency identity, GPL-compatible notice requirements, clean-clone reproducibility, the one-adapter boundary, TDD evidence, and the prohibition on floating or sibling-path dependencies.
+None.
 
 ## Unmapped Tasks
 
-None. T001–T057 remain contiguous and singly owned. No task, requirement, ownership path, or work-package dependency was added or removed.
+None.
 
 ## Metrics
 
 - Total Requirements: 38
-- Total Tasks: 57
+- Total Tasks: 60 subtasks across 12 work packages
 - Coverage: 100%
 - Ambiguity Count: 0
 - Duplication Count: 0
@@ -69,6 +62,5 @@ None. T001–T057 remain contiguous and singly owned. No task, requirement, owne
 
 ## Next Actions
 
-- Continue WP04 after its hostile-literal ABI probe passed against the new exact vendored source; finish its adapter, integration, clean-clone, and license gates.
-- Treat WP09 as independently approved after its static lock/integrity and proxy review passed without package execution.
-- After WP04 approval, dispatch WP05 and WP06 concurrently because both dependency sets will be satisfied and their owned paths do not overlap.
+- Resume WP01 implementation.
+- Re-run independent review for WP01, WP04, WP11, and WP12 in dependency order.
