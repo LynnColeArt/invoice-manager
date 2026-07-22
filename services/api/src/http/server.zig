@@ -172,8 +172,16 @@ pub const Listener = struct {
         var http_server = std.http.Server.init(&socket_reader.interface, &socket_writer.interface);
         var select_buffer: [2]HeaderSelect = undefined;
         var select = std.Io.Select(HeaderSelect).init(io, &select_buffer);
-        select.async(.head, receiveHead, .{ &http_server, &socket_reader });
-        select.async(.timeout, waitHeaderTimeout, .{io});
+        // These operations must actually race. `async` may run eagerly when
+        // the threaded I/O pool is full, turning the deadline into request latency.
+        select.concurrent(.head, receiveHead, .{ &http_server, &socket_reader }) catch {
+            select.cancelDiscard();
+            return .concurrency_unavailable;
+        };
+        select.concurrent(.timeout, waitHeaderTimeout, .{io}) catch {
+            select.cancelDiscard();
+            return .concurrency_unavailable;
+        };
         const selected = select.await() catch |err| switch (err) {
             error.Canceled => {
                 select.cancelDiscard();
@@ -247,6 +255,7 @@ pub const ServeOutcome = enum {
     disconnected,
     header_timeout,
     accept_failed,
+    concurrency_unavailable,
 };
 
 /// An opaque capability consumed only while constructing the listener. Safe
