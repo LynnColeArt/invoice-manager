@@ -27,7 +27,7 @@ subtasks:
 - T019
 phase: Phase 2 - Service Dependency Integration
 assignee: ''
-agent: "codex-wp04-cycle15"
+agent: "codex:gpt-5:reviewer-renata:reviewer"
 history: []
 agent_profile: reviewer-renata
 authoritative_surface: deps/shovelerdb/
@@ -76,10 +76,13 @@ Address every review item and keep remediation evidence chronological before dec
 
 ## Objectives & Success Criteria
 
-Consume the public ShovelerDB repository at exactly commit `021e3b3d9247a181252329d6ba7ec8d2ed943a97` from a clean clone.
+Consume the public ShovelerDB repository at exactly GPL-3.0-only engine commit
+`20dced69738bfce08f94368b8d017cfc283747fe` from a clean clone.
 Integrate its real C embedding ABI into the Zig `0.16.0` service build through one narrow, replaceable dependency adapter.
 Prove borrowed result values are copied before result release, SQL text literals are encoded centrally, and the real engine survives checkpoint, close, and reopen.
-Preserve complete GPL-2.0 dependency attribution and immutable source provenance.
+Preserve complete GPL-3.0-only engine attribution and immutable source provenance.
+Keep the separately GPL-2.0-only MariaDB reference corpus outside the exported
+engine archive and prove its exclusion from the Invoice Manager runtime.
 
 Success means no build depends on `/home/lynn/projects/shovelerdb`, another sibling checkout, a private registry, or a floating branch.
 Success also means no ShovelerDB handle, result, row, borrowed slice, SQL construction detail, or engine diagnostic leaks beyond the adapter.
@@ -93,7 +96,7 @@ As sole `services/api/build.zig` owner, WP04 also publishes every stable Zig
 test/coverage hook that later shared, durable-store, migration, and HTTP WPs
 consume without editing the build graph.
 The canonical upstream repository is `https://github.com/LynnColeArt/ShovelerDB.git`.
-The approved public commit is `021e3b3d9247a181252329d6ba7ec8d2ed943a97`.
+The approved public engine commit is `20dced69738bfce08f94368b8d017cfc283747fe`.
 The approved commit exposes embedding ABI version `0.1.0` in `include/shovelerdb.h`.
 
 At the approved commit, upstream has no `build.zig.zon`, installed consumer module, installed header, or ready-made linkable ABI library.
@@ -169,8 +172,9 @@ Land completed changes back on `feat/p0-contract-spine` unless the human explici
 - `NFR-009`: no silent fallback, destructive recovery, or substitute engine on failure.
 - `NFR-011`: notice and license evidence for every distributed ShovelerDB component.
 - `NFR-012`: commit-addressed, reproducible service dependency graph.
-- `C-001`: preserve GPL-2.0-only compatibility and notices.
-- `C-004`: use only ShovelerDB commit `021e3b3d9247a181252329d6ba7ec8d2ed943a97`.
+- `C-001`: preserve GPL-3.0-only compatibility, complete notices, and the
+  exclusion of separately GPL-2.0-only reference material.
+- `C-004`: use only ShovelerDB engine commit `20dced69738bfce08f94368b8d017cfc283747fe`.
 - `C-005`: one adapter instance owns one handle and serializes calls sharing it.
 - `C-009`: build from public repository inputs without sibling paths or private data.
 
@@ -180,7 +184,7 @@ Land completed changes back on `feat/p0-contract-spine` unless the human explici
 
 - **Purpose**: make the dependency immutable, inspectable, and available from a public clean clone.
 - **Source URL**: `https://github.com/LynnColeArt/ShovelerDB.git`.
-- **Commit**: `021e3b3d9247a181252329d6ba7ec8d2ed943a97`.
+- **Commit**: `20dced69738bfce08f94368b8d017cfc283747fe`.
 - **Authoritative destination**: `deps/shovelerdb/`.
 
 #### Steps
@@ -189,7 +193,9 @@ Land completed changes back on `feat/p0-contract-spine` unless the human explici
 2. Resolve the requested revision and assert the resulting `HEAD` equals the full 40-character commit.
 3. Reject a tag, branch name, abbreviated hash, or default-branch checkout as the recorded pin.
 4. Export a source snapshot from that detached commit into `deps/shovelerdb/` without nested `.git` state.
-5. Preserve the upstream `LICENSE`, `include/shovelerdb.h`, ABI implementation sources, and all build-required sources.
+5. Preserve the upstream `LICENSE`, `NOTICE`, `include/shovelerdb.h`, ABI
+   implementation sources, and all build-required sources. Do not export
+   `references/mariadb/**` or `tests/fixtures/mariadb-adapted/**`.
 6. Exclude caches, build outputs, local databases, editor files, private configuration, and unrelated checkout state.
 7. Add machine-readable or plainly parseable provenance under `deps/shovelerdb/` containing the source URL, exact commit, export method, and source-tree digest.
 8. Compute the digest deterministically over a sorted path list and file contents; document exclusions.
@@ -403,7 +409,7 @@ Add a concise ShovelerDB notice containing:
 
 - component name;
 - public source URL;
-- exact commit `021e3b3d9247a181252329d6ba7ec8d2ed943a97`;
+- exact engine commit `20dced69738bfce08f94368b8d017cfc283747fe`;
 - the license identity supported by the upstream `LICENSE` evidence;
 - the repository-relative path to the preserved full license text;
 - whether the source is unmodified or which packaging shim files are invoice-manager-authored;
@@ -464,7 +470,7 @@ Negative checks must prove:
 
 ## Definition of Done
 
-- [ ] `deps/shovelerdb/` is an auditable export of public commit `021e3b3d9247a181252329d6ba7ec8d2ed943a97`.
+- [ ] `deps/shovelerdb/` is an auditable export of public engine commit `20dced69738bfce08f94368b8d017cfc283747fe`.
 - [ ] No dependency path references a sibling checkout, floating branch, private registry, or unpublished source.
 - [ ] The service build uses Zig `0.16.0` and links the real ShovelerDB C ABI.
 - [ ] `build.zig` exposes every exact stable adapter/shared/persistence/migration/HTTP/coverage/service step named in T016.
@@ -588,3 +594,40 @@ Review `THIRD_PARTY_NOTICES.md` and the complete upstream license as acceptance-
 - 2026-07-21T07:38:31Z – codex-wp04-http-corrector – shell_pid=2066040 – CORRECTION to preceding GREEN entries: shell formatting stripped displayed commands only; evidence is unchanged. GREEN WP04-HTTP-BUILD-013 at 5bca0ba/9b9b7d9: command cd services/api, then zig build test-build-discovery --summary all; observed 19/19 pass. Disposable clean-output fixture commands zig build test-http -j16 --summary all passed twice after deleting local caches/generated files; zig build run -- forwarded-token passed and proved b.args; shared/persistence unit+integration+crash/migration unit+integration+negative gates passed; removing migrations.zig failed test-http with the named public-graph diagnostic.
 - 2026-07-21T07:38:58Z – codex-wp04-http-corrector – shell_pid=2067212 – Ready for independent cycle-15 review: RED 5bca0ba, product 9b9b7d9; 19/19 discovery, delayed clean-cache HTTP replay twice, synthetic run argument forwarding, module-removal fail-closed, composed shared/persistence/migration gates, and Debug/ReleaseSafe ABI regressions pass.
 - 2026-07-21T07:40:16Z – codex-wp04-cycle15 – shell_pid=1807838 – Started review via action command
+- 2026-07-21T07:50:31Z – user – shell_pid=1807838 – Arbiter override of stale historical cycle-6 rejection: independent review-cycle-15.md at 7ec6ea1 verifies RED 5bca0ba and product 9b9b7d9 close every cycle-13 HTTP module-graph, compile-order, and fail-closed run blocker; 19/19 discovery, two clean delayed HTTP replays, run forwarding, raw-module/module-removal negatives, composition, and Debug/ReleaseSafe ABI gates pass.
+- 2026-07-21T10:50:13Z – codex-wp04-cycle15 – shell_pid=2558026 – Cycle 16 rejects the WP08 HTTP consumer seam: tests cannot import the production HTTP/composition modules or receive the real executable path.
+- 2026-07-21T10:50:32Z – codex-wp04-http-consumer-fix – shell_pid=1807838 – Started implementation via action command
+- 2026-07-21T10:55:23Z – codex-wp04-http-consumer-fix – shell_pid=1807838 – RED cycle 16: committed permanent consumer fixture be9af8d. Exact command cd services/api && zig build test-build-discovery --summary all failed as intended: 18/19 passed; isolated HTTP root compilation reports no module named http available within module root. No production edit existed when this failure was captured.
+- 2026-07-21T11:00:14Z – codex-wp04-http-consumer-fix – shell_pid=1807838 – GREEN cycle 16: product commit 1d97a2a after RED test be9af8d and Zig-typed assertion follow-up 1a453e5. Exact discovery command passed 19/19, including named http and composition refAllDecls plus spawning the invoice-manager-api path generated directly from executable.getEmittedBin(). Two cold-cache discovery replays passed 19/19 each. Zig 0.16.0 fmt and base build passed; adapter passed 4/4 Debug and ReleaseSafe; real integration passed 5/5 Debug and ReleaseSafe; stable build help names are unchanged; absent-WP08 test-http and run remain fail-closed with owning-WP diagnostics.
+- 2026-07-21T11:00:31Z – codex-wp04-http-consumer-fix – shell_pid=1807838 – Cycle 16 consumer-boundary correction ready for independent review at be9af8d, 1a453e5, and 1d97a2a; qualifying RED and full GREEN matrix recorded.
+- 2026-07-21T11:01:40Z – codex-wp04-cycle16-reviewer – shell_pid=1807838 – Started review via action command
+- 2026-07-21T11:08:55Z – user – shell_pid=1807838 – Moved to planned
+- 2026-07-21T11:09:50Z – codex-wp04-least-authority-fix – shell_pid=1807838 – Started implementation via action command
+- 2026-07-21T11:13:17Z – codex-wp04-least-authority-fix – shell_pid=1807838 – RED cycle 17: committed permanent least-authority fixture 1e9027d before product changes. Exact command cd services/api && zig build test-build-discovery --summary all failed 19/20. The adversarial synthetic src/http/root.zig imported persistence; nested zig build test-http unexpectedly succeeded 8/8 and its HTTP test passed 1/1 instead of failing with no module named 'persistence', proving the current HTTP module is over-capable.
+- 2026-07-21T11:16:24Z – codex-wp04-least-authority-fix – shell_pid=1807838 – GREEN cycle 17: product commit da7e7e3 follows public RED 1e9027d and removes only persistence/migrations capabilities from production http_imports. Exact discovery passed 20/20; the permanent negative proves synthetic HTTP importing persistence fails nested zig build test-http with no module named 'persistence', while positive composition imports/touches shared, persistence, migrations, and http and launches the emitted invoice-manager-api. Two cold-cache discovery replays passed 20/20. Zig 0.16.0 format and base build passed; adapter 4/4 Debug and ReleaseSafe; real ABI integration 5/5 twice in Debug and 5/5 ReleaseSafe; stable step inventory unchanged; absent-WP08 test-http and run remain fail-closed. Generated Zig caches/output removed.
+- 2026-07-21T11:16:51Z – codex-wp04-least-authority-fix – shell_pid=1807838 – Cycle 17 least-authority correction ready at RED 1e9027d and product da7e7e3. Discovery and cold-cache negative capability proof 20/20; full ABI matrix green. Ruff diff-scoped check: 0 Python files, exit 0.
+- 2026-07-21T11:17:19Z – codex-wp04-cycle18-reviewer – shell_pid=1807838 – Started review via action command
+- 2026-07-21T11:21:53Z – user – shell_pid=1807838 – Review passed: cycle 18 independently verifies exact 19/20 RED at 1e9027d, two-deletion least-authority correction da7e7e3, current 20/20 discovery, non-vacuous forbidden-import negative, preserved composition/executable graph, and fail-closed regressions.
+- 2026-07-21T11:30:06Z – codex-wp04-cycle18-reviewer – shell_pid=2663007 – Cycle 19 rejects the canonical route-inventory embed seam: exact locked path cannot resolve from the isolated HTTP module without a read-only mapping.
+- 2026-07-21T11:30:17Z – codex-wp04-inventory-embed-fix – shell_pid=1807838 – Started implementation via action command
+- 2026-07-21T11:30:53Z – codex-wp04-inventory-embed-fix – shell_pid=2665362 – CORRECTION: cycle-19 implementation is governed by canonical review-cycle-19.md at primary commit 0c58578; the preceding move response reported a stale cycle-18 review URI from coordination lag. Cycle 19 exact embed-mapping blocker is authoritative.
+- 2026-07-21T11:34:54Z – codex-wp04-inventory-embed-fix – shell_pid=1807838 – Cycle 19 RED committed as cc03cc3. Exact command: cd services/api && zig build test-build-discovery --summary all. Observed exit 1: 20/21 tests passed; permanent exact-literal fixture failed compiling src/http/route_inventory.zig with 'embed of file outside package path' for '../../../../tools/contracts/.generated/runtime/v1/route-inventory.json'. No production changes were present.
+- 2026-07-21T11:38:41Z – codex-wp04-inventory-embed-fix – shell_pid=1807838 – Cycle 19 GREEN product commit fd3f829 (separate RED test commit cc03cc3). Exact-key read-only HTTP module dependency maps '../../../../tools/contracts/.generated/runtime/v1/route-inventory.json' directly to tools/contracts/.generated/runtime/v1/route-inventory.json; HTTP still exposes only shared as executable Zig capability and composition/test/config graphs are unchanged. Validation: discovery 21/21; two cold-cache replays 21/21; default 3/3; adapter Debug and ReleaseSafe 4/4; integration Debug twice and ReleaseSafe 5/5; format/diff clean; stable help steps present; absent WP08 test-http and run fail closed with owner diagnostics. Permanent discovery coverage proves exact embedded bytes after delayed materialization, emitted API composition, direct prerequisites, and forbidden persistence rejection.
+- 2026-07-21T11:38:51Z – codex-wp04-inventory-embed-fix – shell_pid=2686213 – Cycle 19 exact inventory embed mapping complete: cc03cc3 RED, fd3f829 GREEN; full cold-cache and ABI matrix recorded.
+- 2026-07-21T11:39:07Z – codex-wp04-cycle20-reviewer – shell_pid=1807838 – Started review via action command
+- 2026-07-21T11:42:42Z – user – shell_pid=1807838 – Review passed: cycle 20 independently verifies exact external-package 20/21 RED at cc03cc3, four-line exact-key data-only mapping fd3f829, current 21/21 discovery, delayed canonical bytes, preserved HTTP least authority, emitted API/materializer wiring, and fail-closed regressions.
+- 2026-07-21T12:35:09Z – codex-wp08-aggregate-audit – shell_pid=1807838 – Cycle 21 aggregate HTTP cwd blocker at ad3fa98
+- 2026-07-21T12:35:41Z – codex-wp04-cwd-fix – shell_pid=1807838 – Started implementation via action command
+- 2026-07-21T13:00:24Z – codex-wp04-cwd-fix – shell_pid=1807838 – Cycle 21 correction f98ecfc 53111be 76dddae ac3d45c ready for independent review
+- 2026-07-21T13:00:31Z – codex-wp04-cycle22-reviewer – shell_pid=1807838 – Started review via action command
+- 2026-07-21T13:07:38Z – codex-wp04-cycle22-reviewer – shell_pid=1807838 – Cycle 22 rejects missing behavioral aggregate consumer coverage at 2d7dd65
+- 2026-07-21T13:07:49Z – codex-wp04-aggregate-fixture-fix – shell_pid=1807838 – Started implementation via action command
+- 2026-07-21T13:15:54Z – codex-wp04-aggregate-fixture-fix – shell_pid=1807838 – Cycle 22 correction cb1e6e0 adds deletion-sensitive aggregate consumer fixture
+- 2026-07-21T13:16:01Z – codex-wp04-cycle23-reviewer – shell_pid=1807838 – Started review via action command
+- 2026-07-21T13:23:47Z – user – shell_pid=1807838 – Moved to approved
+- 2026-07-21T20:28:01Z – codex-wp04-cycle23-reviewer – shell_pid=1807838 – Moved to planned
+- 2026-07-21T21:48:17Z – codex:gpt-5:implementer-ivan:implementer – shell_pid=1807838 – Started implementation via action command
+- 2026-07-21T22:08:05Z – codex:gpt-5:implementer-ivan:implementer – shell_pid=1807838 – RED GPL3 repin: before production changes, zig build test-build-discovery failed at compile because the new exact GPL3 provenance and 43-file candidate APIs were absent; the cases cover old GPL2/pin, every evidence field, missing/tampered/nonregular/duplicate paths, excluded-corpus injection, unexpected paths, and deterministic ordering.
+- 2026-07-21T22:08:06Z – codex:gpt-5:implementer-ivan:implementer – shell_pid=1807838 – GREEN GPL3 repin bfeaedf: public main resolves 20dced6; exact 43-file digest 681d76eb and unchanged code-only digest 1fbc377a. Zig 0.16 fmt/build Debug+ReleaseSafe, adapter 4/4 both, discovery 26/26 both, integration 5/5 Debug twice+ReleaseSafe, clean metadata-free archive, and 15 filesystem tamper/missing/exclusion/nonregular cases pass. Ruff diff-scoped: 0 Python files, exit 0.
+- 2026-07-21T22:08:09Z – codex:gpt-5:implementer-ivan:implementer – shell_pid=1807838 – Ready for review: GPL-3.0-only exact 43-file ShovelerDB engine repin at bfeaedf; public/clean/tamper/Debug/ReleaseSafe gates green.
+- 2026-07-21T22:09:50Z – codex:gpt-5:reviewer-renata:reviewer – shell_pid=1807838 – Started review via action command

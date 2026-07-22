@@ -17,11 +17,12 @@ Files:
   digest record.
 - `p0-contract-manifest.json`: P0's current Draft publication.
 
-Implementation must relocate the schemas to the repository-level `contracts/`
-layout described by `plan.md`, add canonical valid/invalid fixtures, and record
-real SHA-256 digests before promoting them to Frozen. P1-P4 Draft schemas must
-resolve common values from the stable P0 schema identifier, and every mission
-manifest must validate against the canonical P0 manifest schema.
+The accepted P0 producer baseline relocates the schemas to the repository-level
+`contracts/` layout described by `plan.md` and includes canonical valid/invalid
+fixtures. WP12 closure owns real SHA-256 digest recording and canonical Frozen
+promotion. Until that closure, P1-P4 Draft schemas must resolve common values
+from the stable P0 schema identifier, and every mission manifest must validate
+against the canonical P0 manifest schema.
 
 The runtime freeze gate supplements JSON Schema by checking normalized unique
 repository paths, actual file digests, at least one valid and invalid fixture,

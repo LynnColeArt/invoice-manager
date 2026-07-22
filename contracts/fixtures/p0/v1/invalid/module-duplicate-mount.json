@@ -1,0 +1,7 @@
+{
+  "expected": { "code": "module_mount_duplicate", "pointer": "/modules/1/mount_key" },
+  "modules": [
+    { "module_version": 1, "module_id": "synthetic-alpha", "owner_mission": "p7", "mount_key": "duplicate", "api_fragments": [], "event_catalogs": [], "migration_root": "services/api/migrations/p7", "route_policy": { "default_access": "protected", "public_operations": [] } },
+    { "module_version": 1, "module_id": "synthetic-beta", "owner_mission": "p8", "mount_key": "duplicate", "api_fragments": [], "event_catalogs": [], "migration_root": "services/api/migrations/p8", "route_policy": { "default_access": "protected", "public_operations": [] } }
+  ]
+}

@@ -4,74 +4,63 @@ artifact_type: spec-kitty.analysis-report
 command: /spec-kitty.analyze
 mission_slug: p0-contract-spine-01KXYY0J
 mission_id: 01KXYY0J76QBNSWXX0SHMZNXC4
-generated_at: '2026-07-21T03:19:12.334026+00:00'
-analyzer_agent: codex
+generated_at: '2026-07-21T21:52:23.776546+00:00'
+analyzer_agent: unknown
 input_artifacts:
   spec.md:
     path: /home/lynn/projects/invoice-manager/kitty-specs/p0-contract-spine-01KXYY0J/spec.md
-    sha256: cbf96c32d255558dd1464b73a21ad4d101c171f0e3af45823b85823dfbf87420
+    sha256: 9bf14b0791387aa4a96ae420d47294f17b29c6723b6583e98076b4653a934b93
   plan.md:
     path: /home/lynn/projects/invoice-manager/kitty-specs/p0-contract-spine-01KXYY0J/plan.md
-    sha256: e115aa7d51ec98694f475a4fe589e5124a4a56296c9322bdd602afcb40546ce3
+    sha256: 140dc6553a978dd8b5d86f6ad2da44f12ae84824c0389eb00c7bf2db9cdd8549
   tasks.md:
     path: /home/lynn/projects/invoice-manager/kitty-specs/p0-contract-spine-01KXYY0J/tasks.md
-    sha256: 1213ecc62e23f3c79e51d8c2f7a13178be2a192dc42f3f48e97989e4ff4cbfd5
+    sha256: 31ff9d6209eefb8977c6d2b16aa491b9b9847c2f38ecdbfb056b71af36542ae7
   charter:
     path: /home/lynn/projects/invoice-manager/.kittify/charter/charter.md
-    sha256: a1176517b273e322d3dc408e369ef836c40e3bb84c69ae140ad554cffbb53f0f
+    sha256: 23993e7fca5a61d02bf0f687cc8f89982aad660fb1f06648e165e228e1170aef
 verdict: ready
 issue_counts:
+  high: 0
   medium: 0
   low: 0
   critical: 0
-  high: 0
   info: 0
 findings: []
 ---
 
 ## Specification Analysis Report
 
-### Verdict
+| ID | Category | Severity | Location(s) | Summary | Recommendation |
+|----|----------|----------|-------------|---------|----------------|
+| — | — | — | — | No actionable cross-artifact inconsistencies remain after the GPL-3.0-only amendment remediation. | Proceed through the governed implementation/review loop. |
 
-READY. The current specification, plan, task manifest, and work-package prompts remain internally consistent and preserve the charter's ownership, safety, coverage, licensing, and reproducibility requirements.
+## Coverage Summary
 
-### Findings
+| Requirement Key | Has Task? | Task IDs | Notes |
+|-----------------|-----------|----------|-------|
+| FR-001–FR-016 | Yes | WP01–WP12 / T001–T060 | Every functional requirement has explicit work-package coverage. |
+| NFR-001–NFR-012 | Yes | WP01–WP12 / T001–T060 | NFR-011 now consistently requires GPL-3.0-only real-artifact compliance. |
+| C-001–C-010 | Yes | WP01–WP12 / T001–T060 | C-001 and C-004 consistently use the amended policy and exact ShovelerDB engine pin. |
 
-No cross-artifact consistency findings remain.
-
-The active review findings are implementation-conformance defects already governed by existing requirements, not planning gaps:
-
-- WP04 T016 already requires stable diagnostics with the owning WP, expected pattern, observed evidence, and no absolute checkout paths.
-- WP05 T020 already requires fixed UUIDv7 hyphen positions, bounds-safe malformed-input rejection, and typed `InvalidSyntax` results.
-- WP06 already requires red-first behavior evidence and safe shutdown during active operations; its independent review remains authoritative for implementation disposition.
-
-No spec, plan, task, dependency, or charter amendment is needed before applying corrections.
-
-### Coverage Summary
-
-- All 38 requirements and constraints retain nominal coverage across 12 work packages.
-- WP04 exclusively owns the build and measured-coverage infrastructure; WP05, WP06, and WP07 own their respective domain production and test inputs.
-- The three measured gates remain source-scoped, require at least 90% live production-PC coverage, and require every exact critical probe.
-- The dependency DAG remains acyclic and correctly prevents WP05 and later packages from advancing while WP04 is under correction.
-
-### Charter Alignment Issues
+## Charter Alignment Issues
 
 None.
 
-### Unmapped Tasks
+## Unmapped Tasks
 
 None.
 
-### Metrics
+## Metrics
 
-- Requirements and constraints: 38
-- Work packages: 12
-- Nominal requirement mapping: 100%
-- Critical findings: 0
-- High findings: 0
-- Medium findings: 0
-- Low findings: 0
+- Total Requirements: 38
+- Total Tasks: 60 subtasks across 12 work packages
+- Coverage: 100%
+- Ambiguity Count: 0
+- Duplication Count: 0
+- Critical Issues Count: 0
 
-### Next Actions
+## Next Actions
 
-Apply and independently review the narrow WP04 diagnostic correction. Then resume the already-specified WP05 and WP06 remediation cycles without changing planning scope.
+- Resume WP01 implementation.
+- Re-run independent review for WP01, WP04, WP11, and WP12 in dependency order.
