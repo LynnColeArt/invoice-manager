@@ -67,8 +67,16 @@ fn run(init: std.process.Init) !void {
     while (!shutdown_requested.load(.acquire)) {
         var select_buffer: [2]ServeSelect = undefined;
         var select = std.Io.Select(ServeSelect).init(init.io, &select_buffer);
-        select.async(.connection, serveNext, .{ init.gpa, init.io, &started, &dispatch_context });
-        select.async(.termination, waitForTermination, .{init.io});
+        // Accept and termination monitoring must actually race; `async` may
+        // execute eagerly when the threaded I/O pool has no spare worker.
+        select.concurrent(.connection, serveNext, .{ init.gpa, init.io, &started, &dispatch_context }) catch {
+            select.cancelDiscard();
+            return error.ConcurrencyUnavailable;
+        };
+        select.concurrent(.termination, waitForTermination, .{init.io}) catch {
+            select.cancelDiscard();
+            return error.ConcurrencyUnavailable;
+        };
         const selected = select.await() catch |err| switch (err) {
             error.Canceled => break,
         };

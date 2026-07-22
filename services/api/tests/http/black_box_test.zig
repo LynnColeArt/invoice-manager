@@ -56,6 +56,18 @@ fn expectReadyResponse(bytes: []const u8) !void {
     try std.testing.expectEqual(@as(usize, 1), std.mem.count(u8, response.body, request_id));
 }
 
+fn expectReadyAfterClientFailure(service: *const fixture.Service) !void {
+    const before = std.Io.Clock.awake.now(std.testing.io);
+    const response = try service.requestAfterClientFailure(get_health);
+    const after = std.Io.Clock.awake.now(std.testing.io);
+    defer std.testing.allocator.free(response);
+    try expectReadyResponse(response);
+    try std.testing.expect(
+        before.durationTo(after).toNanoseconds() <=
+            fixture.client_failure_containment_timeout.raw.toNanoseconds(),
+    );
+}
+
 fn expectFailureCode(bytes: []const u8, status: u16, reason: []const u8, code: []const u8) !void {
     const response = try expectStatus(bytes, status, reason);
     var parsed = try std.json.parseFromSlice(std.json.Value, std.testing.allocator, response.body, .{});
@@ -94,14 +106,10 @@ test "spawned service serves the exact health boundary and contains client failu
     try expectFailureCode(ambiguous, 400, "Bad Request", "malformed_request");
 
     try service.disconnect("GET /api/v1/health HTTP/1.1\r\nhost:");
-    const after_disconnect = try service.request(get_health);
-    defer std.testing.allocator.free(after_disconnect);
-    try expectReadyResponse(after_disconnect);
+    try expectReadyAfterClientFailure(&service);
 
     try service.expectPartialClosedByHeaderDeadline("GET /api/v1/health HTTP/1.1\r\nhost:");
-    const after_slow_client = try service.request(get_health);
-    defer std.testing.allocator.free(after_slow_client);
-    try expectReadyResponse(after_slow_client);
+    try expectReadyAfterClientFailure(&service);
 
     const stopped_address = service.address;
     const term = try service.stopGracefully(std.testing.io);
