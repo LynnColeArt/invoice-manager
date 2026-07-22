@@ -1,20 +1,20 @@
 {
-  "event_count": 272,
-  "last_event_id": "01KY3BMRPVE5WQAWHPJJEQ3MED",
-  "materialized_at": "2026-07-21T22:09:49.788022+00:00",
+  "event_count": 283,
+  "last_event_id": "01KY3Q8WJFZ2K809277E2GRV37",
+  "materialized_at": "2026-07-22T01:33:03.439193+00:00",
   "mission_number": "",
   "mission_slug": "p0-contract-spine-01KXYY0J",
   "mission_type": "software-dev",
   "summary": {
-    "approved": 9,
+    "approved": 12,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
     "done": 0,
     "for_review": 0,
     "in_progress": 0,
-    "in_review": 1,
-    "planned": 2
+    "in_review": 0,
+    "planned": 0
   },
   "work_packages": {
     "WP01": {
@@ -39,11 +39,11 @@
       "last_transition_at": "2026-07-20T23:37:00.558447+00:00"
     },
     "WP04": {
-      "actor": "codex:gpt-5:reviewer-renata:reviewer",
+      "actor": "user",
       "force_count": 14,
-      "lane": "in_review",
-      "last_event_id": "01KY3BMRPVE5WQAWHPJJEQ3MED",
-      "last_transition_at": "2026-07-21T22:09:49.788022+00:00"
+      "lane": "approved",
+      "last_event_id": "01KY3C7GJPBHW2A1WFPZER2N41",
+      "last_transition_at": "2026-07-21T22:20:04.054884+00:00"
     },
     "WP05": {
       "actor": "user",
@@ -88,18 +88,18 @@
       "last_transition_at": "2026-07-21T17:54:25.259640+00:00"
     },
     "WP11": {
-      "actor": "codex-wp11-reviewer",
+      "actor": "user",
       "force_count": 1,
-      "lane": "planned",
-      "last_event_id": "01KY35T9AVN9H0V22CMQXN6E6P",
-      "last_transition_at": "2026-07-21T20:27:59.195485+00:00"
+      "lane": "approved",
+      "last_event_id": "01KY3EC395A9F26KQNN9W1TFVZ",
+      "last_transition_at": "2026-07-21T22:57:31.429574+00:00"
     },
     "WP12": {
-      "actor": "codex-wp12-implementer",
-      "force_count": 1,
-      "lane": "planned",
-      "last_event_id": "01KY35T742X08XPFV5C7AQBNJ3",
-      "last_transition_at": "2026-07-21T20:27:56.930252+00:00"
+      "actor": "user",
+      "force_count": 3,
+      "lane": "approved",
+      "last_event_id": "01KY3Q8WJFZ2K809277E2GRV37",
+      "last_transition_at": "2026-07-22T01:33:03.439193+00:00"
     }
   }
 }
