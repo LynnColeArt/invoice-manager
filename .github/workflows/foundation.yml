@@ -200,6 +200,12 @@ jobs:
           test -f deps/shovelerdb/PROVENANCE
       - name: Install locked dependencies
         run: npm ci
+      - name: Require private network namespace support
+        shell: bash
+        run: |
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          test "$(sysctl -n kernel.apparmor_restrict_unprivileged_userns)" = 0
+          unshare --user --map-current-user --keep-caps --net sh -ceu 'ip link set lo up'
       - name: Validate real same-origin proxy
         env:
           PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/playwright-http
@@ -270,6 +276,12 @@ jobs:
           test -f deps/shovelerdb/PROVENANCE
       - name: Install locked dependencies
         run: npm ci
+      - name: Require private network namespace support
+        shell: bash
+        run: |
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          test "$(sysctl -n kernel.apparmor_restrict_unprivileged_userns)" = 0
+          unshare --user --map-current-user --keep-caps --net sh -ceu 'ip link set lo up'
       - name: Run aggregate diagnostics
         env:
           PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/playwright-aggregate
@@ -307,6 +319,12 @@ jobs:
           test ! -e apps/web/.next
           mkdir -p "${FOUNDATION_HOME}" "${FOUNDATION_NPM_CACHE}" "${FOUNDATION_PLAYWRIGHT_CACHE}"
           test -z "$(find "${FOUNDATION_HOME}" "${FOUNDATION_NPM_CACHE}" "${FOUNDATION_PLAYWRIGHT_CACHE}" -mindepth 1 -print -quit)"
+      - name: Require private network namespace support
+        shell: bash
+        run: |
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          test "$(sysctl -n kernel.apparmor_restrict_unprivileged_userns)" = 0
+          unshare --user --map-current-user --keep-caps --net sh -ceu 'ip link set lo up'
       - name: Run literal clean bootstrap wrapper
         shell: bash
         env:
@@ -362,6 +380,12 @@ jobs:
           test ! -e apps/web/.next
           mkdir -p "${FOUNDATION_HOME}" "${FOUNDATION_NPM_CACHE}" "${FOUNDATION_PLAYWRIGHT_CACHE}"
           test -z "$(find "${FOUNDATION_HOME}" "${FOUNDATION_NPM_CACHE}" "${FOUNDATION_PLAYWRIGHT_CACHE}" -mindepth 1 -print -quit)"
+      - name: Require private network namespace support
+        shell: bash
+        run: |
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          test "$(sysctl -n kernel.apparmor_restrict_unprivileged_userns)" = 0
+          unshare --user --map-current-user --keep-caps --net sh -ceu 'ip link set lo up'
       - name: Run literal clean verification wrapper
         shell: bash
         env:

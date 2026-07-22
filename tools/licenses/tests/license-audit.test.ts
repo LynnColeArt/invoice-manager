@@ -340,6 +340,7 @@ describe("foundation workflow contract", () => {
           "timeout-minutes": number;
           needs?: string[];
           steps: Array<{
+            "continue-on-error"?: boolean;
             env?: Record<string, string>;
             name?: string;
             run?: string;
@@ -426,6 +427,39 @@ describe("foundation workflow contract", () => {
         "${{ runner.temp }}/foundation-verify-npm",
         "${{ runner.temp }}/foundation-verify-playwright",
       ]),
+    );
+
+    const namespaceProbe = [
+      "sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0",
+      'test "$(sysctl -n kernel.apparmor_restrict_unprivileged_userns)" = 0',
+      "unshare --user --map-current-user --keep-caps --net sh -ceu 'ip link set lo up'",
+    ].join("\n");
+    const namespaceJobs: Record<string, string> = {
+      http_proxy: "npm run http:smoke",
+      verify_foundation: "npm run verify:foundation",
+      bootstrap_foundation: "npm run bootstrap:foundation",
+      verify_foundation_clean: "npm run verify:foundation:clean",
+    };
+    let namespaceProbeCount = 0;
+    for (const [jobName, command] of Object.entries(namespaceJobs)) {
+      const steps = parsed.jobs[jobName].steps;
+      const probeIndex = steps.findIndex(
+        (step) => step.name === "Require private network namespace support",
+      );
+      const commandIndex = steps.findIndex((step) =>
+        (step.run ?? "").includes(command),
+      );
+      expect(probeIndex, `${jobName} namespace probe`).toBeGreaterThanOrEqual(0);
+      expect(commandIndex, `${jobName} HTTP command`).toBeGreaterThan(probeIndex);
+      const probe = steps[probeIndex];
+      expect(probe.run?.trim()).toBe(namespaceProbe);
+      expect(probe["continue-on-error"]).not.toBe(true);
+      expect(probe.run).not.toContain("|| true");
+      namespaceProbeCount += 1;
+    }
+    expect(namespaceProbeCount).toBe(4);
+    expect(workflow.match(/name: Require private network namespace support/gu)).toHaveLength(
+      4,
     );
   });
 });
