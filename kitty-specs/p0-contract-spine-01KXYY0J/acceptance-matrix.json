@@ -1,0 +1,289 @@
+{
+  "mission_slug": "p0-contract-spine-01KXYY0J",
+  "mission_number": null,
+  "mission_type": "software-dev",
+  "overall_verdict": "pass",
+  "criteria": [
+    {
+      "criterion_id": "FR-001",
+      "description": "A clean public checkout has one documented bootstrap and validation path.",
+      "proof_type": "automated_test",
+      "evidence": "GitHub Actions job 88803305129 (`npm run bootstrap:foundation`) at candidate 57b3724f63b3600d1bd84fbb744561ace19b9e6d.",
+      "pass_fail": "pass",
+      "verified_by": "codex independent WP12 reviewer (event 01KY3Q8WJFZ2K809277E2GRV37)",
+      "verified_at": "2026-07-22T01:33:03.439193+00:00",
+      "notes": "Public clean-clone bootstrap completed in 326.706 seconds with internal npm ci and Playwright Chromium revision 1228."
+    },
+    {
+      "criterion_id": "FR-002",
+      "description": "The production Next.js shell reaches the real Zig health boundary through the supported same origin.",
+      "proof_type": "automated_test",
+      "evidence": "GitHub Actions jobs 88803305095 and 88803305126; main run 29881539727 at candidate 57b3724f63b3600d1bd84fbb744561ace19b9e6d.",
+      "pass_fail": "pass",
+      "verified_by": "codex independent WP12 reviewer (event 01KY3Q8WJFZ2K809277E2GRV37)",
+      "verified_at": "2026-07-22T01:33:03.439193+00:00",
+      "notes": "Real production App Router proxy and Ready Zig service passed stopped, invalid, adversarial, performance, and cleanup phases."
+    },
+    {
+      "criterion_id": "FR-003",
+      "description": "Canonical identifier, money, currency, date, instant, digest, and counter representations agree across contracts, Zig, and web.",
+      "proof_type": "automated_test",
+      "evidence": "GitHub Actions contract job 88803305110, API job 88803305093, and web job 88803305095.",
+      "pass_fail": "pass",
+      "verified_by": "codex independent WP12 reviewer (event 01KY3Q8WJFZ2K809277E2GRV37)",
+      "verified_at": "2026-07-22T01:33:03.439193+00:00",
+      "notes": "Generated schemas/types and Zig boundary tests passed at the immutable public candidate."
+    },
+    {
+      "criterion_id": "FR-004",
+      "description": "Versioned success, structured error, field-failure, and request-correlation response shapes are enforced.",
+      "proof_type": "automated_test",
+      "evidence": "GitHub Actions contract job 88803305110 and HTTP/proxy job 88803305126.",
+      "pass_fail": "pass",
+      "verified_by": "codex independent WP12 reviewer (event 01KY3Q8WJFZ2K809277E2GRV37)",
+      "verified_at": "2026-07-22T01:33:03.439193+00:00",
+      "notes": "Contract composition and real HTTP boundary tests passed."
+    },
+    {
+      "criterion_id": "FR-005",
+      "description": "Namespaced module contributions compose without a mutable global registry.",
+      "proof_type": "automated_test",
+      "evidence": "GitHub Actions contract job 88803305110; `npm run contracts:check` reported modules=1 routes=1 conformance=4.",
+      "pass_fail": "pass",
+      "verified_by": "codex independent WP12 reviewer (event 01KY3Q8WJFZ2K809277E2GRV37)",
+      "verified_at": "2026-07-22T01:33:03.439193+00:00",
+      "notes": "The committed module manifest, fragments, fixtures, and owner-scoped migrations compose from immutable inputs."
+    },
+    {
+      "criterion_id": "FR-006",
+      "description": "Composition rejects duplicate routes, operations, schemas, events, mounts, migrations, and ownership conflicts.",
+      "proof_type": "automated_test",
+      "evidence": "GitHub Actions contract job 88803305110 and migration-negative job 88803305106.",
+      "pass_fail": "pass",
+      "verified_by": "codex independent WP12 reviewer (event 01KY3Q8WJFZ2K809277E2GRV37)",
+      "verified_at": "2026-07-22T01:33:03.439193+00:00",
+      "notes": "Closed collision and migration-negative suites passed; independent WP12 review confirmed error-path reachability."
+    },
+    {
+      "criterion_id": "FR-007",
+      "description": "Versioned immutable event and synthetic fixture envelopes are validated.",
+      "proof_type": "automated_test",
+      "evidence": "GitHub Actions contract job 88803305110.",
+      "pass_fail": "pass",
+      "verified_by": "codex independent WP12 reviewer (event 01KY3Q8WJFZ2K809277E2GRV37)",
+      "verified_at": "2026-07-22T01:33:03.439193+00:00",
+      "notes": "Envelope, catalog, valid-fixture, and invalid-fixture validation passed against the canonical schemas."
+    },
+    {
+      "criterion_id": "FR-008",
+      "description": "The shared-contract lifecycle manifest and immutable P1-P4 conformance pins have enforceable state and digest semantics.",
+      "proof_type": "automated_test",
+      "evidence": "Verified manifest SHA-256 def2cc7f3d54595b4af123fd6d5e44ee0d2dbaa4a094a2802c52a22be4d1b3e4; content digest sha256:6ff2126ce659465dfdded2e33aab6fa61c1ded90bf3ef22f2d6daceb30864a15; lifecycle tests and contract job 88803305110.",
+      "pass_fail": "pass",
+      "verified_by": "codex independent WP12 reviewer (event 01KY3Q8WJFZ2K809277E2GRV37)",
+      "verified_at": "2026-07-22T01:33:03.439193+00:00",
+      "notes": "Implemented predecessor hash 16e74ea6cf81e5cf1ebd998ef1543c48eb01c65c2f4e0d0dd673daa5d69a941f and closure JCS digest sha256:59b953c4c36f8596263014c445ae1ceebd3b2da47d987e28e9229b3bedac7b89 independently reproduced."
+    },
+    {
+      "criterion_id": "FR-009",
+      "description": "Owner-scoped forward migrations use collision-resistant identities and explicit dependencies.",
+      "proof_type": "automated_test",
+      "evidence": "GitHub Actions migration-negative job 88803305106 and persistence job 88803305137.",
+      "pass_fail": "pass",
+      "verified_by": "codex independent WP12 reviewer (event 01KY3Q8WJFZ2K809277E2GRV37)",
+      "verified_at": "2026-07-22T01:33:03.439193+00:00",
+      "notes": "Discovery, ordering, and owner isolation tests passed without a shared next-number registry."
+    },
+    {
+      "criterion_id": "FR-010",
+      "description": "Migration history rejects missing dependencies, cycles, duplicate identities, and descriptor or script drift.",
+      "proof_type": "automated_test",
+      "evidence": "GitHub Actions migration-negative job 88803305106.",
+      "pass_fail": "pass",
+      "verified_by": "codex independent WP12 reviewer (event 01KY3Q8WJFZ2K809277E2GRV37)",
+      "verified_at": "2026-07-22T01:33:03.439193+00:00",
+      "notes": "Mandatory literal `npm run migration:negative` completed successfully and is independently aggregated."
+    },
+    {
+      "criterion_id": "FR-011",
+      "description": "ShovelerDB is consumed at one immutable public revision without sibling checkout or floating references.",
+      "proof_type": "automated_test",
+      "evidence": "Public clean-clone/bootstrap job 88803305129; ShovelerDB pin 20dced69738bfce08f94368b8d017cfc283747fe.",
+      "pass_fail": "pass",
+      "verified_by": "codex independent WP12 reviewer (event 01KY3Q8WJFZ2K809277E2GRV37)",
+      "verified_at": "2026-07-22T01:33:03.439193+00:00",
+      "notes": "Unauthenticated recursive detached clone of public tag p0-implemented-57b3724f built from committed inputs."
+    },
+    {
+      "criterion_id": "FR-012",
+      "description": "The application-owned serialized storage seam covers transactions, diagnostics, migrations, durability, close, and reopen.",
+      "proof_type": "automated_test",
+      "evidence": "GitHub Actions persistence job 88803305137 and API job 88803305093.",
+      "pass_fail": "pass",
+      "verified_by": "codex independent WP12 reviewer (event 01KY3Q8WJFZ2K809277E2GRV37)",
+      "verified_at": "2026-07-22T01:33:03.439193+00:00",
+      "notes": "The real ShovelerDB-backed adapter and application boundary tests passed."
+    },
+    {
+      "criterion_id": "FR-013",
+      "description": "Consequential mutations are acknowledged only after commit, checkpoint, directory sync, close, and reopen durability.",
+      "proof_type": "automated_test",
+      "evidence": "GitHub Actions persistence job 88803305137.",
+      "pass_fail": "pass",
+      "verified_by": "codex independent WP12 reviewer (event 01KY3Q8WJFZ2K809277E2GRV37)",
+      "verified_at": "2026-07-22T01:33:03.439193+00:00",
+      "notes": "Durability cycles and injected checkpoint/directory-sync boundary tests passed."
+    },
+    {
+      "criterion_id": "FR-014",
+      "description": "Committed-but-not-durable outcomes are distinct from rolled-back failures.",
+      "proof_type": "automated_test",
+      "evidence": "GitHub Actions persistence job 88803305137.",
+      "pass_fail": "pass",
+      "verified_by": "codex independent WP12 reviewer (event 01KY3Q8WJFZ2K809277E2GRV37)",
+      "verified_at": "2026-07-22T01:33:03.439193+00:00",
+      "notes": "Failure-injection tests preserve recovery semantics without replaying committed business effects."
+    },
+    {
+      "criterion_id": "FR-015",
+      "description": "Contract, service, web, migration-negative, persistence, HTTP/proxy, license, clean-wrapper, and aggregate gates are independently diagnosable.",
+      "proof_type": "automated_test",
+      "evidence": "GitHub Actions main run 29881539727: ten focused/final jobs plus required job 88804134412 all succeeded.",
+      "pass_fail": "pass",
+      "verified_by": "codex independent WP12 reviewer (event 01KY3Q8WJFZ2K809277E2GRV37)",
+      "verified_at": "2026-07-22T01:33:03.439193+00:00",
+      "notes": "Workflow jobs use fail-closed namespaces, bounded timeouts, exact commands, and strict aggregation."
+    },
+    {
+      "criterion_id": "FR-016",
+      "description": "The program ledger records P0 ownership, versions, baselines, immutable evidence, and downstream blockers.",
+      "proof_type": "code_review",
+      "evidence": "Closure commit 95b5848f8b18286a4bd3d548872c6e48a3f6fa6e; independent review event 01KY3Q8WJFZ2K809277E2GRV37.",
+      "pass_fail": "pass",
+      "verified_by": "codex independent WP12 reviewer (event 01KY3Q8WJFZ2K809277E2GRV37)",
+      "verified_at": "2026-07-22T01:33:03.439193+00:00",
+      "notes": "README and docs/program-ledger.md agree on Verified state, public candidate, evidence hashes, P1-P4 pins, and next program owners."
+    },
+    {
+      "criterion_id": "NFR-001",
+      "description": "Documented first-run bootstrap and health validation complete within 15 minutes.",
+      "proof_type": "automated_test",
+      "evidence": "GitHub Actions bootstrap job 88803305129: 326.706 seconds external, 320.665 seconds internal.",
+      "pass_fail": "pass",
+      "verified_by": "codex independent WP12 reviewer (event 01KY3Q8WJFZ2K809277E2GRV37)",
+      "verified_at": "2026-07-22T01:33:03.439193+00:00",
+      "notes": "Timed boundary began before internal npm ci and browser provisioning."
+    },
+    {
+      "criterion_id": "NFR-002",
+      "description": "Repeated composition from unchanged immutable P1-P4 pins is byte-identical.",
+      "proof_type": "automated_test",
+      "evidence": "GitHub Actions contract job 88803305110; P1-P4 evidence digest bb1ec2603cce21b6a2a0d41b065cb97680d466b93c7d3084d6d8505f31361e18.",
+      "pass_fail": "pass",
+      "verified_by": "codex independent WP12 reviewer (event 01KY3Q8WJFZ2K809277E2GRV37)",
+      "verified_at": "2026-07-22T01:33:03.439193+00:00",
+      "notes": "All four full commit, manifest SHA-256, and content-digest pins reproduced."
+    },
+    {
+      "criterion_id": "NFR-003",
+      "description": "Every case in the closed P0 collision matrix is rejected.",
+      "proof_type": "automated_test",
+      "evidence": "GitHub Actions contract job 88803305110 and migration-negative job 88803305106.",
+      "pass_fail": "pass",
+      "verified_by": "codex independent WP12 reviewer (event 01KY3Q8WJFZ2K809277E2GRV37)",
+      "verified_at": "2026-07-22T01:33:03.439193+00:00",
+      "notes": "Route, operation, schema, event, mount, migration, and owner/path conflicts are exercised."
+    },
+    {
+      "criterion_id": "NFR-004",
+      "description": "Supported signed 64-bit monetary and revision boundaries round-trip exactly.",
+      "proof_type": "automated_test",
+      "evidence": "GitHub Actions API job 88803305093, contract job 88803305110, and web job 88803305095.",
+      "pass_fail": "pass",
+      "verified_by": "codex independent WP12 reviewer (event 01KY3Q8WJFZ2K809277E2GRV37)",
+      "verified_at": "2026-07-22T01:33:03.439193+00:00",
+      "notes": "Cross-runtime exact-value fixtures and generated types passed."
+    },
+    {
+      "criterion_id": "NFR-005",
+      "description": "At least 20 durability cycles and injected boundary failures complete with no acknowledged loss.",
+      "proof_type": "automated_test",
+      "evidence": "GitHub Actions persistence job 88803305137.",
+      "pass_fail": "pass",
+      "verified_by": "codex independent WP12 reviewer (event 01KY3Q8WJFZ2K809277E2GRV37)",
+      "verified_at": "2026-07-22T01:33:03.439193+00:00",
+      "notes": "Commit/checkpoint/directory-sync/close/reopen and external termination scenarios passed."
+    },
+    {
+      "criterion_id": "NFR-006",
+      "description": "Critical shared-value, migration, and durability error branches meet the governed coverage requirement.",
+      "proof_type": "code_review",
+      "evidence": "Approved WP05, WP07, and WP06 review records plus public jobs 88803305093, 88803305106, and 88803305137.",
+      "pass_fail": "pass",
+      "verified_by": "codex independent WP12 reviewer (event 01KY3Q8WJFZ2K809277E2GRV37)",
+      "verified_at": "2026-07-22T01:33:03.439193+00:00",
+      "notes": "Independent WP12 reviewer confirmed FR coverage and representative deletion-test reachability."
+    },
+    {
+      "criterion_id": "NFR-007",
+      "description": "Nearest-rank p99 for exactly 100 sequential real same-origin health requests is at most one second.",
+      "proof_type": "automated_test",
+      "evidence": "GitHub Actions HTTP/proxy job 88803305126: p99 20.275 ms, max 22.765 ms, slow=0, invalid=0.",
+      "pass_fail": "pass",
+      "verified_by": "codex independent WP12 reviewer (event 01KY3Q8WJFZ2K809277E2GRV37)",
+      "verified_at": "2026-07-22T01:33:03.439193+00:00",
+      "notes": "Ten warmups were discarded; all 100 measured requests were sequential and fully read."
+    },
+    {
+      "criterion_id": "NFR-008",
+      "description": "Required clean P0 validation completes within 15 minutes with focused jobs independently runnable.",
+      "proof_type": "automated_test",
+      "evidence": "GitHub Actions verify-clean job 88803305124: 331.845 seconds external, 326.696 seconds internal.",
+      "pass_fail": "pass",
+      "verified_by": "codex independent WP12 reviewer (event 01KY3Q8WJFZ2K809277E2GRV37)",
+      "verified_at": "2026-07-22T01:33:03.439193+00:00",
+      "notes": "The literal clean wrapper ran internal npm ci and exact Playwright provisioning."
+    },
+    {
+      "criterion_id": "NFR-009",
+      "description": "Corrupt storage, unresolved dependencies, contract drift, and license incompatibility have no silent fallback or destructive replacement.",
+      "proof_type": "automated_test",
+      "evidence": "Public contract, migration-negative, persistence, and runtime-license jobs in run 29881539727.",
+      "pass_fail": "pass",
+      "verified_by": "codex independent WP12 reviewer (event 01KY3Q8WJFZ2K809277E2GRV37)",
+      "verified_at": "2026-07-22T01:33:03.439193+00:00",
+      "notes": "Independent license deletion test turned red when the GPL-2 incompatibility branch was removed."
+    },
+    {
+      "criterion_id": "NFR-010",
+      "description": "Committed fixtures, examples, and CI evidence use only synthetic data and expose no secrets or client financial data.",
+      "proof_type": "code_review",
+      "evidence": "Independent WP12 review event 01KY3Q8WJFZ2K809277E2GRV37 and public workflow review.",
+      "pass_fail": "pass",
+      "verified_by": "codex independent WP12 reviewer (event 01KY3Q8WJFZ2K809277E2GRV37)",
+      "verified_at": "2026-07-22T01:33:03.439193+00:00",
+      "notes": "Workflow permissions, fixtures, logs, and evidence paths were reviewed for synthetic/redacted content."
+    },
+    {
+      "criterion_id": "NFR-011",
+      "description": "The distributed runtime has zero known GPL-3.0-only incompatibilities and preserves complete deterministic notices.",
+      "proof_type": "automated_test",
+      "evidence": "GitHub Actions runtime-license job 88803305108; raw evidence digest 40fe4189a84bf5487d8d19c31c32fb36536fc237e5a0230e510e20f72c3972a1.",
+      "pass_fail": "pass",
+      "verified_by": "codex independent WP12 reviewer (event 01KY3Q8WJFZ2K809277E2GRV37)",
+      "verified_at": "2026-07-22T01:33:03.439193+00:00",
+      "notes": "Sharp 0.35.3, libvips 8.18.3 LGPL-3.0-or-later relinking/source evidence, ShovelerDB GPL-3.0-only pin, and fail-closed policy all passed."
+    },
+    {
+      "criterion_id": "NFR-012",
+      "description": "Every service and web dependency used by a clean build is immutably pinned.",
+      "proof_type": "automated_test",
+      "evidence": "Public refs digest 4edda8125d6438cf2169e2134bcc9850132f671a7ff845486bf6e6b0c7e553ee; bootstrap job 88803305129.",
+      "pass_fail": "pass",
+      "verified_by": "codex independent WP12 reviewer (event 01KY3Q8WJFZ2K809277E2GRV37)",
+      "verified_at": "2026-07-22T01:33:03.439193+00:00",
+      "notes": "Exact Node/npm/Zig versions, npm lock integrity, action SHAs, source digests, ShovelerDB commit, and detached public tag were verified."
+    }
+  ],
+  "negative_invariants": []
+}
