@@ -4,6 +4,10 @@ const http_test_config = @import("http_test_config");
 pub const maximum_response_bytes = 64 * 1024;
 const ready_timeout = std.Io.Clock.Duration{ .raw = .fromSeconds(5), .clock = .awake };
 const request_timeout = std.Io.Clock.Duration{ .raw = .fromSeconds(3), .clock = .awake };
+pub const client_failure_containment_timeout = std.Io.Clock.Duration{
+    .raw = .fromSeconds(6),
+    .clock = .awake,
+};
 
 pub const Service = struct {
     allocator: std.mem.Allocator,
@@ -82,10 +86,22 @@ pub const Service = struct {
     }
 
     pub fn request(self: *const Service, raw_request: []const u8) ![]u8 {
+        return self.requestWithTimeout(raw_request, request_timeout);
+    }
+
+    pub fn requestAfterClientFailure(self: *const Service, raw_request: []const u8) ![]u8 {
+        return self.requestWithTimeout(raw_request, client_failure_containment_timeout);
+    }
+
+    fn requestWithTimeout(
+        self: *const Service,
+        raw_request: []const u8,
+        timeout: std.Io.Clock.Duration,
+    ) ![]u8 {
         var select_buffer: [2]RequestSelect = undefined;
         var select = std.Io.Select(RequestSelect).init(std.testing.io, &select_buffer);
         select.async(.request, roundTrip, .{ self.allocator, self.address, raw_request });
-        select.async(.timeout, waitRequestTimeout, .{});
+        select.async(.timeout, waitRequestTimeout, .{timeout});
         const selected = select.await() catch |err| switch (err) {
             error.Canceled => {
                 drainRequestSelect(&select, self.allocator);
@@ -93,13 +109,7 @@ pub const Service = struct {
             },
         };
         drainRequestSelect(&select, self.allocator);
-        return switch (selected) {
-            .timeout => error.RequestTimeout,
-            .request => |result| switch (result) {
-                .bytes => |bytes| bytes,
-                .failed => error.RequestFailed,
-            },
-        };
+        return resolveRequest(selected);
     }
 
     pub fn disconnect(self: *const Service, partial_request: []const u8) !void {
@@ -123,7 +133,7 @@ pub const Service = struct {
         var select_buffer: [2]CloseSelect = undefined;
         var select = std.Io.Select(CloseSelect).init(std.testing.io, &select_buffer);
         select.async(.peer, waitForPeerClosure, .{&reader});
-        select.async(.timeout, waitRequestTimeout, .{});
+        select.async(.timeout, waitRequestTimeout, .{request_timeout});
         const selected = select.await() catch |err| switch (err) {
             error.Canceled => {
                 select.cancelDiscard();
@@ -172,7 +182,7 @@ fn drainRequestSelect(
         .timeout => {},
         .request => |result| switch (result) {
             .bytes => |bytes| allocator.free(bytes),
-            .failed => {},
+            .connect_failed, .write_failed, .shutdown_failed, .read_failed => {},
         },
     };
 }
@@ -229,30 +239,59 @@ fn waitReadyTimeout(io: std.Io) void {
     ready_timeout.sleep(io) catch {};
 }
 
-const RequestResult = union(enum) { bytes: []u8, failed };
+const RequestResult = union(enum) {
+    bytes: []u8,
+    connect_failed,
+    write_failed,
+    shutdown_failed,
+    read_failed,
+};
 const RequestSelect = union(enum) { request: RequestResult, timeout: void };
+
+fn resolveRequest(selected: RequestSelect) ![]u8 {
+    return switch (selected) {
+        .timeout => error.RequestTimeout,
+        .request => |result| switch (result) {
+            .bytes => |bytes| bytes,
+            .connect_failed => error.RequestConnectFailed,
+            .write_failed => error.RequestWriteFailed,
+            .shutdown_failed => error.RequestShutdownFailed,
+            .read_failed => error.RequestReadFailed,
+        },
+    };
+}
 
 fn roundTrip(
     allocator: std.mem.Allocator,
     address: std.Io.net.IpAddress,
     raw_request: []const u8,
 ) RequestResult {
-    const stream = address.connect(std.testing.io, .{ .mode = .stream }) catch return .failed;
+    const stream = address.connect(std.testing.io, .{ .mode = .stream }) catch return .connect_failed;
     defer stream.close(std.testing.io);
     var write_buffer: [1024]u8 = undefined;
     var writer = stream.writer(std.testing.io, &write_buffer);
-    writer.interface.writeAll(raw_request) catch return .failed;
-    writer.interface.flush() catch return .failed;
-    stream.shutdown(std.testing.io, .send) catch return .failed;
+    writer.interface.writeAll(raw_request) catch return .write_failed;
+    writer.interface.flush() catch return .write_failed;
+    stream.shutdown(std.testing.io, .send) catch return .shutdown_failed;
     var read_buffer: [4096]u8 = undefined;
     var reader = stream.reader(std.testing.io, &read_buffer);
     const bytes = reader.interface.allocRemaining(
         allocator,
         .limited(maximum_response_bytes),
-    ) catch return .failed;
+    ) catch return .read_failed;
     return .{ .bytes = bytes };
 }
 
-fn waitRequestTimeout() void {
-    request_timeout.sleep(std.testing.io) catch {};
+fn waitRequestTimeout(timeout: std.Io.Clock.Duration) void {
+    timeout.sleep(std.testing.io) catch {};
+}
+
+test "request budgets and transport failures remain independently diagnosable" {
+    try std.testing.expectEqual(@as(i64, 3), request_timeout.raw.toSeconds());
+    try std.testing.expectEqual(@as(i64, 6), client_failure_containment_timeout.raw.toSeconds());
+    try std.testing.expectError(error.RequestTimeout, resolveRequest(.timeout));
+    try std.testing.expectError(error.RequestConnectFailed, resolveRequest(.{ .request = .connect_failed }));
+    try std.testing.expectError(error.RequestWriteFailed, resolveRequest(.{ .request = .write_failed }));
+    try std.testing.expectError(error.RequestShutdownFailed, resolveRequest(.{ .request = .shutdown_failed }));
+    try std.testing.expectError(error.RequestReadFailed, resolveRequest(.{ .request = .read_failed }));
 }
