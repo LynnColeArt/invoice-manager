@@ -204,10 +204,12 @@ production probe without expanding into WP10 application behavior:
    trailing-slash request instead of receiving a framework-owned redirect.
 2. In `tsconfig.json`, retain every accepted strictness option while changing the library from
    `ES2023` to `ES2024`, changing `jsx` from `preserve` to `react-jsx`, adding
-   `incremental: true`, and adding `.next/dev/types/**/*.ts` to `include`.
+   `incremental: true`, adding `.next/dev/types/**/*.ts` to `include`, and setting
+   `noUncheckedSideEffectImports: false` so a clean pre-build typecheck accepts locked Next.js
+   16.2.10's deterministic route-type side-effect import before `.next/types` exists.
 3. Format the corrected `tsconfig.json` with the accepted repository style so locked Next.js
    does not rewrite it. The expected SHA-256 is
-   `edd7c53f09f208e547ecb9f5fae6b8dbe60298b08d6e3ab52112a3942e95392c`.
+   `c36224bb0c4a2546c56709a2bfbca4c39b6c73f8945569fcd18c33e3e75b43f8`.
 4. Require corrected `next.config.ts` SHA-256
    `a6fbd459fab2c5103b177f0d50d19e7941e006a91a7aece417be37ecd6319496`.
 5. Create and commit locked Next.js 16.2.10's deterministic `apps/web/next-env.d.ts` with only
@@ -336,3 +338,5 @@ Run validation without installing packages or importing config modules through d
 - 2026-07-21T16:57:39Z – codex-wp09-clean-typecheck-fix – shell_pid=1807838 – Started implementation via action command
 - 2026-07-21T17:04:44Z – codex-wp09-clean-typecheck-fix – shell_pid=1807838 – Ready for independent review: ac4b0d2 fixes clean Next route type import; exact Node 24.18 typecheck and production build pass with immutable hashes
 - 2026-07-21T17:07:04Z – codex-wp09-clean-typecheck-review – shell_pid=1807838 – Started review via action command
+- 2026-07-21T17:14:39Z – codex-wp09-clean-typecheck-review – Restored commit 9bb096d's clean-typecheck authority after the review-start status sync clobbered it; independent exact Node 24.18.0 RED/GREEN and current-WP10 production-build stability evidence is recorded in review cycle 7.
+- 2026-07-21T17:18:48Z – user – shell_pid=1807838 – Review passed: cycle 7 independently reproduces TS2882 RED, corrected clean typecheck GREEN, exact locked substrate, and current-WP10 production-build byte stability; target artifact 3227a9d restores 9bb096d living authority

@@ -45,7 +45,7 @@ subtasks:
 - T057
 phase: Phase 6
 assignee: ''
-agent: codex
+agent: "codex"
 scope: codebase-wide
 history: []
 agent_profile: implementer-ivan
@@ -67,6 +67,7 @@ owned_files:
 role: implementer
 tags: []
 task_type: implement
+shell_pid: "1807838"
 ---
 
 # Work Package Prompt: WP12 – Foundation Acceptance and Program Handoff
@@ -86,7 +87,7 @@ If no profile is specified, run `spec-kitty agent profile list` and select the b
 ## Objective
 
 Close P0 with auditable evidence: independently diagnosable CI, one bounded full
-verification target, deterministic GPL-2.0-only runtime licensing, a clean-clone proof,
+verification target, deterministic GPL-3.0-only runtime licensing, a clean-clone proof,
 legal P0 manifest promotion, immutable real P1-P4 conformance, a real Zig-to-Next.js
 proxy/performance proof, and an accurate program handoff.
 
@@ -241,7 +242,9 @@ while measuring the real same-origin WP08+WP10 health path exactly as specified.
 **Purpose**
 
 Audit the actual distributed runtime closure deterministically and fail closed unless every
-component has explicit GPL-2.0-only-compatible evidence and preserved notices.
+component has explicit GPL-3.0-only-compatible evidence and preserved notices.
+Reject GPL-2.0-only components from the combined runtime while permitting
+separately licensed, non-distributed reference aggregates.
 
 **Steps**
 
@@ -256,7 +259,9 @@ component has explicit GPL-2.0-only-compatible evidence and preserved notices.
 7. For dual- or multi-licensed components, require a committed explicit selection of the
    compatible SPDX branch; never guess, auto-select, or silently change that selection.
 8. Fail on unknown, missing, ambiguous, custom, conflicting, or unselected license evidence.
-9. Fail GPL-3.0-only, incompatible Apache-2.0 combined-runtime code, and other incompatibility.
+9. Require GPL-3.0-only for project output; permit Apache-2.0 components only
+   with complete compatible license and notice evidence; fail GPL-2.0-only
+   combined-runtime code and every other incompatible or incomplete case.
 10. Allow separate build/orchestration tools only with deterministic proof they are not shipped.
 11. Keep nuanced linking/exception cases failing until explicit human legal review is recorded.
 12. Preserve every required copyright, license, and notice in the distribution.
@@ -400,7 +405,7 @@ documents it covers are still current, and make every next program action or blo
 8. Execute the exact resolver constant and require its output set to match the 18 required paths.
 9. With the trusted handoff value still loaded as `accepted_wp11_receipt_commit`, execute the exact schema `commands.drift` constant above without redefining the variable; require it to include the receipt path and block closure on any difference.
 10. Never edit quickstart, the receipt, schema, or any `kitty-specs/` artifact from WP12.
-11. Create a concise README with purpose, GPL-2.0-only status, supported baseline, immutable
+11. Create a concise README with purpose, GPL-3.0-only status, supported baseline, immutable
    quickstart link, prerequisites, clone/bootstrap, focused gates, aggregate, and local run.
 12. Document the same-origin health path and generated/owner-contribution rules.
 13. Document common failures with focused command and responsible owner.
@@ -487,3 +492,10 @@ documents it covers are still current, and make every next program action or blo
 - 2026-07-20T07:15:58Z – system – WP12 prompt adapted from the original closure package,
   remapped to T051-T057, and tightened for immutable conformance, real combined proxy timing,
   exact migration-negative, deterministic licensing, governed-doc sync, and manifest ownership.
+- 2026-07-21T18:46:39Z – codex-wp12-implementer – shell_pid=1807838 – Assigned agent via action command
+- 2026-07-21T20:27:57Z – codex-wp12-implementer – shell_pid=1807838 – Moved to planned
+- 2026-07-21T22:59:52Z – codex – shell_pid=1807838 – Started implementation via action command
+- 2026-07-21T23:50:03Z – codex – shell_pid=1807838 – Assigned agent via action command
+- 2026-07-22T01:01:05Z – codex – shell_pid=1807838 – Assigned agent via action command
+- 2026-07-22T01:19:32Z – codex – shell_pid=699250 – Forced only to preserve the accepted WP11 governed-document blobs on the lane; coordination-branch mission artifacts are older. Verified public candidate 57b3724f; closure commit 95b5848; public main and feature Actions runs green; focused contract, license, formatting, and governed-drift checks pass
+- 2026-07-22T01:20:44Z – codex – shell_pid=1807838 – Started review via action command
