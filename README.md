@@ -17,7 +17,7 @@ not P0 distribution artifacts.
 ## Supported baseline
 
 - Linux x86_64 with at least 4 logical CPUs and 16 GiB RAM for acceptance
-- Node.js 24.18.0
+- Node.js 24.22.1
 - npm 11.16.0
 - Zig 0.16.0
 - Git
