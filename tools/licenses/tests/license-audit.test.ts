@@ -302,7 +302,7 @@ describe("foundation workflow contract", () => {
     expect(workflow).toContain("run: npm run migration:negative");
     expect(workflow).toContain("npm run bootstrap:foundation");
     expect(workflow).toContain("npm run verify:foundation:clean");
-    expect(workflow).toContain("node-version: 24.18.0");
+    expect(workflow).toContain("node-version: 24.22.1");
     expect(workflow).toContain("NPM_VERSION: 11.16.0");
     expect(workflow).toContain("ZIG_VERSION: 0.16.0");
     expect(workflow).toContain("submodules: recursive");
@@ -370,7 +370,7 @@ describe("foundation workflow contract", () => {
       expect(
         job.steps.find((step) => step.uses?.startsWith("actions/setup-node@"))
           ?.with,
-      ).toMatchObject({ "node-version": "24.18.0", "check-latest": false });
+      ).toMatchObject({ "node-version": "24.22.1", "check-latest": false });
     }
     for (const jobName of [
       "contracts",

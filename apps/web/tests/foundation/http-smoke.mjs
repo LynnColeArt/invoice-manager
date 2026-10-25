@@ -427,7 +427,7 @@ async function scanFiles(directory, needle) {
 }
 
 async function innerMain() {
-  if (process.version !== "v24.18.0")
+  if (process.version !== "v24.22.1")
     throw new Error(`Node drift: ${process.version}`);
   const expectedParentNamespace = process.argv[3];
   const workerNamespace = await readlink("/proc/self/ns/net");
